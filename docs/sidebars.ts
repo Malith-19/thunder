@@ -151,11 +151,6 @@ const sidebars: SidebarsConfig = {
               id: 'guides/guides/applications/application-settings',
               label: 'Application Settings',
             },
-            {
-              type: 'doc',
-              id: 'guides/guides/applications/dynamic-client-registration',
-              label: 'Dynamic Client Registration',
-            },
           ],
         },
         {
@@ -167,7 +162,12 @@ const sidebars: SidebarsConfig = {
             {
               type: 'doc',
               id: 'guides/guides/protocols/oauth2',
-              label: 'OAuth 2.0',
+              label: 'OAuth 2.0 Configuration',
+            },
+            {
+              type: 'doc',
+              id: 'guides/guides/protocols/dynamic-client-registration',
+              label: 'Dynamic Client Registration',
             },
           ],
         },
@@ -201,67 +201,27 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'category',
-          label: 'Integrations',
+          label: 'Agents',
           collapsed: true,
           collapsible: true,
           items: [
             {
-              type: 'category',
-              label: 'Identity Providers',
-              collapsed: true,
-              collapsible: true,
-              items: [
-                {
-                  type: 'doc',
-                  id: 'guides/guides/identity-providers/overview',
-                  label: 'What are Identity Providers?',
-                },
-                {
-                  type: 'doc',
-                  id: 'guides/guides/identity-providers/manage-identity-providers',
-                  label: 'Manage Identity Providers',
-                },
-                {
-                  type: 'doc',
-                  id: 'guides/guides/identity-providers/add-google',
-                  label: 'Add Google',
-                },
-                {
-                  type: 'doc',
-                  id: 'guides/guides/identity-providers/add-github',
-                  label: 'Add GitHub',
-                },
-                {
-                  type: 'doc',
-                  id: 'guides/guides/identity-providers/add-oidc-provider',
-                  label: 'Add an OIDC Provider',
-                },
-                {
-                  type: 'doc',
-                  id: 'guides/guides/identity-providers/add-oauth-provider',
-                  label: 'Add an OAuth 2.0 Provider',
-                },
-                {
-                  type: 'doc',
-                  id: 'guides/guides/identity-providers/connect-idp-to-application',
-                  label: 'Connect to an Application',
-                },
-              ],
+              type: 'doc',
+              id: 'guides/guides/agents/manage-agents',
+              label: 'Manage Agents',
             },
             {
-              type: 'category',
-              label: 'Notifications',
-              collapsed: true,
-              collapsible: true,
-              items: [
-                {
-                  type: 'doc',
-                  id: 'guides/guides/notifications/sms-providers',
-                  label: 'SMS Providers',
-                },
-              ],
+              type: 'doc',
+              id: 'guides/guides/agents/agent-authentication',
+              label: 'Agent Authentication',
+              key: 'guides-agent-authentication',
             },
           ],
+        },
+        {
+          type: 'doc',
+          id: 'guides/guides/integrations',
+          label: 'Integrations',
         },
         {
           type: 'doc',
@@ -348,7 +308,7 @@ const sidebars: SidebarsConfig = {
           collapsible: true,
           collapsed: true,
           items: [
-            {type: 'doc', id: 'use-cases/ai-agents/agent-authentication', label: 'Agent Authentication'},
+            {type: 'doc', id: 'use-cases/ai-agents/agent-authentication', label: 'Agent Authentication', key: 'use-cases-agent-authentication'},
           ],
         },
       ],

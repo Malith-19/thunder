@@ -7,9 +7,7 @@ description: Reference for all OAuth 2.0 settings on a registered application in
 
 # OAuth 2.0 Configuration
 
-Each application in <ProductName /> carries an OAuth 2.0 configuration that controls which flows are permitted, how tokens are issued, and how the client authenticates.
-
-There is no separate endpoint for OAuth 2.0 configuration. The configuration lives inside the application resource as the `inboundAuthConfig[].config` object and is managed through the application API (`POST /applications`, `PUT /applications/{id}`) or via [Dynamic Client Registration](../applications/dynamic-client-registration).
+This reference covers all OAuth 2.0 configuration options available for registered clients in <ProductName />, including grant types, client authentication methods, token settings, and advanced security options.
 
 ## Grant Types
 
@@ -47,14 +45,6 @@ The `tokenEndpointAuthMethod` field controls how the client proves its identity 
 
 <ProductName /> automatically sets `pkceRequired` to `true` for public clients (`publicClient: true`). For confidential clients, enabling PKCE adds protection against authorization code interception attacks.
 
-## Pushed Authorization Requests
-
-`requirePushedAuthorizationRequests` controls whether the client must submit authorization parameters to the `/oauth2/par` endpoint before starting the authorization flow, as defined in RFC 9126.
-
-When set to `true`, <ProductName /> rejects any authorization request that arrives directly at the authorization endpoint without a prior PAR submission. This prevents sensitive request parameters from appearing in browser URLs or server logs.
-
-You can also enforce Pushed Authorization Requests (PAR) globally for all clients by setting `oauth.par.require_par: true` in `deployment.yaml`. The per-application flag adds an additional per-client enforcement layer on top of the global setting.
-
 ## Scopes
 
 The `scopes` field lists the OAuth 2.0 scopes this client may request. <ProductName /> rejects requests for scopes outside this list.
@@ -73,16 +63,6 @@ The `scopeClaims` field maps scope names to the user attributes returned in toke
 ```
 
 When a client requests the `profile` scope, <ProductName /> includes `given_name`, `family_name`, and `picture` in the ID token and userinfo response. Scopes without an entry in `scopeClaims` return no extra claims.
-
-## Default ACR Values
-
-The `acrValues` field sets the default Authentication Context Class Reference (ACR) values for authorization requests that do not include `acr_values`. <ProductName /> applies these values when selecting which authentication flow to run.
-
-```json
-{
-  "acrValues": ["urn:mace:incommon:iap:silver"]
-}
-```
 
 ## Token Configuration
 
@@ -107,7 +87,7 @@ The `token` field controls the validity periods and user attributes embedded in 
 
 ID token encryption requires a certificate on the application. See [Certificate Configuration](#certificate-configuration).
 
-## UserInfo Configuration
+## Userinfo
 
 The `userInfo` field controls what the `/userinfo` endpoint returns and in what format.
 
@@ -127,7 +107,7 @@ The `certificate` field attaches a public key to the application. A certificate 
 
 - `private_key_jwt` token endpoint authentication
 - ID token encryption
-- UserInfo signing or encryption
+- Userinfo signing or encryption
 
 | Certificate Type | Description |
 |---|---|
@@ -137,8 +117,26 @@ The `certificate` field attaches a public key to the application. A certificate 
 
 You cannot set both `JWKS` and `JWKS_URI` on the same application. Providing both returns an error.
 
+## Pushed Authorization Requests
+
+`requirePushedAuthorizationRequests` controls whether the client must submit authorization parameters to the `/oauth2/par` endpoint before starting the authorization flow, as defined in RFC 9126.
+
+When set to `true`, <ProductName /> rejects any authorization request that arrives directly at the authorization endpoint without a prior PAR submission. This prevents sensitive request parameters from appearing in browser URLs or server logs.
+
+You can also enforce Pushed Authorization Requests (PAR) globally for all clients by setting `oauth.par.require_par: true` in `deployment.yaml`. The per-application flag adds an additional per-client enforcement layer on top of the global setting.
+
+## Default ACR Values
+
+The `acrValues` field sets the default Authentication Context Class Reference (ACR) values for authorization requests that do not include `acr_values`. <ProductName /> applies these values when selecting which authentication flow to run.
+
+```json
+{
+  "acrValues": ["urn:mace:incommon:iap:silver"]
+}
+```
+
 ## Related Guides
 
 - [Application Settings](../applications/application-settings) — Configure flows, tokens, consent, and appearance from the Console
 - [Manage Applications](../applications/manage-applications) — Register and manage applications
-- [Dynamic Client Registration](../applications/dynamic-client-registration) — Register clients programmatically
+- [Dynamic Client Registration](./dynamic-client-registration) — Register clients programmatically

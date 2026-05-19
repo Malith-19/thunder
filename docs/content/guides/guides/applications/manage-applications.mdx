@@ -13,7 +13,7 @@ Each application holds:
 
 - A **Client ID** (and optionally a **Client Secret**) used in OAuth 2.0 flows.
 - An **authentication flow** that defines the steps users follow to sign in.
-- An optional **registration flow** for self-service user sign-up.
+- An optional **registration and recovery flow** for self-service user sign-up and recovery.
 - OAuth 2.0 settings including redirect URIs, grant types, scopes, and token configuration.
 
 ## Application Types
@@ -33,38 +33,43 @@ Follow these steps in the <ProductName /> Console to register a new application.
 
 <Stepper stepNode="h3" as="h3">
 
-### Step 1: Enter Basic Details
+### Step 1: Select Technology or Application Type
 
 1. Sign in to the <ProductName /> Console.
 2. Navigate to **Applications** → **Add Application**.
-3. Enter an **Application Name**. This name identifies the application in the Console and may be visible to users on the consent screen.
+3. Pick your **Technology** if your framework is listed (for example, React). <ProductName /> uses this to pre-configure the right defaults and SDK integration. If your framework isn't listed, select an **Application Type** directly instead.
 
-### Step 2: Customize the Appearance
+### Step 2: Enter Application Name
+
+Enter an **Application Name**. This name identifies the application in the Console and may be visible to users on the consent screen.
+
+### Step 3: Customize the Appearance
 
 Choose an **Application Logo** from the available icons, or click **Shuffle** to cycle through options. This logo appears on the sign-in page and consent screen.
 
-Select a **Theme**. **Classic** or **High Contrast** for the authentication pages of this application.
+Select a **Theme** — **Classic** or **High Contrast** — for the authentication pages of this application.
 
+:::note
+Backend Service applications skip the appearance, sign-in options, and sign-in experience steps and go directly to the creation step.
+:::
 
-### Step 3: Select Sign-In Options
+### Step 4: Select Sign-In Options
 
 Select the sign-in methods users will use to authenticate with this application (for example, Username & Password, Google, or Apple). At least one option is required.
 
-### Step 4: Configure the Sign-In Experience
+### Step 5: Configure the Sign-In Experience
 
 **Sign-In Approach** determines how users reach the sign-in experience:
 
-- **Redirect to <ProductName /> sign-in/sign-up handling pages** (recommended) - users are redirected to <ProductName />-hosted sign-in pages. You can customize these pages with the Flow Designer and integrate with SDKs.
-- **Embedded sign-in/sign-up components in your app** - the sign-in experience renders inside your application using <ProductName />'s UI components or APIs. No redirect occurs.
+- **Redirect to <ProductName /> sign-in/sign-up handling pages** (recommended) — users are redirected to <ProductName />-hosted sign-in pages. You can customize these pages with the Flow Designer and integrate with SDKs.
+- **Embedded sign-in/sign-up components in your app** — the sign-in experience renders inside your application using <ProductName />'s UI components or APIs. No redirect occurs.
 
-**User Access** controls which user types can authenticate with this application. Select one or more of the allowed user types (for example, **Customer** or **Person**). Only users of the selected types can sign in.
+**User Access** controls which user types can register with this application. Select one or more of the allowed user types (for example, **Customer** or **Person**).
 Learn more about user types in [User Types](../users/user-types).
 
-### Step 5: Select Technology or Application Type
+### Step 6: Configure Redirect URIs
 
-Pick your **Technology** if your framework is listed (for example, React). <ProductName /> uses this to pre-configure the right defaults and SDK integration. If your framework isn't listed, select an **Application Type** directly instead.
-
-For Browser Apps, Full-stack Apps, and Mobile Apps, enter one or more **Authorized Redirect URIs**, the URLs <ProductName /> sends users back to after authentication.
+For Browser Apps, Full-stack Apps, and Mobile Apps, enter one or more **Authorized Redirect URIs** — the URLs <ProductName /> sends users back to after authentication.
 
 | Application Type | Redirect URI Format |
 |-----------------|---------------------|
@@ -73,11 +78,11 @@ For Browser Apps, Full-stack Apps, and Mobile Apps, enter one or more **Authoriz
 | Mobile App | `com.example.app://auth/callback` (deep link) or `https://yourapp.example.com/auth/callback` (universal link) |
 | Backend Service | Not required |
 
-### Step 6: Create Application
+### Step 7: Create Application
 
-After creating your application, <ProductName /> generates a **Client ID** which you can find from the **General** tab of the created application.
+After creating your application, <ProductName /> generates a **Client ID** which you can find on the **General** tab of the created application.
 
-For confidential clients, <ProductName /> also generates a **Client Secret** and shows it to you once during creation.
+For confidential clients (Full-stack App and Backend Service), <ProductName /> also generates a **Client Secret** and displays it once during creation.
 
 :::warning
 Copy and store your **Client Secret** before clicking **Continue**. <ProductName /> never shows it again. Treat it with the same level of security as a password. Never expose it in browser console, version control, or logs.
@@ -110,3 +115,4 @@ Deleting an application is permanent. Any client using the application's Client 
 
 - [Application Settings](./application-settings) - Configure OAuth 2.0, tokens, flows, and consent for your application
 - [Flows](../flows/what-is-flows) - Build and assign custom authentication and registration flows
+- [Dynamic Client Registration](../protocols/dynamic-client-registration) - Register OAuth 2.0 clients programmatically without using the Console
