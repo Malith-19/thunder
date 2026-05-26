@@ -1,0 +1,61 @@
+---
+title: Try In Your Own App
+description: Configure {{ProductName}} for each B2C use case and integrate it into your own application.
+sidebar_position: 4
+---
+
+import {NextSteps, NextStepsCard} from '../../../src/components/NextSteps';
+
+# Try In Your Own App
+
+Each walkthrough below configures <ProductName /> for one B2C use case and points you at the SDK documentation for the integration code. Your application handles the UI; <ProductName /> handles identity.
+
+:::tip Already following Try It Out?
+This path is for integrating <ProductName /> into your own app. If you'd rather see the use cases running against a pre-built sample, see [Try It Out](../try-it-out).
+:::
+
+## Prerequisites
+
+- <ProductName /> running locally. Follow [Get <ProductName />](/docs/next/guides/getting-started/get-thunderid) if you haven't already.
+- A consumer app integrated with <ProductName /> for sign-in. If you are starting fresh, complete the quickstart for your framework under [Connect Your Application](/docs/next/guides/getting-started/connect-your-application/) before continuing here.
+
+## Coverage
+
+Each walkthrough supports four integration approaches from [Solution Patterns](../solution-patterns). Redirect-based is available now; the others follow as SDK support ships.
+
+|                           | [Login](./add-login) | [Sign-Up](./self-sign-up) | [Profile](./profile-section) | [Recovery](./account-recovery) | [Onboarding](./onboard-internal-users) |
+| ------------------------- | :------: | :-------: | :-------: | :--------: | :-----------: |
+| Redirect-based            |    ✅    |     ✅    |     ✅    |     ✅     |      ✅       |
+| App-native step-by-step   |    🚧    |     🚧    |     🚧    |     🚧     |      🚧       |
+| App-native managed        |    🚧    |     🚧    |     🚧    |     🚧     |      🚧       |
+| Direct API                |    🚧    |     🚧    |     🚧    |     🚧     |      🚧       |
+
+## Walkthroughs
+
+<NextSteps>
+  <NextStepsCard
+    title="Login"
+    description="Configure sign-in and wire it into your app."
+    href="./add-login"
+  />
+  <NextStepsCard
+    title="Self Sign-Up"
+    description="Let new users register themselves with email and password."
+    href="./self-sign-up"
+  />
+  <NextStepsCard
+    title="View Profile"
+    description="Display and update a user's profile attributes and password."
+    href="./profile-section"
+  />
+  <NextStepsCard
+    title="Account Recovery"
+    description="Let users reset a forgotten password through an email link."
+    href="./account-recovery"
+  />
+  <NextStepsCard
+    title="Onboard Internal Users"
+    description="Invite staff by email and provision them with the right role on accept."
+    href="./onboard-internal-users"
+  />
+</NextSteps>
