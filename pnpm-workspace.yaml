@@ -121,6 +121,8 @@ overrides:
   js-cookie: 3.0.7
   # JUSTIFICATION: @langchain/langgraph requires uuid@^10.0.0 (not yet bumped upstream to v11). Fixes predictable RNG vulnerability in uuid < 11.1.1.
   uuid: 11.1.1
+  # JUSTIFICATION: `tmp` is a transitive dependency of `nx`. Versions < 0.2.6 are vulnerable to Path Traversal (GHSA-ph9p-34f9-6g65).
+  tmp: '0.2.6'
 
 packageExtensions:
   '@hookform/resolvers':
