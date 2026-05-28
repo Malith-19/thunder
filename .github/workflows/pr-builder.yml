@@ -321,10 +321,9 @@ jobs:
         id: filter
         env:
           BASE_SHA: ${{ github.event_name == 'merge_group' && github.event.merge_group.base_sha || github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event_name == 'merge_group' && github.sha || github.event.pull_request.head.sha }}
         run: |
           git fetch --depth=1 origin "$BASE_SHA"
-          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          CHANGED=$(git diff --name-only "$BASE_SHA" HEAD)
           echo "Changed files:"
           echo "$CHANGED"
           NON_DOCS=$(echo "$CHANGED" | grep -v '^docs/' | grep -c . || true)
