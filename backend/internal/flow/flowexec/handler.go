@@ -100,6 +100,8 @@ func handleFlowError(w http.ResponseWriter, flowErr *serviceerror.ServiceError) 
 	statusCode := http.StatusInternalServerError
 	if flowErr.Type == serviceerror.ClientErrorType {
 		statusCode = http.StatusBadRequest
+	} else if flowErr.Type == serviceerror.ForbiddenErrorType {
+		statusCode = http.StatusForbidden
 	}
 
 	sysutils.WriteErrorResponse(w, statusCode, errResp)
