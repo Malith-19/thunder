@@ -29,14 +29,13 @@
     "test:packages": "nx run-many --target=test --projects=frontend/packages/*",
     "i18n:extract": "pnpm i18next-cli sync"
   },
-  "devDependencies": {
-    "@axe-core/playwright": "catalog:",
-    "@playwright/test": "catalog:",
-    "@thunderid/eslint-plugin": "workspace:^",
-    "@thunderid/logger": "workspace:^",
-    "@thunderid/prettier-config": "workspace:^",
-    "i18next-cli": "1.51.3",
-    "nx": "catalog:",
-    "rimraf": "catalog:"
-  }
+  "pnpm": {
+    "overrides": {
+    "vite": "catalog:",
+    "@asgardeo/i18n": "file:../../javascript/packages/i18n",
+    "@asgardeo/browser": "file:../../javascript/packages/browser",
+    "@asgardeo/javascript": "file:../../javascript/packages/javascript",
+    "@asgardeo/react": "file:../../javascript/packages/react"
+    }
+    }
 }

@@ -433,7 +433,15 @@ const SignIn: FC<SignInProps> = ({
 
     const effectiveApplicationId: any = applicationId || urlParams.applicationId;
 
-    if (!urlParams.executionId && !effectiveApplicationId) {
+    // On a page refresh the executionId is no longer in the URL (it is scrubbed by
+    // cleanupFlowUrlParams after the first load). Fall back to the executionId persisted in
+    // sessionStorage so the in-progress flow can be resumed instead of starting a new flow.
+    // This is required for authorization_code apps where direct new-flow initiation is blocked
+    // server-side and the flow must be initiated through the OAuth /authorize endpoint.
+    const storedExecutionId: any = !urlParams.executionId ? sessionStorage.getItem('thunderid_execution_id') : null;
+    const resumeExecutionId: any = urlParams.executionId || storedExecutionId;
+
+    if (!resumeExecutionId && !effectiveApplicationId) {
       const error: any = new ThunderIDRuntimeError(
         'Either executionId or applicationId is required for authentication',
         'SIGN_IN_ERROR',
@@ -448,11 +456,37 @@ const SignIn: FC<SignInProps> = ({
 
       let response: EmbeddedSignInFlowResponseV2;
 
-      if (urlParams.executionId) {
-        response = (await signIn({
-          executionId: urlParams.executionId,
-          ...(challengeTokenRef.current ? {challengeToken: challengeTokenRef.current} : {}),
-        })) as EmbeddedSignInFlowResponseV2;
+      if (resumeExecutionId) {
+        try {
+          response = (await signIn({
+            executionId: resumeExecutionId,
+            ...(challengeTokenRef.current ? {challengeToken: challengeTokenRef.current} : {}),
+          })) as EmbeddedSignInFlowResponseV2;
+        } catch (resumeError) {
+          // A persisted executionId can refer to a flow that has expired, completed, or no longer
+          // exists. The flow cannot be resumed, so clear the stale value and either restart a new
+          // flow (when an applicationId is available) or surface a graceful session-expired message.
+          if (storedExecutionId && resumeExecutionId === storedExecutionId) {
+            setExecutionId(null);
+            if (!effectiveApplicationId) {
+              const expiredError: any = new ThunderIDRuntimeError(
+                t('errors.signin.session.expired') ||
+                  'Your session has expired. Please return to the application and sign in again.',
+                'SIGN_IN_ERROR',
+                'react',
+              );
+              setError(expiredError);
+              return;
+            }
+            response = (await signIn({
+              applicationId: effectiveApplicationId,
+              flowType: EmbeddedFlowType.Authentication,
+              ...(scopes && {scopes}),
+            })) as EmbeddedSignInFlowResponseV2;
+          } else {
+            throw resumeError;
+          }
+        }
       } else {
         response = (await signIn({
           applicationId: effectiveApplicationId,
@@ -517,10 +551,13 @@ const SignIn: FC<SignInProps> = ({
   }, []);
 
   useEffect(() => {
-    // Only initialize if we're not processing an OAuth callback or submission
+    // Only initialize if we're not processing an OAuth callback or submission.
+    // Wait for isStorageReady so the challenge token is restored from storage before
+    // we attempt to resume a persisted executionId — the server requires it.
     const currentUrlParams: any = getUrlParams();
     if (
       isInitialized &&
+      isStorageReady &&
       !isLoading &&
       isStorageReady &&
       !isFlowInitialized &&
@@ -534,7 +571,7 @@ const SignIn: FC<SignInProps> = ({
       initializationAttemptedRef.current = true;
       initializeFlow();
     }
-  }, [isInitialized, isLoading, isStorageReady, isFlowInitialized, currentExecutionId]);
+  }, [isInitialized, isStorageReady, isLoading, isStorageReady, isFlowInitialized, currentExecutionId]);
 
   /**
    * Handle step timeout if configured in additionalData.
