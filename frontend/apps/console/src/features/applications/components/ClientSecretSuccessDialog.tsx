@@ -42,9 +42,17 @@ export interface ClientSecretSuccessDialogProps {
    */
   open: boolean;
   /**
-   * The new client secret to display
+   * The new secret to display
    */
   clientSecret: string;
+  /**
+   * Optional override for the dialog title. Defaults to the client secret title.
+   */
+  title?: string;
+  /**
+   * Optional override for the secret field label. Defaults to the client secret label.
+   */
+  secretLabel?: string;
   /**
    * Callback when the dialog should be closed
    */
@@ -63,6 +71,8 @@ export interface ClientSecretSuccessDialogProps {
 export default function ClientSecretSuccessDialog({
   open,
   clientSecret,
+  title = undefined,
+  secretLabel = undefined,
   onClose,
 }: ClientSecretSuccessDialogProps): JSX.Element {
   const {t} = useTranslation();
@@ -117,7 +127,7 @@ export default function ClientSecretSuccessDialog({
           {/* Header */}
           <Stack direction="column" spacing={1} sx={{textAlign: 'center'}}>
             <Typography variant="h5" component="h2">
-              {t('applications:regenerateSecret.success.title')}
+              {title ?? t('applications:regenerateSecret.success.title')}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {t('applications:regenerateSecret.success.subtitle')}
@@ -136,7 +146,7 @@ export default function ClientSecretSuccessDialog({
           >
             <Box>
               <Typography variant="caption" color="text.secondary" sx={{display: 'block', mb: 1}}>
-                {t('applications:regenerateSecret.success.secretLabel')}
+                {secretLabel ?? t('applications:regenerateSecret.success.secretLabel')}
               </Typography>
               <TextField
                 fullWidth

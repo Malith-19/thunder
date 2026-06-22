@@ -150,6 +150,31 @@ You can select multiple user types. If no user types are configured, all user ty
 
 To rotate the client secret, open the application's **OAuth** tab and click **Regenerate Secret**.
 
+### App Secret
+
+The **App Secret** is a credential separate from the Client Secret. <ProductName /> issues an App Secret only to applications that can initiate a sign-in flow directly — Backend Services and server-side apps using embedded sign-in (any non-public app that does **not** use the redirect-based `authorization_code` flow). Applications that sign in by redirect (Browser Apps, Mobile Apps, and redirect-based Full-stack Apps) initiate their flows through the OAuth component and are not issued an App Secret.
+
+The two credentials serve different purposes:
+
+- The **Client Secret** authenticates your application at the OAuth 2.0 **token endpoint**.
+- The **App Secret** authenticates your application when it **initiates a sign-in flow directly** via the Flow Execution API (`POST /flow/execute`) — the embedded sign-in path used by server-side applications.
+
+An application may hold both. Copy the App Secret from the application details page immediately after creation — like the Client Secret, it is shown only once. To rotate it later, open the application's settings and click **Regenerate App Secret**.
+
+Pass the App Secret in the `appSecret` field when starting a new flow:
+
+```json
+{
+  "applicationId": "<clientId>",
+  "appSecret": "<appSecret>",
+  "flowType": "AUTHENTICATION",
+  "action": "INIT",
+  "inputs": {}
+}
+```
+
+Any application configured with the redirect-based `authorization_code` grant — whether public (Browser Apps, Mobile Apps) or confidential (Full-stack Apps) — cannot initiate a flow directly and must use the redirect-based sign-in flow; such requests are rejected with `403 Forbidden`. Every other application — one without a redirect-based OAuth profile, or a server-side embedded app with no OAuth profile at all — must present a valid App Secret. Flow **continuation** requests (those carrying an `executionId`) do not require the App Secret.
+
 ### Redirect URIs
 
 Redirect URIs are the URLs <ProductName /> sends the authorization code (or token) to after a successful sign-in. You must register every URI your application uses.

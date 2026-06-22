@@ -1692,6 +1692,159 @@ func (suite *ServiceTestSuite) TestCreateApplication_WithOAuthCertificate_Succes
 	assert.Equal(suite.T(), `{"keys":[]}`, result.InboundAuthConfig[0].OAuthConfig.Certificate.Value)
 }
 
+func (suite *ServiceTestSuite) TestCreateApplication_IssuesAppSecretForNonPublicClient() {
+	testConfig := &config.Config{DeclarativeResources: config.DeclarativeResources{Enabled: false}}
+	config.ResetServerRuntime()
+	require.NoError(suite.T(), config.InitializeServerRuntime("/tmp/test", testConfig))
+	defer config.ResetServerRuntime()
+
+	service, mockStore := suite.setupTestService()
+
+	// An embedded server-side app: no OAuth config, so no OAuth profile.
+	app := &model.ApplicationDTO{
+		Name: "Embedded App",
+		OUID: testOUID,
+		InboundAuthProfile: inboundmodel.InboundAuthProfile{
+			AuthFlowID: "auth-flow-id",
+		},
+	}
+
+	var capturedCreds json.RawMessage
+	ep := resetEntityProviderMethod(service, "CreateEntity")
+	ep.On("CreateEntity", mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			capturedCreds = args.Get(1).(json.RawMessage)
+		}).
+		Return(&entityprovider.Entity{}, (*entityprovider.EntityProviderError)(nil))
+	mockStore.On("CreateInboundClient",
+		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	result, svcErr := service.CreateApplication(context.Background(), app)
+
+	require.Nil(suite.T(), svcErr)
+	require.NotNil(suite.T(), result)
+	// The App Secret is surfaced once on creation.
+	assert.NotEmpty(suite.T(), result.AppSecret)
+	// It is persisted to system credentials under the appSecret key.
+	require.NotNil(suite.T(), capturedCreds)
+	var creds map[string]interface{}
+	require.NoError(suite.T(), json.Unmarshal(capturedCreds, &creds))
+	assert.Equal(suite.T(), result.AppSecret, creds[fieldAppSecret])
+}
+
+func (suite *ServiceTestSuite) TestCreateApplication_NoAppSecretForRedirectClient() {
+	testConfig := &config.Config{DeclarativeResources: config.DeclarativeResources{Enabled: false}}
+	config.ResetServerRuntime()
+	require.NoError(suite.T(), config.InitializeServerRuntime("/tmp/test", testConfig))
+	defer config.ResetServerRuntime()
+
+	service, mockStore := suite.setupTestService()
+
+	// A confidential full-stack app using the redirect-based authorization_code flow. It gets a
+	// client secret but no App Secret, since it cannot initiate flows directly.
+	app := &model.ApplicationDTO{
+		Name: "Full-stack App",
+		OUID: testOUID,
+		InboundAuthProfile: inboundmodel.InboundAuthProfile{
+			AuthFlowID: "auth-flow-id",
+		},
+		InboundAuthConfig: []inboundmodel.InboundAuthConfigWithSecret{
+			{
+				Type: inboundmodel.OAuthInboundAuthType,
+				OAuthConfig: &inboundmodel.OAuthConfigWithSecret{
+					ClientID:                testClientID,
+					RedirectURIs:            []string{"https://example.com/callback"},
+					GrantTypes:              []oauth2const.GrantType{oauth2const.GrantTypeAuthorizationCode},
+					ResponseTypes:           []oauth2const.ResponseType{oauth2const.ResponseTypeCode},
+					TokenEndpointAuthMethod: oauth2const.TokenEndpointAuthMethodClientSecretBasic,
+					PublicClient:            false,
+				},
+			},
+		},
+	}
+
+	var capturedCreds json.RawMessage
+	ep := resetEntityProviderMethod(service, "CreateEntity")
+	ep.On("CreateEntity", mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			capturedCreds = args.Get(1).(json.RawMessage)
+		}).
+		Return(&entityprovider.Entity{}, (*entityprovider.EntityProviderError)(nil))
+	mockStore.On("CreateInboundClient",
+		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	result, svcErr := service.CreateApplication(context.Background(), app)
+
+	require.Nil(suite.T(), svcErr)
+	require.NotNil(suite.T(), result)
+	// Redirect-based apps never receive an App Secret.
+	assert.Empty(suite.T(), result.AppSecret)
+	if capturedCreds != nil {
+		var creds map[string]interface{}
+		require.NoError(suite.T(), json.Unmarshal(capturedCreds, &creds))
+		_, hasAppSecret := creds[fieldAppSecret]
+		assert.False(suite.T(), hasAppSecret)
+	}
+}
+
+func (suite *ServiceTestSuite) TestCreateApplication_NoAppSecretForPublicClient() {
+	testConfig := &config.Config{DeclarativeResources: config.DeclarativeResources{Enabled: false}}
+	config.ResetServerRuntime()
+	require.NoError(suite.T(), config.InitializeServerRuntime("/tmp/test", testConfig))
+	defer config.ResetServerRuntime()
+
+	service, mockStore := suite.setupTestService()
+
+	// A browser SPA: public client, no client secret.
+	app := &model.ApplicationDTO{
+		Name: "SPA App",
+		OUID: testOUID,
+		InboundAuthProfile: inboundmodel.InboundAuthProfile{
+			AuthFlowID: "auth-flow-id",
+		},
+		InboundAuthConfig: []inboundmodel.InboundAuthConfigWithSecret{
+			{
+				Type: inboundmodel.OAuthInboundAuthType,
+				OAuthConfig: &inboundmodel.OAuthConfigWithSecret{
+					ClientID:                testClientID,
+					RedirectURIs:            []string{"https://example.com/callback"},
+					GrantTypes:              []oauth2const.GrantType{oauth2const.GrantTypeAuthorizationCode},
+					ResponseTypes:           []oauth2const.ResponseType{oauth2const.ResponseTypeCode},
+					TokenEndpointAuthMethod: oauth2const.TokenEndpointAuthMethodNone,
+					PublicClient:            true,
+					PKCERequired:            true,
+				},
+			},
+		},
+	}
+
+	var capturedCreds json.RawMessage
+	ep := resetEntityProviderMethod(service, "CreateEntity")
+	ep.On("CreateEntity", mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			capturedCreds = args.Get(1).(json.RawMessage)
+		}).
+		Return(&entityprovider.Entity{}, (*entityprovider.EntityProviderError)(nil))
+	mockStore.On("CreateInboundClient",
+		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	result, svcErr := service.CreateApplication(context.Background(), app)
+
+	require.Nil(suite.T(), svcErr)
+	require.NotNil(suite.T(), result)
+	// Public clients never receive an App Secret.
+	assert.Empty(suite.T(), result.AppSecret)
+	if capturedCreds != nil {
+		var creds map[string]interface{}
+		require.NoError(suite.T(), json.Unmarshal(capturedCreds, &creds))
+		_, hasAppSecret := creds[fieldAppSecret]
+		assert.False(suite.T(), hasAppSecret)
+	}
+}
+
 func (suite *ServiceTestSuite) TestCreateApplication_StoreErrorWithOAuthCertRollback() {
 	testConfig := &config.Config{
 		DeclarativeResources: config.DeclarativeResources{
@@ -3523,15 +3676,15 @@ func (suite *ServiceTestSuite) TestUpdateEntityDataForApplicationUpdate_UpdateSy
 	assert.Equal(suite.T(), &serviceerror.InternalServerError, svcErr)
 }
 
-func (suite *ServiceTestSuite) TestUpdateEntityDataForApplicationUpdate_ClearCredentialsError() {
+func (suite *ServiceTestSuite) TestUpdateEntityDataForApplicationUpdate_AppSecretUpdateError() {
 	service, _ := suite.setupTestService()
 
-	app := &model.ApplicationDTO{Name: "Test App", OUID: testOUID}
+	app := &model.ApplicationDTO{Name: "Test App", OUID: testOUID, AppSecret: "new-app-secret"}
 
 	ep := resetEntityProviderMethod(service, "UpdateSystemCredentials")
 	ep.On("UpdateSystemCredentials", mock.Anything, mock.Anything).
 		Return(entityprovider.NewEntityProviderError(
-			entityprovider.ErrorCodeSystemError, "clear failed", ""))
+			entityprovider.ErrorCodeSystemError, "update failed", ""))
 
 	svcErr := service.updateEntityDataForApplicationUpdate(context.Background(), testServiceAppID, app, nil)
 

@@ -382,7 +382,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		agentService,
 	)
 
-	flowExecService, err := flowexec.Initialize(mux, flowMgtService, actorProvider,
+	flowExecService, err := flowexec.Initialize(mux, flowMgtService, actorProvider, entityService,
 		execRegistry, interceptorRegistry, observabilitySvc, runtimeCryptoSvc, flowconfig.FromServerRuntime())
 	if err != nil {
 		logger.Fatal(ctx, "Failed to initialize flow execution service", log.Error(err))

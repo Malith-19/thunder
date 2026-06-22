@@ -165,3 +165,33 @@ var ErrorDirectFlowInitiationNotPermitted = serviceerror.ServiceError{
 		DefaultValue: "Direct flow initiation is not permitted for this application type",
 	},
 }
+
+// ErrorAppSecretRequired defines the error when a backend application initiates a new flow
+// without providing its App Secret.
+var ErrorAppSecretRequired = serviceerror.ServiceError{
+	Code: "FES-1012",
+	Type: serviceerror.ClientErrorType,
+	Error: core.I18nMessage{
+		Key:          "error.flowexecservice.app_secret_required",
+		DefaultValue: "Authentication required",
+	},
+	ErrorDescription: core.I18nMessage{
+		Key:          "error.flowexecservice.app_secret_required_description",
+		DefaultValue: "Backend applications must provide a valid App Secret to initiate a new flow",
+	},
+}
+
+// ErrorAppSecretInvalid defines the error when a backend application provides an incorrect
+// App Secret when initiating a new flow.
+var ErrorAppSecretInvalid = serviceerror.ServiceError{
+	Code: "FES-1013",
+	Type: serviceerror.ClientErrorType,
+	Error: core.I18nMessage{
+		Key:          "error.flowexecservice.app_secret_invalid",
+		DefaultValue: "Authentication failed",
+	},
+	ErrorDescription: core.I18nMessage{
+		Key:          "error.flowexecservice.app_secret_invalid_description",
+		DefaultValue: "The provided App Secret is invalid",
+	},
+}

@@ -310,7 +310,9 @@ func makeAppEntityParser(
 			return nil, nil, nil, fmt.Errorf("failed to build system attributes: %w", err)
 		}
 
-		sysCredsJSON, err := buildSystemCredentials(clientSecret)
+		// Declarative resources do not get an auto-generated App Secret; an explicitly declared
+		// value is honored to keep declarative definitions deterministic.
+		sysCredsJSON, err := buildSystemCredentials(clientSecret, appDTO.AppSecret)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to build system credentials: %w", err)
 		}
