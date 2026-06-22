@@ -22,6 +22,7 @@ import (
 	"net/http"
 
 	"github.com/thunder-id/thunderid/internal/actorprovider"
+	"github.com/thunder-id/thunderid/internal/entity"
 	flowconfig "github.com/thunder-id/thunderid/internal/flow/config"
 	"github.com/thunder-id/thunderid/internal/flow/executor"
 	"github.com/thunder-id/thunderid/internal/flow/interceptor"
@@ -38,6 +39,7 @@ func Initialize(
 	mux *http.ServeMux,
 	flowProvider FlowProviderInterface,
 	actorProvider actorprovider.ActorProviderInterface,
+	entitySvc entity.EntityServiceInterface,
 	executorRegistry executor.ExecutorRegistryInterface,
 	interceptorRegistry interceptor.InterceptorRegistryInterface,
 	observabilitySvc observability.ObservabilityServiceInterface,
@@ -62,7 +64,7 @@ func Initialize(
 	interceptorRunner := newInterceptorRunner(interceptorRegistry)
 	flowEngine := newFlowEngine(executorRegistry, interceptorRunner, observabilitySvc)
 	flowExecService := newFlowExecService(flowProvider, flowStore, flowEngine,
-		actorProvider, observabilitySvc, transactioner, cryptoSvc, cfg)
+		actorProvider, entitySvc, observabilitySvc, transactioner, cryptoSvc, cfg)
 
 	handler := newFlowExecutionHandler(flowExecService)
 	registerRoutes(mux, handler)

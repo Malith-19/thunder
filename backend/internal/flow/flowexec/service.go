@@ -26,6 +26,7 @@ import (
 	"slices"
 
 	"github.com/thunder-id/thunderid/internal/actorprovider"
+	"github.com/thunder-id/thunderid/internal/entity"
 	"github.com/thunder-id/thunderid/internal/flow/common"
 	flowconfig "github.com/thunder-id/thunderid/internal/flow/config"
 	oauth2const "github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
@@ -45,6 +46,8 @@ const (
 	defaultRegistrationFlowExpiry   int64 = 3600  // 60 minutes in seconds
 	defaultUserOnboardingFlowExpiry int64 = 86400 // 24 hours in seconds
 	defaultRecoveryFlowExpiry       int64 = 1800  // 30 minutes in seconds
+
+	fieldClientSecret = "clientSecret"
 )
 
 // flowExecService is the implementation of FlowExecServiceInterface
@@ -53,6 +56,7 @@ type flowExecService struct {
 	flowProvider     FlowProviderInterface
 	flowStore        flowStoreInterface
 	actorProvider    actorprovider.ActorProviderInterface
+	entitySvc        entity.EntityServiceInterface
 	observabilitySvc observability.ObservabilityServiceInterface
 	transactioner    transaction.Transactioner
 	cryptoSvc        kmprovider.RuntimeCryptoProvider
@@ -62,6 +66,7 @@ type flowExecService struct {
 func newFlowExecService(flowProvider FlowProviderInterface,
 	flowStore flowStoreInterface, flowEngine flowEngineInterface,
 	actorProvider actorprovider.ActorProviderInterface,
+	entitySvc entity.EntityServiceInterface,
 	observabilitySvc observability.ObservabilityServiceInterface,
 	transactioner transaction.Transactioner,
 	cryptoSvc kmprovider.RuntimeCryptoProvider,
@@ -71,6 +76,7 @@ func newFlowExecService(flowProvider FlowProviderInterface,
 		flowStore:        flowStore,
 		flowEngine:       flowEngine,
 		actorProvider:    actorProvider,
+		entitySvc:        entitySvc,
 		observabilitySvc: observabilitySvc,
 		transactioner:    transactioner,
 		cryptoSvc:        cryptoSvc,
@@ -81,7 +87,7 @@ func newFlowExecService(flowProvider FlowProviderInterface,
 // Execute executes a flow with the given data
 func (s *flowExecService) Execute(ctx context.Context,
 	appID, executionID, flowType string, verbose bool,
-	action string, inputs map[string]string, challengeToken string) (
+	action string, inputs map[string]string, challengeToken, appSecret string) (
 	*FlowStep, *serviceerror.ServiceError) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "FlowExecService"))
 
@@ -92,7 +98,7 @@ func (s *flowExecService) Execute(ctx context.Context,
 	var loadErr *serviceerror.ServiceError
 
 	if isNewFlow(executionID) {
-		engineCtx, loadErr = s.loadNewContext(ctx, appID, flowType, verbose, action, inputs, logger)
+		engineCtx, loadErr = s.loadNewContext(ctx, appID, flowType, verbose, action, inputs, appSecret, logger)
 		if loadErr != nil {
 			logger.Error(ctx, "Failed to load new flow context",
 				log.String("appID", appID),
@@ -170,14 +176,14 @@ func (s *flowExecService) Execute(ctx context.Context,
 
 // initContext initializes a new flow context with the given details.
 func (s *flowExecService) loadNewContext(ctx context.Context, appID, flowTypeStr string, verbose bool,
-	action string, inputs map[string]string, logger *log.Logger) (
+	action string, inputs map[string]string, appSecret string, logger *log.Logger) (
 	*EngineContext, *serviceerror.ServiceError) {
 	flowType, err := validateFlowType(flowTypeStr)
 	if err != nil {
 		return nil, err
 	}
 
-	if svcErr := s.checkDirectFlowInitiationAllowed(ctx, appID, flowType, logger); svcErr != nil {
+	if svcErr := s.checkDirectFlowInitiationAllowed(ctx, appID, flowType, appSecret, logger); svcErr != nil {
 		return nil, svcErr
 	}
 
@@ -193,10 +199,11 @@ func (s *flowExecService) loadNewContext(ctx context.Context, appID, flowTypeStr
 // checkDirectFlowInitiationAllowed returns an error if the application's grant type does not
 // permit direct HTTP initiation of an authentication flow. Applications configured with the
 // authorization_code grant type must have their authentication flows initiated by the OAuth
-// component, not via a direct HTTP call. Other flow types (registration, recovery, user
-// onboarding) are not subject to this restriction.
+// component, not via a direct HTTP call. Backend applications (confidential clients without
+// authorization_code) must authenticate with their App Secret. Other flow types (registration,
+// recovery, user onboarding) are not subject to this restriction.
 func (s *flowExecService) checkDirectFlowInitiationAllowed(ctx context.Context, appID string,
-	flowType common.FlowType, logger *log.Logger) *serviceerror.ServiceError {
+	flowType common.FlowType, appSecret string, logger *log.Logger) *serviceerror.ServiceError {
 	if flowType != common.FlowTypeAuthentication {
 		return nil
 	}
@@ -220,6 +227,23 @@ func (s *flowExecService) checkDirectFlowInitiationAllowed(ctx context.Context, 
 	if slices.Contains(oauthProfile.GrantTypes, string(oauth2const.GrantTypeAuthorizationCode)) {
 		return &ErrorDirectFlowInitiationNotPermitted
 	}
+
+	// Backend applications are confidential clients (non-public) that do not use the
+	// redirect-based authorization_code flow. They must authenticate at flow initiation
+	// by presenting their App Secret.
+	if !oauthProfile.PublicClient {
+		if appSecret == "" {
+			return &ErrorAppSecretRequired
+		}
+		_, authErr := s.entitySvc.AuthenticateEntityByID(ctx, appID,
+			map[string]interface{}{fieldClientSecret: appSecret})
+		if authErr != nil {
+			logger.Warn(ctx, "Backend application provided an invalid App Secret",
+				log.String("appID", appID))
+			return &ErrorAppSecretInvalid
+		}
+	}
+
 	return nil
 }
 

@@ -150,6 +150,22 @@ You can select multiple user types. If no user types are configured, all user ty
 
 To rotate the client secret, open the application's **OAuth** tab and click **Regenerate Secret**.
 
+:::note App Secret for Backend Services
+Backend Services use the **Client Secret** as the **App Secret** when initiating authentication flows directly via the Flow Execution API. Pass the `appSecret` field in `POST /flow/execute` when starting a new flow:
+
+```json
+{
+  "applicationId": "<clientId>",
+  "appSecret": "<clientSecret>",
+  "flowType": "AUTHENTICATION",
+  "action": "INIT",
+  "inputs": {}
+}
+```
+
+Flow continuation requests (those with an `executionId`) do not require the App Secret.
+:::
+
 ### Redirect URIs
 
 Redirect URIs are the URLs <ProductName /> sends the authorization code (or token) to after a successful sign-in. You must register every URI your application uses.
