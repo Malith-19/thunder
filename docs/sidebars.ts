@@ -116,11 +116,6 @@ const sidebars: SidebarsConfig = {
           id: 'guides/working-with-ai/mcp-server',
           label: 'MCP Server',
         },
-        {
-          type: 'doc',
-          id: 'guides/working-with-ai/get-started-with-mcp',
-          label: 'Getting Started with MCP',
-        },
       ],
     },
 
@@ -255,6 +250,12 @@ const sidebars: SidebarsConfig = {
                   id: 'use-cases/ai-agents/solution-patterns',
                   label: 'Solution Patterns',
                   key: 'ai-agents-solution-patterns',
+                },
+                {
+                  type: 'doc',
+                  id: 'use-cases/ai-agents/identity-concepts',
+                  label: 'Identity Concepts',
+                  key: 'ai-agents-identity-concepts',
                 },
                 {
                   type: 'category',
@@ -408,6 +409,11 @@ const sidebars: SidebarsConfig = {
             },
             {
               type: 'doc',
+              id: 'guides/guides/users/manage-roles',
+              label: 'Manage Roles',
+            },
+            {
+              type: 'doc',
               id: 'guides/guides/users/user-types',
               label: 'User Types',
             },
@@ -428,6 +434,11 @@ const sidebars: SidebarsConfig = {
               type: 'doc',
               id: 'guides/guides/agents/manage-agents',
               label: 'Manage Agents',
+            },
+            {
+              type: 'doc',
+              id: 'guides/guides/agents/agent-authentication',
+              label: 'Agent Authentication',
             },
           ],
         },

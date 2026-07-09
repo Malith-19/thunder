@@ -1628,6 +1628,9 @@ const translations = {
     // Delete dialog
     'delete.title': 'Delete connection',
     'delete.message': 'Are you sure you want to delete “{{name}}”? This action cannot be undone.',
+    'delete.usages.loading': 'Checking affected resources…',
+    'delete.usages.more': '+{{count}} more',
+    'delete.blocking.title': 'This connection cannot be deleted until the following resources are updated or removed:',
 
     // Toasts
     'create.success': 'Connection created successfully.',
@@ -2750,6 +2753,12 @@ const translations = {
     'core.executions.names.httpRequest': 'HTTP Request',
     'core.executions.names.ouCreation': 'OU Creation',
     'core.executions.names.userTypeResolver': 'User Type Resolver',
+
+    // OTP executor
+    'core.executions.otp.description': 'Configure the OTP executor settings.',
+    'core.executions.otp.maxAttempts.label': 'Maximum Attempts',
+    'core.executions.otp.maxAttempts.placeholder': 'e.g., 3',
+    'core.executions.otp.maxAttempts.hint': 'The maximum number of OTP verification attempts before the flow fails.',
 
     // SMS OTP executor modes
     'core.executions.smsOtp.mode.send': 'Send OTP',

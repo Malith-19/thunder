@@ -169,7 +169,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	}
 	exporters = append(exporters, serverConfigExporter)
 
-	// CORS origins now come from the merged server-config cors section.
+	// CORS origins come from the server-config cors section.
 	cors.InitializeDynamicMatcher(serverConfigService)
 
 	ouAuthzService, err := sysauthz.Initialize()
@@ -269,7 +269,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		logger.Fatal(ctx, "Failed to initialize template service", log.Error(err))
 	}
 
-	_, otpService, notifSenderSvc, notificationExporter, err := notification.Initialize(
+	notifSenderMgtSvc, notifOTPService, notifSenderSvc, notificationExporter, err := notification.Initialize(
 		mux, jwtService, templateService)
 	if err != nil {
 		logger.Fatal(ctx, "Failed to initialize NotificationService", log.Error(err))
@@ -283,7 +283,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	magicLinkService := magiclink.Initialize(jwtService)
 
 	// Initialize otp core service
-	otpCoreService := otp.Initialize(otpService)
+	otpCoreService := otp.Initialize(notifOTPService)
 
 	// Initialize federated authentication services.
 	oauthAuthnService := authnOAuth.Initialize(idpService, entityProvider)
@@ -316,7 +316,8 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	consentEnforcer := authnConsent.Initialize(consentService, jwtService)
 
 	authn.Initialize(mux, mcpServer, idpService, jwtService, authnProvider, authAssertGen, passkeyService,
-		otpCoreService, magicLinkService, oauthAuthnService, oidcAuthnService, googleAuthnService, githubAuthnService)
+		otpCoreService, notifSenderSvc, templateService, magicLinkService, oauthAuthnService, oidcAuthnService,
+		googleAuthnService, githubAuthnService)
 
 	attributeCacheService := attributecache.Initialize()
 
@@ -399,9 +400,19 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	}
 	exporters = append(exporters, agentExporter)
 
-	// Wire the dependency registry into the theme and flow services (two-phase init to avoid
-	// cyclic imports).
-	registerDependencyRegistry(themeMgtService, flowMgtService, userService, applicationService, agentService)
+	// Wire the dependency registry into the consuming services (two-phase init to avoid cyclic
+	// imports). flowMgtService is both a consumer and a provider: it reports which flows reference an
+	// identity provider or notification sender.
+	registerDependencyRegistry(dependencyConsumers{
+		theme:       themeMgtService,
+		flow:        flowMgtService,
+		user:        userService,
+		idp:         idpService,
+		notifSender: notifSenderMgtSvc,
+		application: applicationService,
+		agent:       agentService,
+		group:       groupService,
+	}, applicationService, agentService, flowMgtService, roleAssignmentService, groupService)
 
 	// Initialize design resolve service for theme and layout resolution
 	designResolveService := resolve.Initialize(mux, themeMgtService, layoutMgtService, applicationService)
@@ -464,18 +475,31 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	return jwtService, runtimeCryptoSvc, importService
 }
 
-// registerDependencyRegistry builds the dependency registry from the given providers and wires
-// it into the theme, flow and user management services.
-func registerDependencyRegistry(
-	themeMgtService thememgt.ThemeMgtServiceInterface,
-	flowMgtService flowmgt.FlowMgtServiceInterface,
-	userService user.UserServiceInterface,
-	providers ...resourcedependency.Provider,
-) {
+// dependencyConsumers groups the services that check the dependency registry before deleting their
+// own resources.
+type dependencyConsumers struct {
+	theme       thememgt.ThemeMgtServiceInterface
+	flow        flowmgt.FlowMgtServiceInterface
+	user        user.UserServiceInterface
+	idp         idp.IDPServiceInterface
+	notifSender notification.NotificationSenderMgtSvcInterface
+	application application.ApplicationServiceInterface
+	agent       agent.AgentServiceInterface
+	group       group.GroupServiceInterface
+}
+
+// registerDependencyRegistry builds the dependency registry from the given providers and wires it
+// into the consuming services.
+func registerDependencyRegistry(consumers dependencyConsumers, providers ...resourcedependency.Provider) {
 	registry := resourcedependency.Initialize(providers...)
-	themeMgtService.SetDependencyRegistry(registry)
-	flowMgtService.SetDependencyRegistry(registry)
-	userService.SetDependencyRegistry(registry)
+	consumers.theme.SetDependencyRegistry(registry)
+	consumers.flow.SetDependencyRegistry(registry)
+	consumers.user.SetDependencyRegistry(registry)
+	consumers.idp.SetDependencyRegistry(registry)
+	consumers.notifSender.SetDependencyRegistry(registry)
+	consumers.application.SetDependencyRegistry(registry)
+	consumers.agent.SetDependencyRegistry(registry)
+	consumers.group.SetDependencyRegistry(registry)
 }
 
 // unregisterServices unregisters all services that require cleanup during shutdown.
