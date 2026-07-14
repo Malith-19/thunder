@@ -1,0 +1,1 @@
+var e={CREDENTIALS_AUTH:`credentials_auth`,PASSKEY:`passkey`};export{e as t};

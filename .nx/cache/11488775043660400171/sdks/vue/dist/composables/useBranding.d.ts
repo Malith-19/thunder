@@ -1,0 +1,44 @@
+/**
+ * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import type { BrandingContextValue } from '../models/contexts';
+/**
+ * Composable for accessing branding preference data.
+ *
+ * Must be called inside a component that is a descendant of `<ThunderIDProvider>`.
+ *
+ * @returns {BrandingContextValue} The branding context with preferences, theme, and fetch operations.
+ * @throws {Error} If called outside of `<ThunderIDProvider>`.
+ *
+ * @example
+ * ```vue
+ * <script setup>
+ * import { useBranding } from '@thunderid/vue';
+ *
+ * const { brandingPreference, theme, isLoading, fetchBranding } = useBranding();
+ * </script>
+ *
+ * <template>
+ *   <div v-if="!isLoading">
+ *     <img :src="brandingPreference?.images?.logo?.imgURL" alt="Logo" />
+ *   </div>
+ * </template>
+ * ```
+ */
+declare const useBranding: () => BrandingContextValue;
+export default useBranding;
+//# sourceMappingURL=useBranding.d.ts.map

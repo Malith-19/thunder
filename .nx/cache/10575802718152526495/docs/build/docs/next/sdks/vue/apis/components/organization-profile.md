@@ -1,0 +1,52 @@
+# <OrganizationProfile />
+
+# ``
+
+The `OrganizationProfile` component renders the details of the current organization. When `editable` is enabled, admins can update organization settings inline.
+
+## Usage
+
+### Basic Usage
+
+```vue title="src/OrgSettingsPage.vue" showLineNumbers
+<script setup>
+
+</script>
+
+<template>
+
+    <h1>Organization Settings</h1>
+
+
+</template>
+```
+
+### Editable Mode With Update Handler
+
+Enable inline editing and supply an `onUpdate` handler to persist changes to your backend:
+
+```vue title="src/OrgSettingsPage.vue" showLineNumbers
+<script setup>
+
+async function handleUpdate(payload) {
+  // Persist changes to your backend
+  await fetch('/api/organizations/current', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+</script>
+
+<template>
+
+</template>
+```
+
+## Props
+
+| Prop | Type | Required | Description |
+| :--- | :--- | :---: | :--- |
+| `title` | `string` | ❌ | Card header title. Defaults to `'Organization Profile'`. |
+| `editable` | `boolean` | ❌ | Enables inline editing of organization fields. Defaults to `false`. |
+| `onUpdate` | `(payload: Record<string, unknown>) => Promise<void>` | ❌ | Handler invoked when the user submits an edit |
+| `className` | `string` | ❌ | Extra CSS class added to the root element |

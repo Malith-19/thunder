@@ -1,0 +1,1066 @@
+{
+  "item": [
+    {
+      "id": "fb1f2072-286b-40f6-adf8-38068bb5b195",
+      "name": "AuthZEN",
+      "description": {
+        "content": "AuthZEN policy decision point and access evaluation APIs.",
+        "type": "text/plain"
+      },
+      "item": [
+        {
+          "id": "2f709848-f009-4a09-8fcb-34a88c35c7ff",
+          "name": "Get AuthZEN PDP metadata",
+          "request": {
+            "name": "Get AuthZEN PDP metadata",
+            "description": {
+              "content": "Returns metadata for the AuthZEN policy decision point and the supported access API endpoints.",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                ".well-known",
+                "authzen-configuration"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{host}}",
+                  "key": "host"
+                },
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{port}}",
+                  "key": "port"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "auth": null
+          },
+          "response": [
+            {
+              "id": "96628f89-3cf3-465a-a8b3-121ed095c95e",
+              "name": "AuthZEN metadata response.",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    ".well-known",
+                    "authzen-configuration"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"policy_decision_point\": \"<uri>\",\n  \"access_evaluation_endpoint\": \"<uri>\",\n  \"access_evaluations_endpoint\": \"<uri>\",\n  \"search_action_endpoint\": \"<uri>\"\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            }
+          ],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "id": "37a3f755-fd4e-49c6-8641-717b6cd6a263",
+          "name": "Evaluate access",
+          "request": {
+            "name": "Evaluate access",
+            "description": {
+              "content": "Evaluates whether a subject can perform an action on a resource.\n\nThe resource `type` maps to a ThunderID resource server handle. The action `name`\nmaps to a permission registered under that resource server. If the subject type is\nomitted, subject type validation is skipped. Unknown resources and unregistered actions\nare returned as denied decisions with an error context instead of transport errors.\n",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "access",
+                "v1",
+                "evaluation"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{host}}",
+                  "key": "host"
+                },
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{port}}",
+                  "key": "port"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "auth": null,
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": {\n    \"id\": \"<string>\",\n    \"type\": \"<string>\",\n    \"properties\": {\n      \"labore_7\": \"Lorem officia magna voluptate\",\n      \"eiusmod_25\": \"consectetur cillum in sint nulla\",\n      \"ea_2c\": -12620243.00741437,\n      \"reprehenderit6e\": -77607674\n    }\n  },\n  \"resource\": {\n    \"type\": \"<string>\",\n    \"id\": \"<string>\",\n    \"properties\": {\n      \"eue\": -36867265\n    }\n  },\n  \"action\": {\n    \"name\": \"<string>\",\n    \"properties\": {\n      \"magna_bb\": 35282969.99073863,\n      \"irure8\": \"velit\",\n      \"dolore_8\": -24124076\n    }\n  },\n  \"context\": {\n    \"exercitation_b\": \"commodo qui laboris aute sed\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "9366e51d-6748-4dc5-8e62-d28c97760e9a",
+              "name": "Access evaluation result.",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "access",
+                    "v1",
+                    "evaluation"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"subject\": {\n    \"id\": \"<string>\",\n    \"type\": \"<string>\",\n    \"properties\": {\n      \"labore_7\": \"Lorem officia magna voluptate\",\n      \"eiusmod_25\": \"consectetur cillum in sint nulla\",\n      \"ea_2c\": -12620243.00741437,\n      \"reprehenderit6e\": -77607674\n    }\n  },\n  \"resource\": {\n    \"type\": \"<string>\",\n    \"id\": \"<string>\",\n    \"properties\": {\n      \"eue\": -36867265\n    }\n  },\n  \"action\": {\n    \"name\": \"<string>\",\n    \"properties\": {\n      \"magna_bb\": 35282969.99073863,\n      \"irure8\": \"velit\",\n      \"dolore_8\": -24124076\n    }\n  },\n  \"context\": {\n    \"exercitation_b\": \"commodo qui laboris aute sed\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"decision\": \"<boolean>\",\n  \"context\": {\n    \"occaecat68_\": 1028687,\n    \"dolore_4\": false\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "a002ceb0-e851-4719-a55a-b8dfe711fff2",
+              "name": "Invalid AuthZEN request.",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "access",
+                    "v1",
+                    "evaluation"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"subject\": {\n    \"id\": \"<string>\",\n    \"type\": \"<string>\",\n    \"properties\": {\n      \"labore_7\": \"Lorem officia magna voluptate\",\n      \"eiusmod_25\": \"consectetur cillum in sint nulla\",\n      \"ea_2c\": -12620243.00741437,\n      \"reprehenderit6e\": -77607674\n    }\n  },\n  \"resource\": {\n    \"type\": \"<string>\",\n    \"id\": \"<string>\",\n    \"properties\": {\n      \"eue\": -36867265\n    }\n  },\n  \"action\": {\n    \"name\": \"<string>\",\n    \"properties\": {\n      \"magna_bb\": 35282969.99073863,\n      \"irure8\": \"velit\",\n      \"dolore_8\": -24124076\n    }\n  },\n  \"context\": {\n    \"exercitation_b\": \"commodo qui laboris aute sed\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"<string>\"\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "d4d64a41-1b3f-4d79-9260-1829eaaf4fec",
+              "name": "AuthZEN server error.",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "access",
+                    "v1",
+                    "evaluation"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"subject\": {\n    \"id\": \"<string>\",\n    \"type\": \"<string>\",\n    \"properties\": {\n      \"labore_7\": \"Lorem officia magna voluptate\",\n      \"eiusmod_25\": \"consectetur cillum in sint nulla\",\n      \"ea_2c\": -12620243.00741437,\n      \"reprehenderit6e\": -77607674\n    }\n  },\n  \"resource\": {\n    \"type\": \"<string>\",\n    \"id\": \"<string>\",\n    \"properties\": {\n      \"eue\": -36867265\n    }\n  },\n  \"action\": {\n    \"name\": \"<string>\",\n    \"properties\": {\n      \"magna_bb\": 35282969.99073863,\n      \"irure8\": \"velit\",\n      \"dolore_8\": -24124076\n    }\n  },\n  \"context\": {\n    \"exercitation_b\": \"commodo qui laboris aute sed\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"<string>\"\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            }
+          ],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "id": "218ce9bf-dd89-494c-ae09-a23970f942b7",
+          "name": "Evaluate access in batch",
+          "request": {
+            "name": "Evaluate access in batch",
+            "description": {
+              "content": "Evaluates multiple access requests and preserves the request order in the response.\nItem-level validation failures are returned as denied decisions with an explanatory\ncontext where possible. An empty `evaluations` array returns a transport error.\n",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "access",
+                "v1",
+                "evaluations"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{host}}",
+                  "key": "host"
+                },
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{port}}",
+                  "key": "port"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "auth": null,
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"evaluations\": [\n    {\n      \"subject\": {\n        \"id\": \"<string>\",\n        \"type\": \"<string>\",\n        \"properties\": {\n          \"quic\": -65892889\n        }\n      },\n      \"resource\": {\n        \"type\": \"<string>\",\n        \"id\": \"<string>\",\n        \"properties\": {\n          \"adipisicing98\": -69922680\n        }\n      },\n      \"action\": {\n        \"name\": \"<string>\",\n        \"properties\": {\n          \"culpa0\": \"id ut culpa in\"\n        }\n      },\n      \"context\": {\n        \"ametc\": false,\n        \"laborum432\": -74310714\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "8b5ef5b6-200b-4896-b048-099c5e90aeda",
+              "name": "Batched access evaluation result.",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "access",
+                    "v1",
+                    "evaluations"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"evaluations\": [\n    {\n      \"subject\": {\n        \"id\": \"<string>\",\n        \"type\": \"<string>\",\n        \"properties\": {\n          \"quic\": -65892889\n        }\n      },\n      \"resource\": {\n        \"type\": \"<string>\",\n        \"id\": \"<string>\",\n        \"properties\": {\n          \"adipisicing98\": -69922680\n        }\n      },\n      \"action\": {\n        \"name\": \"<string>\",\n        \"properties\": {\n          \"culpa0\": \"id ut culpa in\"\n        }\n      },\n      \"context\": {\n        \"ametc\": false,\n        \"laborum432\": -74310714\n      }\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"evaluations\": [\n    {\n      \"decision\": \"<boolean>\",\n      \"context\": {\n        \"dolor08b\": -99759915.54352324,\n        \"occaecat10\": -89032111\n      }\n    },\n    {\n      \"decision\": \"<boolean>\",\n      \"context\": {\n        \"ullamcoa98\": \"consectetur velit\"\n      }\n    }\n  ]\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "ffe2d32f-714e-4647-99a9-33e2e7916916",
+              "name": "Invalid AuthZEN request.",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "access",
+                    "v1",
+                    "evaluations"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"evaluations\": [\n    {\n      \"subject\": {\n        \"id\": \"<string>\",\n        \"type\": \"<string>\",\n        \"properties\": {\n          \"quic\": -65892889\n        }\n      },\n      \"resource\": {\n        \"type\": \"<string>\",\n        \"id\": \"<string>\",\n        \"properties\": {\n          \"adipisicing98\": -69922680\n        }\n      },\n      \"action\": {\n        \"name\": \"<string>\",\n        \"properties\": {\n          \"culpa0\": \"id ut culpa in\"\n        }\n      },\n      \"context\": {\n        \"ametc\": false,\n        \"laborum432\": -74310714\n      }\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"<string>\"\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "2fea96be-a90d-41b3-a04c-476265506243",
+              "name": "AuthZEN server error.",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "access",
+                    "v1",
+                    "evaluations"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"evaluations\": [\n    {\n      \"subject\": {\n        \"id\": \"<string>\",\n        \"type\": \"<string>\",\n        \"properties\": {\n          \"quic\": -65892889\n        }\n      },\n      \"resource\": {\n        \"type\": \"<string>\",\n        \"id\": \"<string>\",\n        \"properties\": {\n          \"adipisicing98\": -69922680\n        }\n      },\n      \"action\": {\n        \"name\": \"<string>\",\n        \"properties\": {\n          \"culpa0\": \"id ut culpa in\"\n        }\n      },\n      \"context\": {\n        \"ametc\": false,\n        \"laborum432\": -74310714\n      }\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"<string>\"\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            }
+          ],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "id": "2375e37f-97ba-4335-a44b-80de0b4dd28b",
+          "name": "Search allowed actions",
+          "request": {
+            "name": "Search allowed actions",
+            "description": {
+              "content": "Returns the actions that the subject is authorized to perform on the resource.",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "access",
+                "v1",
+                "search",
+                "action"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{host}}",
+                  "key": "host"
+                },
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{port}}",
+                  "key": "port"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "auth": null,
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": {\n    \"id\": \"<string>\",\n    \"type\": \"<string>\",\n    \"properties\": {\n      \"ea_1\": 18133231.329009905,\n      \"in7\": true\n    }\n  },\n  \"resource\": {\n    \"type\": \"<string>\",\n    \"id\": \"<string>\",\n    \"properties\": {\n      \"quid5\": -52192408,\n      \"quis96\": -53741839.968242\n    }\n  },\n  \"context\": {\n    \"ut0b\": \"ea dolore sunt dolor\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "06dbfdac-176e-4afb-9388-e5c31feb657e",
+              "name": "Allowed action search result.",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "access",
+                    "v1",
+                    "search",
+                    "action"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"subject\": {\n    \"id\": \"<string>\",\n    \"type\": \"<string>\",\n    \"properties\": {\n      \"ea_1\": 18133231.329009905,\n      \"in7\": true\n    }\n  },\n  \"resource\": {\n    \"type\": \"<string>\",\n    \"id\": \"<string>\",\n    \"properties\": {\n      \"quid5\": -52192408,\n      \"quis96\": -53741839.968242\n    }\n  },\n  \"context\": {\n    \"ut0b\": \"ea dolore sunt dolor\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"results\": [\n    {\n      \"name\": \"<string>\",\n      \"properties\": {\n        \"dolor_c\": false,\n        \"fugiat16\": 18333706,\n        \"culpa_10\": 45497739,\n        \"in_\": false\n      }\n    },\n    {\n      \"name\": \"<string>\",\n      \"properties\": {\n        \"ex1a\": 23749146.4804942,\n        \"ut_58\": -75963441.73584206\n      }\n    }\n  ]\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "54ca6843-d29f-4714-aa03-6759a8cfa593",
+              "name": "Invalid AuthZEN request.",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "access",
+                    "v1",
+                    "search",
+                    "action"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"subject\": {\n    \"id\": \"<string>\",\n    \"type\": \"<string>\",\n    \"properties\": {\n      \"ea_1\": 18133231.329009905,\n      \"in7\": true\n    }\n  },\n  \"resource\": {\n    \"type\": \"<string>\",\n    \"id\": \"<string>\",\n    \"properties\": {\n      \"quid5\": -52192408,\n      \"quis96\": -53741839.968242\n    }\n  },\n  \"context\": {\n    \"ut0b\": \"ea dolore sunt dolor\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"<string>\"\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "36bac82d-d1c8-45c1-bf14-48a6a1348bcd",
+              "name": "AuthZEN server error.",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "access",
+                    "v1",
+                    "search",
+                    "action"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"subject\": {\n    \"id\": \"<string>\",\n    \"type\": \"<string>\",\n    \"properties\": {\n      \"ea_1\": 18133231.329009905,\n      \"in7\": true\n    }\n  },\n  \"resource\": {\n    \"type\": \"<string>\",\n    \"id\": \"<string>\",\n    \"properties\": {\n      \"quid5\": -52192408,\n      \"quis96\": -53741839.968242\n    }\n  },\n  \"context\": {\n    \"ut0b\": \"ea dolore sunt dolor\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"<string>\"\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            }
+          ],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        }
+      ],
+      "event": []
+    }
+  ],
+  "event": [],
+  "variable": [
+    {
+      "description": {
+        "content": "",
+        "type": "text/plain"
+      },
+      "type": "any",
+      "value": "localhost",
+      "key": "host"
+    },
+    {
+      "description": {
+        "content": "",
+        "type": "text/plain"
+      },
+      "type": "any",
+      "value": "8090",
+      "key": "port"
+    },
+    {
+      "type": "string",
+      "value": "https://{{host}}:{{port}}",
+      "key": "baseUrl"
+    },
+    {
+      "key": "clientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clientSecret",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "oauth2",
+    "oauth2": [
+      {
+        "key": "grant_type",
+        "value": "client_credentials"
+      },
+      {
+        "key": "accessTokenUrl",
+        "value": "{{baseUrl}}/oauth2/token"
+      },
+      {
+        "key": "clientId",
+        "value": "{{clientId}}"
+      },
+      {
+        "key": "clientSecret",
+        "value": "{{clientSecret}}"
+      },
+      {
+        "key": "scope",
+        "value": "system"
+      },
+      {
+        "key": "addTokenTo",
+        "value": "header"
+      }
+    ]
+  },
+  "info": {
+    "_postman_id": "8c64ee2c-d726-48b0-abbd-6a33197dd5a9",
+    "name": "AuthZEN API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": {
+      "content": "AuthZEN policy decision point discovery, access evaluation, batch evaluation, and action search endpoints.",
+      "type": "text/plain"
+    }
+  }
+}

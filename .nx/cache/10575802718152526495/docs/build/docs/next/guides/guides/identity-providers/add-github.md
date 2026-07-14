@@ -1,0 +1,104 @@
+# Add a GitHub Identity Provider
+
+# Add a GitHub Identity Provider
+
+This guide walks you through registering a GitHub identity provider (IdP) in ThunderID. Once configured, you can add **Sign in with GitHub** to any application by including a GitHub social login executor in its authentication flow.
+
+## Prerequisites
+
+- ThunderID is running. See [Get Started](https://thunderid.dev/docs/next/getting-started/get-thunderid.md).
+- An access token with the `system` scope.
+- A GitHub account.
+
+## Step 1: Register an OAuth App in GitHub
+
+1. Sign in to [GitHub](https://github.com) and go to **Settings** → **Developer settings** → **OAuth Apps**.
+2. Click **New OAuth App**.
+3. Fill in the required fields:
+   - **Application name** — A name for your OAuth app.
+   - **Homepage URL** — The URL of your application.
+   - **Authorization callback URL** — The callback URL for your ThunderID deployment:
+
+     ```
+     https://<your-thunderid-host>/oauth2/callback
+     ```
+
+4. Click **Register application**.
+5. On the app page, copy the **Client ID**.
+6. Click **Generate a new client secret** and copy the **Client Secret**. GitHub shows it only once.
+
+## Step 2: Create the GitHub IdP
+
+Send a `POST` request to `/identity-providers` with your GitHub credentials:
+
+```bash
+curl -kL -X POST https://localhost:8090/identity-providers \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <access-token>' \
+  -d '{
+    "name": "GitHub",
+    "description": "GitHub social login",
+    "type": "GITHUB",
+    "properties": [
+      ,
+      ,
+
+    ]
+  }'
+```
+
+**Response (201 Created):**
+
+```json
+{
+  "id": "660e8400-e29b-41d4-a716-446655440001",
+  "name": "GitHub",
+  "description": "GitHub social login",
+  "type": "GITHUB",
+  "properties": [
+    ,
+    ,
+    ,
+    ,
+    ,
+    ,
+
+  ]
+}
+```
+
+ThunderID automatically populates the GitHub authorization, token, userinfo, and user email endpoints. You do not need to supply them.
+
+## Optional Properties
+
+You can include the following optional properties in the request `properties` array:
+
+| Property | Description |
+|----------|-------------|
+| `scopes` | Space-separated list of OAuth scopes to request. Include `user:email` to ensure the user's email address is accessible. |
+| `prompt` | Controls GitHub's consent screen behavior. |
+
+To map GitHub's profile fields (e.g. `login`, `avatar_url`) to local user attributes, set the top-level `attributeConfiguration` field — see [Attribute Configuration](https://thunderid.dev/docs/next/guides/guides/add-oidc-provider.md#attribute-configuration).
+
+Example with optional properties:
+
+```bash
+curl -kL -X POST https://localhost:8090/identity-providers \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <access-token>' \
+  -d '{
+    "name": "GitHub",
+    "type": "GITHUB",
+    "properties": [
+      ,
+      ,
+      ,
+
+    ]
+  }'
+```
+
+## Next Steps
+
+- [Connect an IdP to an Application](https://thunderid.dev/docs/next/guides/guides/connect-idp-to-application.md) — Add this GitHub IdP to an application's authentication flow.
+- [Manage Identity Providers](https://thunderid.dev/docs/next/guides/guides/manage-identity-providers.md) — Update or delete identity providers.

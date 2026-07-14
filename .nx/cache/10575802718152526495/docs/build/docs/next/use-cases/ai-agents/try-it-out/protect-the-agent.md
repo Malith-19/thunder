@@ -1,0 +1,32 @@
+# Protect the Agent
+
+# Protect the Agent
+
+In this walkthrough, John signs in to Wayfinder and uses the chat freely. Jane signs in to the same Wayfinder UI, books a trip through the web app, and then tries to use the chat — and is rejected. Both consumers use the same `WAYFINDER` application, but only John's access token carries the `agent:access` permission. The AI Agent enforces the scope on every `/chat` request and turns Jane away with a 403.
+
+:::note Prerequisites
+Complete [Setup](https://thunderid.dev/docs/next/use-cases/ai-agents/try-it-out/...md#setup) before starting this walkthrough.
+:::
+
+:::info Background
+[Implementation Paths](https://thunderid.dev/docs/next/use-cases/overview.md#implementation-paths) covers the requirements story behind this use case.
+:::
+
+## Walk Through the Use Case
+
+1. Open `http://localhost:5173` and sign in as `john.doe` / `john.doe`.
+2. Open the chat widget and send any message. The request reaches the AI Agent with John's token, the scope check passes, and the agent responds.
+3. Sign out. Sign back in as `jane.smith` / `jane.smith`.
+4. Browse flights and place a booking through the UI. Jane has booking permissions, so these still work.
+5. Open the chat widget and try to send a message. The API rejects the request with `403 Forbidden` because Jane's token does not carry `agent:access`.
+
+## Try a Variant
+
+- Assign the `Chat User` role to Jane in the Console and verify that the chat widget starts working for her on the next sign-in.
+- Add a second permission to the `wayfinder-agent` resource server — for example `agent:admin` — and gate a separate admin endpoint behind it.
+
+> **Concepts**
+>
+> **Authorization.** The AI Agent is a resource server (`wayfinder-agent`) with a single permission (`agent:access`). The `Chat User` role bundles that permission. ThunderID writes only the permissions the user actually holds into the access token, so the same edge check (`token has agent:access?`) lets John in and turns Jane away. See [Authorization](https://thunderid.dev/docs/next/guides/key-concepts/authorization.md).
+>
+> **Branding.** The sign-in surface is the ThunderID hosted page. The Wayfinder sample ships with ThunderID's default branding. You can customize the logo and color theme for the `WAYFINDER` application from its **Design** settings in the Console — see [Register an Application](https://thunderid.dev/docs/next/guides/getting-started/register-an-application.md) for where the Design step sits.

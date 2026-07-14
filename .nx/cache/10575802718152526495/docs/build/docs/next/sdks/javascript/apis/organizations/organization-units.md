@@ -1,0 +1,59 @@
+# Organization Units
+
+# Organization Units
+
+Organization units represent nodes in a hierarchical organization tree. Use `getOrganizationUnitChildren` to traverse the tree and build organization-switcher UIs or access control features.
+
+## `getOrganizationUnitChildren(config)`
+
+Retrieve the direct child organization units of a given organization unit.
+
+```ts
+
+const result = await getOrganizationUnitChildren({
+  baseUrl: 'https://localhost:8090',
+  organizationUnitId: '<ou-id>',
+  limit: 20,
+  offset: 0,
+  headers: {
+    Authorization: `Bearer $`,
+  },
+})
+
+result.organizationUnits.forEach(ou => {
+  console.log(ou.name, ou.handle)
+})
+```
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|:--------:|-------------|
+| `config.url` | `string` | ✅ | Full endpoint URL. Mutually exclusive with `baseUrl` |
+| `config.baseUrl` | `string` | ✅ | ThunderID base URL |
+| `config.organizationUnitId` | `string` | ✅ | UUID of the parent organization unit |
+| `config.limit` | `number` | — | Maximum number of children to return |
+| `config.offset` | `number` | — | Zero-based offset for pagination |
+| `config.headers` | `Record<string, string>` | — | Additional request headers |
+
+## Response: `OrganizationUnitListResponse`
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `organizationUnits` | `OrganizationUnit[]` | Child organization units |
+| `count` | `number` | Number of results in this page |
+| `startIndex` | `number` | Index of the first result (1-based) |
+| `totalResults` | `number` | Total number of children |
+
+## Types
+
+### `OrganizationUnit`
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `string` | Organization unit UUID |
+| `name` | `string` | Display name |
+| `handle` | `string` | URL-safe identifier |
+| `description` | `string` | Optional description |
+| `logoUrl` | `string` | Optional logo URL |
+| `parent` | `object` | Parent organization unit reference |

@@ -1,0 +1,1 @@
+{"version":3,"file":"getBrandingPreference.d.ts","sourceRoot":"","sources":["../../../../src/server/actions/getBrandingPreference.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;GAgBG;AAIH,OAAO,EAEL,2BAA2B,EAC3B,kBAAkB,EAEnB,MAAM,iBAAiB,CAAC;AAEzB;;GAEG;AACH,QAAA,MAAM,qBAAqB,GACzB,QAAQ,2BAA2B,EACnC,YAAY,MAAM,KACjB,OAAO,CAAC,kBAAkB,CAa5B,CAAC;AAEF,eAAe,qBAAqB,CAAC"}

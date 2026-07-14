@@ -1,0 +1,1 @@
+import{Nt as e,Sn as t,_t as n}from"./vendor-mui-DfBexhDa.js";var r=t();function i(){return(0,r.jsx)(n,{role:`status`,sx:{display:`flex`,justifyContent:`center`,alignItems:`center`,minHeight:`400px`,width:`100%`},children:(0,r.jsx)(e,{"aria-label":`Loading content`})})}export{i as t};

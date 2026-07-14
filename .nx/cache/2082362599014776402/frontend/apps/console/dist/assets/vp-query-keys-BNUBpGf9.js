@@ -1,0 +1,1 @@
+var e={VPS:`verifiable-presentations`,VP:`verifiable-presentation`,TRUST_ANCHORS:`verifiable-presentation-trust-anchors`};export{e as t};

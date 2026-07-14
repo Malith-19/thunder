@@ -1,0 +1,84 @@
+import { useMemo } from "react";
+import { css } from "@emotion/css";
+
+//#region src/components/primitives/DatePicker/DatePicker.styles.ts
+/**
+* Creates styles for the DatePicker component using BEM methodology
+* @param theme - The theme object containing design tokens
+* @param colorScheme - The current color scheme (used for memoization)
+* @param hasError - Whether the date picker has an error state
+* @param disabled - Whether the date picker is disabled
+* @returns Object containing CSS class names for component styling
+*/
+const useStyles = (theme, colorScheme, hasError, disabled) => useMemo(() => {
+	const inputStyles = css`
+      width: 100%;
+      padding: ${theme.vars.spacing.unit} calc(${theme.vars.spacing.unit} * 1.5);
+      border: 1px solid ${theme.vars.colors.border};
+      border-radius: ${theme.vars.components?.Field?.root?.borderRadius || theme.vars.borderRadius.medium};
+      font-size: 1rem;
+      font-family: ${theme.vars.typography.fontFamily};
+      color: ${theme.vars.colors.text.primary};
+      background-color: ${theme.vars.colors.background.surface};
+      outline: none;
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+
+      &:focus {
+        border-color: ${theme.vars.colors.primary.main};
+        box-shadow: 0 0 0 2px ${theme.vars.colors.primary.main}20;
+      }
+
+      &:hover:not(:disabled) {
+        border-color: ${theme.vars.colors.primary.main};
+      }
+
+      &::placeholder {
+        color: ${theme.vars.colors.text.secondary};
+      }
+    `;
+	const errorInputStyles = css`
+      border-color: ${theme.vars.colors.error.main};
+
+      &:focus {
+        border-color: ${theme.vars.colors.error.main};
+        box-shadow: 0 0 0 2px ${theme.vars.colors.error.main}20;
+      }
+
+      &:hover:not(:disabled) {
+        border-color: ${theme.vars.colors.error.main};
+      }
+    `;
+	const disabledInputStyles = css`
+      background-color: ${theme.vars.colors.background.disabled};
+      color: ${theme.vars.colors.text.secondary};
+      cursor: not-allowed;
+      opacity: 0.6;
+
+      &:hover,
+      &:focus {
+        border-color: ${theme.vars.colors.border};
+        box-shadow: none;
+      }
+    `;
+	const labelStyles = css`
+      /* Label styles will be handled by InputLabel component */
+    `;
+	return {
+		disabledInput: disabled ? disabledInputStyles : "",
+		errorInput: hasError ? errorInputStyles : "",
+		input: inputStyles,
+		label: labelStyles
+	};
+}, [
+	theme,
+	colorScheme,
+	hasError,
+	disabled
+]);
+var DatePicker_styles_default = useStyles;
+
+//#endregion
+export { DatePicker_styles_default as default };
+//# sourceMappingURL=DatePicker.styles.js.map

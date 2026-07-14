@@ -1,0 +1,63 @@
+/**
+ * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { Preferences } from '@thunderid/browser';
+import { FC, ReactElement } from 'react';
+import { BaseSignInProps } from './BaseSignIn';
+import { SignInRenderProps } from './v2/SignIn';
+/**
+ * Props for the SignIn component.
+ * Extends BaseSignInProps for full compatibility with the React BaseSignIn component
+ */
+export type SignInProps = Pick<BaseSignInProps, 'className' | 'onSuccess' | 'onError' | 'variant' | 'size'> & {
+    /**
+     * Render function for custom UI (render props pattern).
+     */
+    children?: (props: SignInRenderProps) => ReactElement;
+    /**
+     * Component-level preferences to override global i18n and theme settings.
+     */
+    preferences?: Preferences;
+};
+/**
+ * A styled SignIn component that provides native authentication flow with pre-built styling.
+ * This component handles the API calls for authentication and delegates UI logic to BaseSignIn.
+ *
+ * @example
+ * ```tsx
+ * import { SignIn } from '@thunderid/react';
+ *
+ * const App = () => {
+ *   return (
+ *     <SignIn
+ *       onSuccess={(authData) => {
+ *         console.log('Authentication successful:', authData);
+ *         // Handle successful authentication (e.g., redirect, store tokens)
+ *       }}
+ *       onError={(error) => {
+ *         console.error('Authentication failed:', error);
+ *       }}
+ *       size="medium"
+ *       variant="outlined"
+ *     />
+ *   );
+ * };
+ * ```
+ */
+declare const SignIn: FC<SignInProps>;
+export default SignIn;
+//# sourceMappingURL=SignIn.d.ts.map

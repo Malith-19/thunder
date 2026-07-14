@@ -1,0 +1,73 @@
+# Identity for AI Agents
+
+# Identity for AI Agents
+
+Build secure identity for agents that accept requests, call services, act on behalf of users, and delegate work to other agents. Every agent action should answer: who is acting, what can it access, and on whose authority?
+
+## What You Can Build
+
+
+  <article className="uc-cap-card"><h3>Protected Agents</h3><p>Require callers to present valid tokens before invoking agent capabilities.</p></article>
+  <article className="uc-cap-card"><h3>Agent Credentials</h3><p>Register each agent as its own identity with credentials, scopes, and lifecycle controls.</p></article>
+  <article className="uc-cap-card"><h3>Delegated Access</h3><p>Let agents act on behalf of users with consent, scope intersection, and actor context.</p></article>
+  <article className="uc-cap-card"><h3>Multi-Agent Workflows</h3><p>Downscope tokens across agent chains while preserving traceability from the original user or caller.</p></article>
+
+
+## When to Use This Pattern
+
+Use this pattern when an agent calls protected services, exposes capabilities to clients, acts on behalf of users, stores credentials, delegates to other agents, or must produce an audit trail.
+
+## How Agent Identity Works
+
+In this model:
+
+- Each agent is a first-class identity with its own credentials and assigned permissions.
+- Callers authenticate before invoking protected agent capabilities.
+- ThunderID issues tokens that represent the agent, the user, or both depending on the flow.
+- Services validate tokens, check scopes, and enforce audience restrictions.
+- Delegated and multi-agent flows preserve actor context so downstream services can audit who initiated each action.
+
+## Building Blocks of the AI Agent Identity Journey
+
+Use these building blocks to design agent identity across inbound requests, outbound service calls, and multi-agent delegation. Select a block to see what it solves, where it appears in the journey, which capabilities it uses, and which guide to start with.
+
+
+## Solution Patterns
+
+Choose the token and delegation pattern before implementation. Agent identity design depends on whether the agent acts as itself, acts for a user, receives background approval, or delegates work to other agents.
+
+
+  <article id="client-credentials-grant" className="uc-cap-card"><h3>Client Credentials</h3><p>Use this when an agent acts autonomously as its own identity to call protected services.</p></article>
+  <article id="authorization-code-with-obo" className="uc-cap-card"><h3>Authorization Code with OBO</h3><p>Use this when an agent receives user context and needs delegated tokens for downstream services.</p></article>
+  <article id="backchannel-authorization-ciba" className="uc-cap-card"><h3>Backchannel Authorization</h3><p>Use this when a background agent needs out-of-band user approval before acting.</p></article>
+  <article id="token-exchange" className="uc-cap-card"><h3>Token Exchange</h3><p>Use this when one agent delegates to another agent or needs a narrower token for a specific service.</p></article>
+
+
+Review the full pattern guide: [Solution Patterns](https://thunderid.dev/docs/next/use-cases/solution-patterns.md).
+
+## Implementation Paths
+
+
+  <article id="protect-your-agent" className="uc-cap-card"><h3>Protect Your Agent</h3><p>Require callers to present valid tokens before invoking agent capabilities.</p><p><a href="../try-it-out">Start with: Try It Out - Protect Your Agent</a></p></article>
+  <article id="connect-to-services" className="uc-cap-card"><h3>Connect to Services</h3><p>Let agents call APIs, MCP servers, tools, and internal services with the right token flow.</p><p><a href="../try-it-out">Start with: Try It Out - Connect to Services</a></p></article>
+  <article id="multi-agent-workflows" className="uc-cap-card"><h3>Secure Multi-Agent Workflows</h3><p>Downscope tokens as one agent delegates work to another and preserve the original actor context.</p><p><a href="../solution-patterns#token-exchange">Start with: Token Exchange</a></p></article>
+  <article id="scope-intersection" className="uc-cap-card"><h3>Apply Scope Intersection</h3><p>Keep delegated tokens within the overlap of user authority and agent permissions.</p><p><a href="../solution-patterns#scope-granularity">Start with: Scope Granularity</a></p></article>
+  <article id="credential-lifecycle" className="uc-cap-card"><h3>Manage Credential Lifecycle</h3><p>Issue, rotate, expire, revoke, and audit credentials for each agent identity.</p><p><a href="../solution-patterns#credential-lifecycle">Start with: Credential Lifecycle</a></p></article>
+  <article id="audience-locking" className="uc-cap-card"><h3>Lock Tokens to Audiences</h3><p>Bind tokens to the service they are meant to call so they cannot be replayed elsewhere.</p><p><a href="../solution-patterns#resource-servers-and-audience-locking">Start with: Audience Locking</a></p></article>
+  <article id="consent-for-delegation" className="uc-cap-card"><h3>Configure Delegation Consent</h3><p>Ask users to approve delegated access before an agent acts on their behalf.</p><p><a href="../solution-patterns#authorization-code-with-obo">Start with: Authorization Code with OBO</a></p></article>
+  <article id="audit-and-delegation-chain" className="uc-cap-card"><h3>Audit Delegation Chains</h3><p>Trace every agent action and delegation hop back to the original caller or user.</p><p><a href="../solution-patterns#delegation-chain-preservation">Start with: Delegation Chain Preservation</a></p></article>
+
+
+## Recommended Starting Point
+
+Start by choosing the token pattern, then register the agent and define the resource scopes it needs. After that, protect the agent's inbound API and configure the outbound service flow.
+
+- [Solution Patterns](https://thunderid.dev/docs/next/use-cases/solution-patterns.md)
+- [Try It Out - Protect Your Agent](https://thunderid.dev/docs/next/use-cases/try-it-out.md)
+- [MCP Authorization](https://thunderid.dev/docs/next/use-cases/mcp-authorization.md)
+
+## Related Use Cases
+
+
+  <article className="uc-cap-card"><h3>B2C Overview</h3><p>Use this when public-facing users sign themselves up and manage their own accounts.</p></article>
+  <article className="uc-cap-card"><h3>B2B SaaS Identity</h3><p>Use this when organizations, tenants, delegated admins, and enterprise customers shape the identity model.</p></article>

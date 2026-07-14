@@ -1,0 +1,1 @@
+{"version":3,"file":"getSessionCookieOptions.d.ts","sourceRoot":"","sources":["../../src/utils/getSessionCookieOptions.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;GAgBG;AAGH,OAAO,EAAC,mBAAmB,EAAC,MAAM,kBAAkB,CAAC;AAErD,QAAA,MAAM,uBAAuB,GAAI,SAAS,OAAO,CAAC,mBAAmB,CAAC,KAAG,IAAI,CAAC,mBAAmB,EAAE,YAAY,CAI7G,CAAC;AAEH,eAAe,uBAAuB,CAAC"}

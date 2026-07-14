@@ -1,3 +1,0 @@
-server:
-  hostname: localhost
-  port: "not_an_integer" # Invalid type for port

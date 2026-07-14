@@ -1,0 +1,1 @@
+{"version":3,"file":"auth-code-response.d.ts","sourceRoot":"","sources":["../../src/models/auth-code-response.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;GAgBG;AAEH;;GAEG;AACH,MAAM,WAAW,gBAAgB;IAC/B;;OAEG;IACH,IAAI,EAAE,MAAM,CAAC;IACb;;OAEG;IACH,aAAa,EAAE,MAAM,CAAC;IACtB;;OAEG;IACH,KAAK,EAAE,MAAM,CAAC;CACf"}

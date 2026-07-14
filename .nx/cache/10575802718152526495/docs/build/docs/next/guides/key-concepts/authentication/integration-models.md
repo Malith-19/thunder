@@ -1,0 +1,410 @@
+# Integration Models
+
+# Integration Models
+
+Authentication verifies identity, confirming that a user, service, or device is who it claims to be. ThunderID offers three integration models for adding authentication to an application. Each model follows different standards and reflects different assumptions about trust, UI ownership, and control.
+
+
+
+## Redirect-Based
+
+ThunderID implements the OAuth 2.0 Authorization Framework ([RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749)) and OpenID Connect Core 1.0. Your application delegates authentication to ThunderID as the authorization server: when a user signs in, your application redirects them to a ThunderID-hosted sign-in page. After authenticating, ThunderID redirects back to your application with an authorization code, which your application exchanges for tokens.
+
+The core principle is **delegation**: user credentials never cross the application boundary. ThunderID handles credential collection, input validation, and multi-step authentication flows on its own hosted pages. Your application receives only signed tokens ([RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519)) as proof of authentication.
+
+###  When to Use
+Choose this approach when ThunderID should own the entire authentication surface, including flow orchestration, UI rendering, and credential processing. This model suits applications that should not process sensitive user credentials directly, or that require a fully managed authentication experience with standard OAuth 2.0 token issuance. Any application that can perform a browser redirect can use this model.
+
+### Key Features
+
+- **Interoperable:** Works with any OAuth 2.0 and OIDC-compliant client library or framework.
+- **Managed authentication journeys:** ThunderID renders and orchestrates sign-in, sign-up, account recovery, MFA, and consent screens.
+- **Customizable hosted pages:** Customize and configure the sign-in experience via the [Flow Builder](https://thunderid.dev/docs/next/guides/flows/flow-concepts.md).
+- **Credential isolation:** User passwords and authentication secrets remain within ThunderID. Your application never receives them.
+
+### How It Works
+
+1. Your application redirects the user to ThunderID's authorization endpoint.
+2. ThunderID renders the sign-in page and walks the user through the configured authentication flow (credentials, MFA, consent, etc.).
+3. On completion, ThunderID redirects back to your registered redirect URI with an authorization code.
+4. Your application exchanges the authorization code for an access token, ID token, and optionally a refresh token.
+
+
+See the [API Reference](https://thunderid.dev/docs/next/apis.md#tag/authorization) for endpoint specifications.
+
+
+## App-Native
+
+App-native authentication uses the Flow Execution API to drive authentication from your application's own UI. Your application calls the API to start a configured authentication flow, renders each step using its own screens, collects user input, and submits responses back. ThunderID controls the flow server-side: sequencing steps, applying policies, and branching on context. Your application owns every screen the user sees. On successful completion, ThunderID returns an assertion token, which your application exchanges for OAuth 2.0 tokens via the Token Exchange grant ([RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693)).
+
+The core principle is **shared responsibility**: ThunderID enforces authentication logic and policies server-side, while your application controls the user experience. Authentication flow changes, such as adding MFA or conditional steps, take effect immediately on ThunderID without modifying or redeploying your application.
+
+###  When to Use
+Choose this approach when your application must render its own authentication screens (no redirects to hosted pages) while ThunderID enforces authentication logic, MFA, and policies server-side. This model suits mobile apps, single-page applications, or any context where a redirect-based flow would disrupt the user experience.
+
+> **Grant Type Requirement**
+>
+> The Flow Execution API only accepts new flow initiation requests from applications that do **not** have the `authorization_code` grant type configured. Applications registered with `authorization_code` must initiate authentication through the [Authorization endpoint](https://thunderid.dev/docs/next/apis.md#tag/authorization) (`GET /oauth2/authorize`), which then drives the flow internally. Continuation requests that carry a valid `executionId` are always accepted regardless of grant type.
+
+
+### Key Features
+
+- **Server-side flow execution:** Authentication logic, step ordering, and branching live in ThunderID. Changes take effect immediately without redeploying your application.
+- **Full UI control:** Your application decides how each step looks. No iframe, redirect, or hosted-page constraints.
+- **Policy enforcement:** MFA, conditional steps, and adaptive prompts apply automatically based on the flow definition.
+- **SDK support:** ThunderID provides SDKs that manage API calls, state tracking, and response parsing.
+
+### How It Works
+
+1. Your application calls the Flow Execution API to start the configured authentication flow.
+2. ThunderID responds with the next step: inputs to collect, available actions, and optional context.
+3. Your application renders the screen, collects user input, and submits the response back to the Flow Execution API.
+4. Steps 2-3 repeat until the flow completes. ThunderID returns the assertion token.
+5. Your application exchanges the assertion token for an access token, ID token, and optionally a refresh token via the Token Exchange grant ([RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693)).
+
+
+See the [API Reference](https://thunderid.dev/docs/next/apis.md#tag/flow-execution) for endpoint specifications.
+
+### Integration Modes
+
+App-native authentication supports two modes, **Verbose** and **Non-Verbose**, controlled via the `verbose` field in the Flow Execution API. These modes offer different levels of UI granularity to the application. A ThunderID SDK typically consumes these modes and manages API calls, state, and response parsing. Both modes follow the same request-response cycle: the application calls the Flow Execution API, receives the next step, renders the screen, collects user input, and submits the response back. The difference lies in how much detail ThunderID returns for each step.
+
+
+#### Verbose Mode
+
+In verbose mode (`verbose: true`), each response includes `inputs`, `actions`, and a `meta` component tree describing the screen layout. The application renders the screen exactly as the server specifies.
+
+> **Using the SDK is Recommended**
+>
+> The SDK renders the component tree automatically. Without the SDK, your application must parse and render the component tree itself.
+
+
+Request:
+
+```bash
+curl https://localhost:8090/flow/execute \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "applicationId": "550e8400-e29b-41d4-a716-446655440000",
+  "flowType": "AUTHENTICATION",
+  "verbose": true
+}'
+```
+
+Response:
+
+```json
+{
+  "executionId": "2c6d4c45-3de9-4a70-ae6b-ba1d034af6bc",
+  "flowStatus": "INCOMPLETE",
+  "challengeToken": "a3f2e1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2",
+  "type": "VIEW",
+  "data": {
+    "inputs": [
+      {
+        "ref": "input_phone",
+        "identifier": "phone",
+        "type": "TEL_INPUT",
+        "required": true
+      }
+    ],
+    "actions": [
+      {
+        "ref": "action_submit",
+        "nextNode": "node_bs12"
+      }
+    ],
+    "meta": {
+      "components": [
+        {
+          "id": "main-block",
+          "type": "BLOCK",
+          "components": [
+            {
+              "id": "field-phone",
+              "ref": "input_phone",
+              "type": "TEL_INPUT",
+              "label": "Phone Number",
+              "required": true
+            },
+            {
+              "id": "action-submit",
+              "ref": "action_submit",
+              "type": "ACTION",
+              "label": "Continue"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+#### Non-Verbose Mode
+
+In non-verbose mode (`verbose: false`), each response includes only `inputs` and `actions`, without the `meta` component tree. Your application decides how to render each screen and capture input using its own components.
+
+Request:
+
+```bash
+curl https://localhost:8090/flow/execute \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "applicationId": "550e8400-e29b-41d4-a716-446655440000",
+  "flowType": "AUTHENTICATION"
+}'
+```
+
+Response:
+
+```json
+{
+  "executionId": "2c6d4c45-3de9-4a70-ae6b-ba1d034af6bc",
+  "flowStatus": "INCOMPLETE",
+  "challengeToken": "a3f2e1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2",
+  "type": "VIEW",
+  "data": {
+    "inputs": [
+      {
+        "ref": "input_phone",
+        "identifier": "phone",
+        "type": "TEL_INPUT",
+        "required": true
+      }
+    ],
+    "actions": [
+      {
+        "ref": "action_submit",
+        "nextNode": "node_bs12"
+      }
+    ]
+  }
+}
+```
+
+### Example
+
+The following shows a username and password flow. Your application starts the flow, ThunderID responds with the first step describing what to collect, and your application renders the form.
+
+Request:
+
+```bash
+curl https://localhost:8090/flow/execute \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "applicationId": "550e8400-e29b-41d4-a716-446655440000",
+  "flowType": "AUTHENTICATION"
+}'
+```
+
+Response:
+
+```json
+{
+  "executionId": "2c6d4c45-3de9-4a70-ae6b-ba1d034af6bc",
+  "flowStatus": "INCOMPLETE",
+  "challengeToken": "a3f2e1b0c9d8e7f6a5b4c3d2e1f0a9b8...",
+  "type": "VIEW",
+  "data": {
+    "inputs": [
+      ,
+
+    ],
+    "actions": [
+
+    ]
+  }
+}
+```
+
+Your application renders the username and password fields, collects input, and submits them back using the `executionId` and `challengeToken`.
+
+Request:
+
+```bash
+curl https://localhost:8090/flow/execute \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "executionId": "2c6d4c45-3de9-4a70-ae6b-ba1d034af6bc",
+  "challengeToken": "a3f2e1b0c9d8e7f6a5b4c3d2e1f0a9b8...",
+  "action": "action_submit",
+  "inputs": {
+    "input_username": "thor",
+    "input_password": "odinson123"
+  }
+}'
+```
+
+Response:
+
+```json
+{
+  "executionId": "2c6d4c45-3de9-4a70-ae6b-ba1d034af6bc",
+  "flowStatus": "COMPLETE",
+  "assertion": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+ThunderID validates the credentials and returns either the next step or the final assertion token. See [Assertion Tokens](#assertion-tokens).
+
+## Direct API
+
+Direct API authentication exposes individual, single-purpose authentication endpoints. Each endpoint performs exactly one operation: verify credentials, send a one-time password (OTP), verify an OTP, or initiate a social login. Your application calls these endpoints directly and controls the entire authentication sequence itself.
+
+The core principle is **composable operations**: authentication consists of building blocks your application assembles in any order, according to its own logic. No server-side journey or policy enforcement applies. No flow configuration or application registration is required.
+
+###  When to Use
+Choose this approach when your application needs direct control over individual authentication operations without flow configuration or application registration. This model suits headless or scripted scenarios such as CLI tools, automation scripts, or server-to-server authentication. For authentication scenarios that require server-enforced policies or multi-step orchestration, use the [App-Native](#app-native) or [Redirect-Based](#redirect-based) model instead.
+
+### Key Features
+
+- **Composable operations:** Call individual authentication endpoints in any order. No flow execution layer required.
+- **No configuration required:** No application registration or flow setup needed. Call the endpoints directly. The client orchestrates the entire authentication journey and ensures correct implementation.
+- **Step-up authentication:** Chain methods by passing assertion tokens between calls to build a stronger authentication context progressively.
+- **Assertion tokens:** Each successful call returns a signed JWT ([RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519)) recording completed methods, user identity, and assurance level. You can enrich an existing assertion by including it in the next authentication request.
+
+### How It Works
+
+1. Your application calls an authentication endpoint directly with user credentials or input.
+2. ThunderID validates the input and returns user details and a signed assertion token. See [Assertion Tokens](#assertion-tokens).
+3. To chain methods, include the assertion token from the previous call in the next request.
+
+
+See the [API Reference](https://thunderid.dev/docs/next/apis.md#tag/credentials) for endpoint specifications.
+
+### Step-Up Authentication
+
+Direct API authentication supports step-up authentication. Pass an existing assertion token to any supported endpoint to enrich it with the new authentication method. Each additional method strengthens the authentication context.
+
+The following endpoints support step-up authentication:
+
+- `POST /auth/credentials/authenticate`
+- `POST /auth/otp/sms/verify`
+- `POST /auth/oauth/google/finish`
+- `POST /auth/oauth/github/finish`
+- `POST /auth/oauth/standard/finish`
+
+> **Skipping Assertion Tokens**
+>
+> If you do not need an assertion token, set `skip_assertion: true` in the request body:
+>
+> ```bash
+> curl -X POST https://localhost:8090/auth/credentials/authenticate \
+>   -H 'Content-Type: application/json' \
+>   -d '{
+>     "identifiers": ,
+>     "credentials": ,
+>     "skip_assertion": true
+>   }'
+> ```
+
+
+### Example
+
+The following example demonstrates step-up authentication by chaining password authentication with SMS OTP verification to build a stronger authentication context.
+
+Password + SMS OTP
+
+**Step 1: Authenticate with credentials**
+
+Request:
+
+```bash
+curl -X POST https://localhost:8090/auth/credentials/authenticate \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "identifiers": ,
+    "credentials":
+  }'
+```
+
+Response:
+
+```json
+{
+  "id": "<user_id>",
+  "type": "person",
+  "ouId": "<org_unit_id>",
+  "assertion": "<assertion_token>"
+}
+```
+
+**Step 2: Send OTP**
+
+Request:
+
+```bash
+curl -X POST https://localhost:8090/auth/otp/sms/send \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "senderId": "<sender_id>",
+    "recipient": "+1234567890"
+  }'
+```
+
+Response:
+
+```json
+{
+  "status": "SUCCESS",
+  "sessionToken": "<session_token>"
+}
+```
+
+**Step 3: Verify OTP with the assertion from Step 1**
+
+Request:
+
+```bash
+curl -X POST https://localhost:8090/auth/otp/sms/verify \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "sessionToken": "<session_token_from_step_2>",
+    "otp": "123456",
+    "assertion": "<assertion_token_from_step_1>"
+  }'
+```
+
+Response:
+
+```json
+{
+  "id": "<user_id>",
+  "type": "person",
+  "ouId": "<org_unit_id>",
+  "assertion": "<enriched_assertion_token>"
+}
+```
+
+The final response contains an enriched assertion token that reflects both authentication methods.
+
+
+## Assertion Tokens
+
+Both App-Native and Direct API return an assertion token on successful authentication. This token is a signed JWT ([RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519)) containing:
+
+- **Authentication methods completed:** Which mechanisms the user passed (credentials, OTP, social login).
+- **Assurance level:** The authentication strength based on the methods completed.
+- **User identity:** Details about the authenticated user.
+
+To obtain OAuth 2.0 access tokens, exchange the assertion token at the token endpoint using the Token Exchange grant ([RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693)).
+
+## Design Comparison
+
+| | Redirect-Based | App-Native | Direct API |
+|---|---|---|---|
+| **Trust model** | Delegated: ThunderID is the authority | Shared: ThunderID controls the flow execution sequence, app renders | Application-owned: app controls the sequence |
+| **Credential exposure** | ThunderID only | Passes through the application | Passes through the application |
+| **Authentication logic** | Server-enforced by flow | Server-enforced by flow | Application-enforced |
+| **Token output** | OAuth 2.0 access tokens, ID tokens | Assertion token (JWT); exchange via Token Exchange ([RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693)) for OAuth 2.0 tokens | Assertion token (JWT); exchange via Token Exchange ([RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693)) for OAuth 2.0 tokens |
+| **Flow configuration** | Required | Required | Not required |
+
+## Related Reference
+
+- [Tokens](https://thunderid.dev/docs/next/guides/key-concepts/tokens.md): Access tokens, ID tokens, and refresh tokens
+- [Authorization](https://thunderid.dev/docs/next/guides/key-concepts/authorization.md): How ThunderID controls access to resources after authentication

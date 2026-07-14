@@ -1,0 +1,56 @@
+# <ThunderIDRoot />
+
+# ``
+
+The `ThunderIDRoot` component is the root provider for the ThunderID Nuxt SDK. It mounts the full provider tree — i18n, branding, theme, flow, user, and organization — and must wrap all content that uses ThunderID composables or components.
+
+## Usage
+
+Place `` at the top of your application layout so that all pages and components have access to authentication context.
+
+```vue title="app.vue" showLineNumbers
+<template>
+  <ThunderIDRoot>
+
+
+</template>
+```
+
+### Layout File
+
+```vue title="layouts/default.vue" showLineNumbers
+<template>
+
+    <header>
+      <ThunderIDSignedIn>
+
+
+
+
+
+    </header>
+    <main>
+      <slot />
+    </main>
+  </ThunderIDRoot>
+</template>
+```
+
+## Props
+
+`` does not accept any props. All configuration is read from the module options set in `nuxt.config.ts`.
+
+## Behavior
+
+On mount, `ThunderIDRoot`:
+
+1. Reads SSR-hydrated state from `useState` keys populated by the server plugin
+2. Passes that data to its nested providers (user, organization, branding, theme)
+3. Installs callbacks for profile updates, organization switching, and session revalidation
+4. Controls whether client-side re-fetching runs based on `preferences`
+
+## Notes
+
+- `ThunderIDRoot` is auto-registered by the module and does not need to be explicitly imported.
+- It must be an ancestor of any component that uses a ThunderID composable or component.
+- When using Nuxt layouts, wrapping the `<slot />` in the default layout is sufficient.

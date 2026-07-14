@@ -1,0 +1,1 @@
+{"version":3,"file":"OIDCDiscoveryConstants.d.ts","sourceRoot":"","sources":["../../../src/constants/v2/OIDCDiscoveryConstants.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;GAgBG;AAEH;;;;;;;;;;;;;;;GAeG;AACH,QAAA,MAAM,sBAAsB,EAAE;IAC5B,QAAQ,CAAC,SAAS,EAAE;QAClB,QAAQ,CAAC,UAAU,EAAE,MAAM,CAAC;KAC7B,CAAC;CAcM,CAAC;AAEX,eAAe,sBAAsB,CAAC"}

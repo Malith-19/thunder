@@ -1,0 +1,1643 @@
+{
+  "item": [
+    {
+      "id": "3b5ceea8-31b5-4525-8cee-d74c5a047ed3",
+      "name": "Applications",
+      "description": {
+        "content": "CRUD operations for registered client applications.",
+        "type": "text/plain"
+      },
+      "item": [
+        {
+          "id": "6c1cc193-2fa3-4e77-94d4-c873841d6255",
+          "name": "List applications",
+          "request": {
+            "name": "List applications",
+            "description": {
+              "content": "Retrieve a list of all applications.",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "applications"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "disabled": true,
+                  "key": "limit",
+                  "value": "30",
+                  "description": "Maximum number of records to return.\n"
+                },
+                {
+                  "disabled": true,
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Number of records to skip for pagination.\n"
+                }
+              ],
+              "variable": [
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{host}}",
+                  "key": "host"
+                },
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{port}}",
+                  "key": "port"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "auth": null
+          },
+          "response": [
+            {
+              "id": "f8327855-3f21-4e74-a4be-b7a2b78cb835",
+              "name": "List of applications",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "30"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"totalResults\": \"<integer>\",\n  \"count\": \"<integer>\",\n  \"applications\": [\n    {\n      \"id\": \"<uuid>\",\n      \"name\": \"<string>\",\n      \"description\": \"<string>\",\n      \"clientId\": \"<string>\",\n      \"logoUrl\": \"<uri>\",\n      \"authFlowId\": \"<string>\",\n      \"registrationFlowId\": \"<string>\",\n      \"isRegistrationFlowEnabled\": \"<boolean>\",\n      \"recoveryFlowId\": \"<string>\",\n      \"isRecoveryFlowEnabled\": \"<boolean>\",\n      \"themeId\": \"<uuid>\",\n      \"layoutId\": \"<uuid>\",\n      \"template\": \"<string>\",\n      \"isReadOnly\": \"<boolean>\"\n    },\n    {\n      \"id\": \"<uuid>\",\n      \"name\": \"<string>\",\n      \"description\": \"<string>\",\n      \"clientId\": \"<string>\",\n      \"logoUrl\": \"<uri>\",\n      \"authFlowId\": \"<string>\",\n      \"registrationFlowId\": \"<string>\",\n      \"isRegistrationFlowEnabled\": \"<boolean>\",\n      \"recoveryFlowId\": \"<string>\",\n      \"isRecoveryFlowEnabled\": \"<boolean>\",\n      \"themeId\": \"<uuid>\",\n      \"layoutId\": \"<uuid>\",\n      \"template\": \"<string>\",\n      \"isReadOnly\": \"<boolean>\"\n    }\n  ]\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "9196bd23-6881-4d48-8ffb-421343549818",
+              "name": "Bad request",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "30"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "b9b08590-d75f-49ba-9a3c-3898ef293181",
+              "name": "Internal server error",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "30"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            }
+          ],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "id": "2e4e9ca4-7e39-4571-89be-08544a8977eb",
+          "name": "Create an application",
+          "request": {
+            "name": "Create an application",
+            "description": {
+              "content": "Creates a new application with the provided details.",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "applications"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{host}}",
+                  "key": "host"
+                },
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{port}}",
+                  "key": "port"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "auth": null,
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"<string>\",\n  \"ouId\": \"<string>\",\n  \"description\": \"<string>\",\n  \"authFlowId\": \"<string>\",\n  \"registrationFlowId\": \"<string>\",\n  \"isRegistrationFlowEnabled\": false,\n  \"recoveryFlowId\": \"<string>\",\n  \"isRecoveryFlowEnabled\": false,\n  \"themeId\": \"<uuid>\",\n  \"layoutId\": \"<uuid>\",\n  \"template\": \"<string>\",\n  \"url\": \"<uri>\",\n  \"logoUrl\": \"<uri>\",\n  \"assertion\": {\n    \"validityPeriod\": \"<integer>\",\n    \"userAttributes\": [\n      \"<string>\",\n      \"<string>\"\n    ]\n  },\n  \"certificate\": {\n    \"type\": \"<string>\",\n    \"value\": \"<string>\"\n  },\n  \"inboundAuthConfig\": [\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"esse3af\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"commodo12f\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"utd8\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    },\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"elitc5\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    }\n  ],\n  \"tosUri\": \"<uri>\",\n  \"policyUri\": \"<uri>\",\n  \"contacts\": [\n    \"<email>\",\n    \"<email>\"\n  ],\n  \"allowedUserTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"loginConsent\": {\n    \"validityPeriod\": \"<integer>\"\n  },\n  \"metadata\": {\n    \"elit_7\": \"adipisicing fugiat et pariatur non\",\n    \"reprehenderit__a\": -97927996.02858184\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "b30b1b55-6ec1-4346-9d9e-e84dd6f7d292",
+              "name": "Application created",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"<string>\",\n  \"ouId\": \"<string>\",\n  \"description\": \"<string>\",\n  \"authFlowId\": \"<string>\",\n  \"registrationFlowId\": \"<string>\",\n  \"isRegistrationFlowEnabled\": false,\n  \"recoveryFlowId\": \"<string>\",\n  \"isRecoveryFlowEnabled\": false,\n  \"themeId\": \"<uuid>\",\n  \"layoutId\": \"<uuid>\",\n  \"template\": \"<string>\",\n  \"url\": \"<uri>\",\n  \"logoUrl\": \"<uri>\",\n  \"assertion\": {\n    \"validityPeriod\": \"<integer>\",\n    \"userAttributes\": [\n      \"<string>\",\n      \"<string>\"\n    ]\n  },\n  \"certificate\": {\n    \"type\": \"<string>\",\n    \"value\": \"<string>\"\n  },\n  \"inboundAuthConfig\": [\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"fugiatd\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"ea_fb7\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    },\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"enim5b\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"dolor_3\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"veniam_0b3\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    }\n  ],\n  \"tosUri\": \"<uri>\",\n  \"policyUri\": \"<uri>\",\n  \"contacts\": [\n    \"<email>\",\n    \"<email>\"\n  ],\n  \"allowedUserTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"loginConsent\": {\n    \"validityPeriod\": \"<integer>\"\n  },\n  \"metadata\": {\n    \"veniam__\": \"minim proident aliqua culpa\",\n    \"esse_40\": -36226671.32313098,\n    \"eiusmod25f\": 63258260\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"<uuid>\",\n  \"ouId\": \"<string>\",\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"clientId\": \"<string>\",\n  \"authFlowId\": \"<string>\",\n  \"registrationFlowId\": \"<string>\",\n  \"isRegistrationFlowEnabled\": \"<boolean>\",\n  \"recoveryFlowId\": \"<string>\",\n  \"isRecoveryFlowEnabled\": \"<boolean>\",\n  \"themeId\": \"<uuid>\",\n  \"layoutId\": \"<uuid>\",\n  \"template\": \"<string>\",\n  \"url\": \"<uri>\",\n  \"logoUrl\": \"<uri>\",\n  \"assertion\": {\n    \"validityPeriod\": \"<integer>\",\n    \"userAttributes\": [\n      \"<string>\",\n      \"<string>\"\n    ]\n  },\n  \"certificate\": {\n    \"type\": \"<string>\",\n    \"value\": \"<string>\"\n  },\n  \"inboundAuthConfig\": [\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"sunt_4_\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"nostrude\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"cillum_3d\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"dolor58c\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    },\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"ullamcoe\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"anim_3\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    }\n  ],\n  \"tosUri\": \"<uri>\",\n  \"policyUri\": \"<uri>\",\n  \"contacts\": [\n    \"<email>\",\n    \"<email>\"\n  ],\n  \"allowedUserTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"loginConsent\": {\n    \"validityPeriod\": \"<integer>\"\n  },\n  \"metadata\": {\n    \"consecteturf5a\": -25189109.853680998,\n    \"ipsum_42\": 46615737.634685814\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "6c437cf7-be13-40d0-b20a-fb23206ac5ac",
+              "name": "Bad request",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"<string>\",\n  \"ouId\": \"<string>\",\n  \"description\": \"<string>\",\n  \"authFlowId\": \"<string>\",\n  \"registrationFlowId\": \"<string>\",\n  \"isRegistrationFlowEnabled\": false,\n  \"recoveryFlowId\": \"<string>\",\n  \"isRecoveryFlowEnabled\": false,\n  \"themeId\": \"<uuid>\",\n  \"layoutId\": \"<uuid>\",\n  \"template\": \"<string>\",\n  \"url\": \"<uri>\",\n  \"logoUrl\": \"<uri>\",\n  \"assertion\": {\n    \"validityPeriod\": \"<integer>\",\n    \"userAttributes\": [\n      \"<string>\",\n      \"<string>\"\n    ]\n  },\n  \"certificate\": {\n    \"type\": \"<string>\",\n    \"value\": \"<string>\"\n  },\n  \"inboundAuthConfig\": [\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"fugiatd\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"ea_fb7\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    },\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"enim5b\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"dolor_3\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"veniam_0b3\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    }\n  ],\n  \"tosUri\": \"<uri>\",\n  \"policyUri\": \"<uri>\",\n  \"contacts\": [\n    \"<email>\",\n    \"<email>\"\n  ],\n  \"allowedUserTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"loginConsent\": {\n    \"validityPeriod\": \"<integer>\"\n  },\n  \"metadata\": {\n    \"veniam__\": \"minim proident aliqua culpa\",\n    \"esse_40\": -36226671.32313098,\n    \"eiusmod25f\": 63258260\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "e13ee756-e372-4210-9035-e95f41f67c0f",
+              "name": "Internal server error",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"<string>\",\n  \"ouId\": \"<string>\",\n  \"description\": \"<string>\",\n  \"authFlowId\": \"<string>\",\n  \"registrationFlowId\": \"<string>\",\n  \"isRegistrationFlowEnabled\": false,\n  \"recoveryFlowId\": \"<string>\",\n  \"isRecoveryFlowEnabled\": false,\n  \"themeId\": \"<uuid>\",\n  \"layoutId\": \"<uuid>\",\n  \"template\": \"<string>\",\n  \"url\": \"<uri>\",\n  \"logoUrl\": \"<uri>\",\n  \"assertion\": {\n    \"validityPeriod\": \"<integer>\",\n    \"userAttributes\": [\n      \"<string>\",\n      \"<string>\"\n    ]\n  },\n  \"certificate\": {\n    \"type\": \"<string>\",\n    \"value\": \"<string>\"\n  },\n  \"inboundAuthConfig\": [\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"fugiatd\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"ea_fb7\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    },\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"enim5b\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"dolor_3\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"veniam_0b3\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    }\n  ],\n  \"tosUri\": \"<uri>\",\n  \"policyUri\": \"<uri>\",\n  \"contacts\": [\n    \"<email>\",\n    \"<email>\"\n  ],\n  \"allowedUserTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"loginConsent\": {\n    \"validityPeriod\": \"<integer>\"\n  },\n  \"metadata\": {\n    \"veniam__\": \"minim proident aliqua culpa\",\n    \"esse_40\": -36226671.32313098,\n    \"eiusmod25f\": 63258260\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            }
+          ],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "id": "7af5131b-41de-497e-902f-ab4fa7de8af7",
+          "name": "Get an application by ID",
+          "request": {
+            "name": "Get an application by ID",
+            "description": {
+              "content": "Retrieve a specific application using its ID.",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "applications",
+                ":id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<uuid>",
+                  "key": "id",
+                  "description": "(Required) Application ID"
+                },
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{host}}",
+                  "key": "host"
+                },
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{port}}",
+                  "key": "port"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "auth": null
+          },
+          "response": [
+            {
+              "id": "e5a9f6d8-a6ef-4064-80fe-7f249186c887",
+              "name": "Application details",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications",
+                    ":id"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "disabled": false,
+                      "type": "any",
+                      "value": "<uuid>",
+                      "key": "id",
+                      "description": "(Required) Application ID"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"<uuid>\",\n  \"ouId\": \"<string>\",\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"clientId\": \"<string>\",\n  \"authFlowId\": \"<string>\",\n  \"registrationFlowId\": \"<string>\",\n  \"isRegistrationFlowEnabled\": \"<boolean>\",\n  \"recoveryFlowId\": \"<string>\",\n  \"isRecoveryFlowEnabled\": \"<boolean>\",\n  \"themeId\": \"<uuid>\",\n  \"layoutId\": \"<uuid>\",\n  \"template\": \"<string>\",\n  \"url\": \"<uri>\",\n  \"logoUrl\": \"<uri>\",\n  \"assertion\": {\n    \"validityPeriod\": \"<integer>\",\n    \"userAttributes\": [\n      \"<string>\",\n      \"<string>\"\n    ]\n  },\n  \"certificate\": {\n    \"type\": \"<string>\",\n    \"value\": \"<string>\"\n  },\n  \"inboundAuthConfig\": [\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"pariatur_84\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    },\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"anim_d\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"anim_5\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    }\n  ],\n  \"tosUri\": \"<uri>\",\n  \"policyUri\": \"<uri>\",\n  \"contacts\": [\n    \"<email>\",\n    \"<email>\"\n  ],\n  \"allowedUserTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"loginConsent\": {\n    \"validityPeriod\": \"<integer>\"\n  },\n  \"metadata\": {\n    \"dolore026\": false,\n    \"fugiat_09\": -2418696.0970605314,\n    \"Duis_\": 87337993.98502612\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "3006058c-7afa-4f9c-8709-54bfb8769528",
+              "name": "Bad request",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications",
+                    ":id"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "disabled": false,
+                      "type": "any",
+                      "value": "<uuid>",
+                      "key": "id",
+                      "description": "(Required) Application ID"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "c973c74c-f4b7-42d9-be30-3c7a5dc7acbd",
+              "name": "Application not found",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications",
+                    ":id"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "disabled": false,
+                      "type": "any",
+                      "value": "<uuid>",
+                      "key": "id",
+                      "description": "(Required) Application ID"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "61ffb459-a87b-40eb-94dd-ab69d6c997fb",
+              "name": "Internal server error",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications",
+                    ":id"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "disabled": false,
+                      "type": "any",
+                      "value": "<uuid>",
+                      "key": "id",
+                      "description": "(Required) Application ID"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            }
+          ],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "id": "6fbf3463-8180-4c97-a57d-a070e9007f90",
+          "name": "Update an application",
+          "request": {
+            "name": "Update an application",
+            "description": {
+              "content": "Update the details of an existing application.",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "applications",
+                ":id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<uuid>",
+                  "key": "id",
+                  "description": "(Required) Application ID"
+                },
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{host}}",
+                  "key": "host"
+                },
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{port}}",
+                  "key": "port"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "PUT",
+            "auth": null,
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"<string>\",\n  \"ouId\": \"<string>\",\n  \"description\": \"<string>\",\n  \"authFlowId\": \"<string>\",\n  \"registrationFlowId\": \"<string>\",\n  \"isRegistrationFlowEnabled\": false,\n  \"recoveryFlowId\": \"<string>\",\n  \"isRecoveryFlowEnabled\": false,\n  \"themeId\": \"<uuid>\",\n  \"layoutId\": \"<uuid>\",\n  \"template\": \"<string>\",\n  \"url\": \"<uri>\",\n  \"logoUrl\": \"<uri>\",\n  \"assertion\": {\n    \"validityPeriod\": \"<integer>\",\n    \"userAttributes\": [\n      \"<string>\",\n      \"<string>\"\n    ]\n  },\n  \"certificate\": {\n    \"type\": \"<string>\",\n    \"value\": \"<string>\"\n  },\n  \"inboundAuthConfig\": [\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"fugiatd\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"ea_fb7\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    },\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"enim5b\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"dolor_3\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"veniam_0b3\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    }\n  ],\n  \"tosUri\": \"<uri>\",\n  \"policyUri\": \"<uri>\",\n  \"contacts\": [\n    \"<email>\",\n    \"<email>\"\n  ],\n  \"allowedUserTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"loginConsent\": {\n    \"validityPeriod\": \"<integer>\"\n  },\n  \"metadata\": {\n    \"veniam__\": \"minim proident aliqua culpa\",\n    \"esse_40\": -36226671.32313098,\n    \"eiusmod25f\": 63258260\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "e11b10ff-ec3f-4f0d-baaf-258ba097e7e9",
+              "name": "Application updated",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications",
+                    ":id"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "disabled": false,
+                      "type": "any",
+                      "value": "<uuid>",
+                      "key": "id",
+                      "description": "(Required) Application ID"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "PUT",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"<string>\",\n  \"ouId\": \"<string>\",\n  \"description\": \"<string>\",\n  \"authFlowId\": \"<string>\",\n  \"registrationFlowId\": \"<string>\",\n  \"isRegistrationFlowEnabled\": false,\n  \"recoveryFlowId\": \"<string>\",\n  \"isRecoveryFlowEnabled\": false,\n  \"themeId\": \"<uuid>\",\n  \"layoutId\": \"<uuid>\",\n  \"template\": \"<string>\",\n  \"url\": \"<uri>\",\n  \"logoUrl\": \"<uri>\",\n  \"assertion\": {\n    \"validityPeriod\": \"<integer>\",\n    \"userAttributes\": [\n      \"<string>\",\n      \"<string>\"\n    ]\n  },\n  \"certificate\": {\n    \"type\": \"<string>\",\n    \"value\": \"<string>\"\n  },\n  \"inboundAuthConfig\": [\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"fugiatd\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"ea_fb7\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    },\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"enim5b\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"dolor_3\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"veniam_0b3\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    }\n  ],\n  \"tosUri\": \"<uri>\",\n  \"policyUri\": \"<uri>\",\n  \"contacts\": [\n    \"<email>\",\n    \"<email>\"\n  ],\n  \"allowedUserTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"loginConsent\": {\n    \"validityPeriod\": \"<integer>\"\n  },\n  \"metadata\": {\n    \"veniam__\": \"minim proident aliqua culpa\",\n    \"esse_40\": -36226671.32313098,\n    \"eiusmod25f\": 63258260\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"<uuid>\",\n  \"ouId\": \"<string>\",\n  \"name\": \"<string>\",\n  \"description\": \"<string>\",\n  \"clientId\": \"<string>\",\n  \"authFlowId\": \"<string>\",\n  \"registrationFlowId\": \"<string>\",\n  \"isRegistrationFlowEnabled\": \"<boolean>\",\n  \"recoveryFlowId\": \"<string>\",\n  \"isRecoveryFlowEnabled\": \"<boolean>\",\n  \"themeId\": \"<uuid>\",\n  \"layoutId\": \"<uuid>\",\n  \"template\": \"<string>\",\n  \"url\": \"<uri>\",\n  \"logoUrl\": \"<uri>\",\n  \"assertion\": {\n    \"validityPeriod\": \"<integer>\",\n    \"userAttributes\": [\n      \"<string>\",\n      \"<string>\"\n    ]\n  },\n  \"certificate\": {\n    \"type\": \"<string>\",\n    \"value\": \"<string>\"\n  },\n  \"inboundAuthConfig\": [\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"sit_e6\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"cillum_80f\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    },\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"non6\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"ada1e\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    }\n  ],\n  \"tosUri\": \"<uri>\",\n  \"policyUri\": \"<uri>\",\n  \"contacts\": [\n    \"<email>\",\n    \"<email>\"\n  ],\n  \"allowedUserTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"loginConsent\": {\n    \"validityPeriod\": \"<integer>\"\n  },\n  \"metadata\": {\n    \"aliquipc6\": -54265093.65886571,\n    \"in1a\": 4840795.702913269\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "84f86cce-4bda-4286-a2bf-44452b56f659",
+              "name": "Bad request",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications",
+                    ":id"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "disabled": false,
+                      "type": "any",
+                      "value": "<uuid>",
+                      "key": "id",
+                      "description": "(Required) Application ID"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "PUT",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"<string>\",\n  \"ouId\": \"<string>\",\n  \"description\": \"<string>\",\n  \"authFlowId\": \"<string>\",\n  \"registrationFlowId\": \"<string>\",\n  \"isRegistrationFlowEnabled\": false,\n  \"recoveryFlowId\": \"<string>\",\n  \"isRecoveryFlowEnabled\": false,\n  \"themeId\": \"<uuid>\",\n  \"layoutId\": \"<uuid>\",\n  \"template\": \"<string>\",\n  \"url\": \"<uri>\",\n  \"logoUrl\": \"<uri>\",\n  \"assertion\": {\n    \"validityPeriod\": \"<integer>\",\n    \"userAttributes\": [\n      \"<string>\",\n      \"<string>\"\n    ]\n  },\n  \"certificate\": {\n    \"type\": \"<string>\",\n    \"value\": \"<string>\"\n  },\n  \"inboundAuthConfig\": [\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"fugiatd\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"ea_fb7\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    },\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"enim5b\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"dolor_3\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"veniam_0b3\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    }\n  ],\n  \"tosUri\": \"<uri>\",\n  \"policyUri\": \"<uri>\",\n  \"contacts\": [\n    \"<email>\",\n    \"<email>\"\n  ],\n  \"allowedUserTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"loginConsent\": {\n    \"validityPeriod\": \"<integer>\"\n  },\n  \"metadata\": {\n    \"veniam__\": \"minim proident aliqua culpa\",\n    \"esse_40\": -36226671.32313098,\n    \"eiusmod25f\": 63258260\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "73a9925a-b489-450c-bc8f-98781f5a8dab",
+              "name": "Application not found",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications",
+                    ":id"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "disabled": false,
+                      "type": "any",
+                      "value": "<uuid>",
+                      "key": "id",
+                      "description": "(Required) Application ID"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "PUT",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"<string>\",\n  \"ouId\": \"<string>\",\n  \"description\": \"<string>\",\n  \"authFlowId\": \"<string>\",\n  \"registrationFlowId\": \"<string>\",\n  \"isRegistrationFlowEnabled\": false,\n  \"recoveryFlowId\": \"<string>\",\n  \"isRecoveryFlowEnabled\": false,\n  \"themeId\": \"<uuid>\",\n  \"layoutId\": \"<uuid>\",\n  \"template\": \"<string>\",\n  \"url\": \"<uri>\",\n  \"logoUrl\": \"<uri>\",\n  \"assertion\": {\n    \"validityPeriod\": \"<integer>\",\n    \"userAttributes\": [\n      \"<string>\",\n      \"<string>\"\n    ]\n  },\n  \"certificate\": {\n    \"type\": \"<string>\",\n    \"value\": \"<string>\"\n  },\n  \"inboundAuthConfig\": [\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"fugiatd\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"ea_fb7\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    },\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"enim5b\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"dolor_3\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"veniam_0b3\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    }\n  ],\n  \"tosUri\": \"<uri>\",\n  \"policyUri\": \"<uri>\",\n  \"contacts\": [\n    \"<email>\",\n    \"<email>\"\n  ],\n  \"allowedUserTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"loginConsent\": {\n    \"validityPeriod\": \"<integer>\"\n  },\n  \"metadata\": {\n    \"veniam__\": \"minim proident aliqua culpa\",\n    \"esse_40\": -36226671.32313098,\n    \"eiusmod25f\": 63258260\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "af997682-2ce5-43e7-89d0-0d896967be76",
+              "name": "Internal server error",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications",
+                    ":id"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "disabled": false,
+                      "type": "any",
+                      "value": "<uuid>",
+                      "key": "id",
+                      "description": "(Required) Application ID"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "PUT",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"<string>\",\n  \"ouId\": \"<string>\",\n  \"description\": \"<string>\",\n  \"authFlowId\": \"<string>\",\n  \"registrationFlowId\": \"<string>\",\n  \"isRegistrationFlowEnabled\": false,\n  \"recoveryFlowId\": \"<string>\",\n  \"isRecoveryFlowEnabled\": false,\n  \"themeId\": \"<uuid>\",\n  \"layoutId\": \"<uuid>\",\n  \"template\": \"<string>\",\n  \"url\": \"<uri>\",\n  \"logoUrl\": \"<uri>\",\n  \"assertion\": {\n    \"validityPeriod\": \"<integer>\",\n    \"userAttributes\": [\n      \"<string>\",\n      \"<string>\"\n    ]\n  },\n  \"certificate\": {\n    \"type\": \"<string>\",\n    \"value\": \"<string>\"\n  },\n  \"inboundAuthConfig\": [\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"fugiatd\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"ea_fb7\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    },\n    {\n      \"type\": \"<string>\",\n      \"config\": {\n        \"clientId\": \"<string>\",\n        \"clientSecret\": \"<string>\",\n        \"redirectUris\": [\n          \"<uri>\",\n          \"<uri>\"\n        ],\n        \"grantTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"responseTypes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"tokenEndpointAuthMethod\": \"<string>\",\n        \"pkceRequired\": false,\n        \"publicClient\": false,\n        \"requirePushedAuthorizationRequests\": false,\n        \"dpopBoundAccessTokens\": false,\n        \"includeActClaim\": false,\n        \"scopes\": [\n          \"<string>\",\n          \"<string>\"\n        ],\n        \"token\": {\n          \"accessToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ]\n          },\n          \"idToken\": {\n            \"validityPeriod\": \"<integer>\",\n            \"userAttributes\": [\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              },\n              {\n                \"value\": \"<Error: Too many levels of nesting to fake this schema>\"\n              }\n            ],\n            \"responseType\": \"<string>\",\n            \"encryptionAlg\": \"<string>\",\n            \"encryptionEnc\": \"<string>\"\n          },\n          \"refreshToken\": {\n            \"validityPeriod\": \"<integer>\"\n          }\n        },\n        \"userInfo\": {\n          \"responseType\": \"<string>\",\n          \"userAttributes\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"signingAlg\": \"<string>\",\n          \"encryptionAlg\": \"<string>\",\n          \"encryptionEnc\": \"<string>\"\n        },\n        \"scopeClaims\": {\n          \"enim5b\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"dolor_3\": [\n            \"<string>\",\n            \"<string>\"\n          ],\n          \"veniam_0b3\": [\n            \"<string>\",\n            \"<string>\"\n          ]\n        },\n        \"certificate\": {\n          \"type\": \"<string>\",\n          \"value\": \"<string>\"\n        },\n        \"acrValues\": [\n          \"<string>\",\n          \"<string>\"\n        ]\n      }\n    }\n  ],\n  \"tosUri\": \"<uri>\",\n  \"policyUri\": \"<uri>\",\n  \"contacts\": [\n    \"<email>\",\n    \"<email>\"\n  ],\n  \"allowedUserTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"loginConsent\": {\n    \"validityPeriod\": \"<integer>\"\n  },\n  \"metadata\": {\n    \"veniam__\": \"minim proident aliqua culpa\",\n    \"esse_40\": -36226671.32313098,\n    \"eiusmod25f\": 63258260\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            }
+          ],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "id": "28e5ec0c-b86c-4be9-b887-c94c58ee9a9a",
+          "name": "Delete an application",
+          "request": {
+            "name": "Delete an application",
+            "description": {
+              "content": "Delete an application using its ID.",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "applications",
+                ":id"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "<uuid>",
+                  "key": "id",
+                  "description": "(Required) Application ID"
+                },
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{host}}",
+                  "key": "host"
+                },
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{port}}",
+                  "key": "port"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "DELETE",
+            "auth": null
+          },
+          "response": [
+            {
+              "id": "224310ae-204d-4989-a1b0-a515da20761e",
+              "name": "Application deleted successfully",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications",
+                    ":id"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "disabled": false,
+                      "type": "any",
+                      "value": "<uuid>",
+                      "key": "id",
+                      "description": "(Required) Application ID"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  }
+                ],
+                "method": "DELETE",
+                "body": {}
+              },
+              "status": "No Content",
+              "code": 204,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "text/plain"
+                }
+              ],
+              "body": "",
+              "cookie": [],
+              "_postman_previewlanguage": "text"
+            },
+            {
+              "id": "df7e5ef6-af5c-4d9b-80b2-cf6dda03ef2e",
+              "name": "Bad request",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications",
+                    ":id"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "disabled": false,
+                      "type": "any",
+                      "value": "<uuid>",
+                      "key": "id",
+                      "description": "(Required) Application ID"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "DELETE",
+                "body": {}
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "93111379-fb0b-4a33-91d4-ad56f404ee67",
+              "name": "Internal server error",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "applications",
+                    ":id"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "disabled": false,
+                      "type": "any",
+                      "value": "<uuid>",
+                      "key": "id",
+                      "description": "(Required) Application ID"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "DELETE",
+                "body": {}
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            }
+          ],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        }
+      ],
+      "event": []
+    }
+  ],
+  "event": [],
+  "variable": [
+    {
+      "description": {
+        "content": "",
+        "type": "text/plain"
+      },
+      "type": "any",
+      "value": "localhost",
+      "key": "host"
+    },
+    {
+      "description": {
+        "content": "",
+        "type": "text/plain"
+      },
+      "type": "any",
+      "value": "8090",
+      "key": "port"
+    },
+    {
+      "type": "string",
+      "value": "https://{{host}}:{{port}}",
+      "key": "baseUrl"
+    },
+    {
+      "key": "clientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clientSecret",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "oauth2",
+    "oauth2": [
+      {
+        "key": "grant_type",
+        "value": "client_credentials"
+      },
+      {
+        "key": "accessTokenUrl",
+        "value": "{{baseUrl}}/oauth2/token"
+      },
+      {
+        "key": "clientId",
+        "value": "{{clientId}}"
+      },
+      {
+        "key": "clientSecret",
+        "value": "{{clientSecret}}"
+      },
+      {
+        "key": "scope",
+        "value": "system"
+      },
+      {
+        "key": "addTokenTo",
+        "value": "header"
+      }
+    ]
+  },
+  "info": {
+    "_postman_id": "31e7731b-3849-47ad-a8f5-84faac43970a",
+    "name": "Application Management API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": {
+      "content": "Create and manage client applications registered with ThunderID. Applications define OAuth2/OIDC client configuration, associated authentication flows, and branding.",
+      "type": "text/plain"
+    }
+  }
+}

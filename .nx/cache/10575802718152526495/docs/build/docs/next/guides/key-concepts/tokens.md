@@ -1,0 +1,38 @@
+# Tokens
+
+# Tokens
+
+ThunderID issues OAuth 2.0 tokens that authenticate users and authorize access to protected resources. Each token type serves a different purpose.
+
+## Access Tokens
+
+Access tokens are JWTs that a client presents to a resource server to access protected resources. Key claims include:
+
+| Claim | Description |
+|-------|-------------|
+| `sub` | The subject — the user ID or client ID the token represents. |
+| `aud` | The audience — identifies the intended recipient of the token. Accepts a string or a JSON array of strings. |
+| `scope` | The granted scopes — the permissions the token carries. |
+| `iss` | The issuer — the ThunderID instance that issued the token. |
+| `exp` | The expiry time as a Unix timestamp. |
+
+### Audience Claim Behavior
+
+The `aud` claim varies based on whether the client used [resource indicators](https://thunderid.dev/docs/next/guides/guides/resource-indicators.md):
+
+- **With `resource` parameter:** The `aud` claim contains the identifier(s) of the targeted resource server(s).
+- **Without `resource` parameter:** ThunderID discovers which registered resource servers own the granted scopes and includes their identifiers. If no resource server matches, the `aud` defaults to the client ID.
+- **Single audience:** Serialized as a JSON string (for example, `"aud": "https://api.example.com/booking"`).
+- **Multiple audiences:** Serialized as a JSON array (for example, `"aud": ["https://api.example.com/booking", "https://api.example.com/payments"]`).
+
+Both forms comply with [RFC 7519 Section 4.1.3](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3). Resource servers that validate tokens must accept either form.
+
+## Refresh Tokens
+
+Refresh tokens allow a client to get a new access token without requiring the user to re-authenticate. A refresh token is issued alongside the access token when the client uses a grant type that supports refresh (such as the authorization code grant).
+
+When refreshing, the client can include the `resource` parameter to narrow the audience of the new access token to a subset of the original. See [Resource Indicators — Narrow the Audience on Token Refresh](https://thunderid.dev/docs/next/guides/guides/resource-indicators.md#narrow-the-audience-on-token-refresh).
+
+## ID Tokens
+
+ID tokens are JWTs issued alongside access tokens in OpenID Connect flows. The `aud` claim of an ID token always contains the requesting application's client ID, regardless of resource indicators. ID tokens identify the authenticated user to the client application and are not intended for resource server authorization.

@@ -1,0 +1,1 @@
+{"version":3,"file":"switchOrganization.d.ts","sourceRoot":"","sources":["../../../../src/server/actions/switchOrganization.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;GAgBG;AAIH,OAAO,EAAC,YAAY,EAA8B,aAAa,EAAC,MAAM,iBAAiB,CAAC;AAUxF;;GAEG;AACH,QAAA,MAAM,kBAAkB,GACtB,cAAc,YAAY,EAC1B,WAAW,MAAM,GAAG,SAAS,KAC5B,OAAO,CAAC,aAAa,GAAG,QAAQ,CAmDlC,CAAC;AAEF,eAAe,kBAAkB,CAAC"}

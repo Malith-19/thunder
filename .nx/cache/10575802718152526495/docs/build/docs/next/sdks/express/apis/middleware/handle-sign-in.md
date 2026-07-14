@@ -1,0 +1,77 @@
+# handleSignIn()
+
+# `handleSignIn()`
+
+The `handleSignIn()` function returns an Express route handler for the sign-in path.
+
+## Signature
+
+```ts
+handleSignIn(): express.RequestHandler
+```
+
+## Import
+
+```js
+const  = require('@thunderid/express');
+```
+
+## Prerequisites
+
+- Mount [`thunderID()`](https://thunderid.dev/docs/next/sdks/express/apis/middleware/thunderid.md) before this handler
+- Register this handler on the route that matches your `afterSignInUrl`
+
+## Usage
+
+```js title="index.js" showLineNumbers
+const express = require('express');
+const cookieParser = require('cookie-parser');
+const  = require('@thunderid/express');
+
+const app = express();
+
+app.use(cookieParser());
+app.use(
+  thunderID({
+    baseUrl: 'https://localhost:8090',
+    clientId: '<your-client-id>',
+    clientSecret: '<your-client-secret>',
+    afterSignInUrl: 'http://localhost:3000/login',
+  }),
+);
+
+app.get('/login', handleSignIn());
+```
+
+## Runtime Behavior
+
+`handleSignIn()` supports two stages on the same route:
+
+1. If the request does not include a `code` query parameter, the handler starts the OAuth 2.0 redirect flow.
+2. If the request includes a `code` query parameter, the handler exchanges the authorization code for tokens, writes the session cookie, and completes sign-in.
+
+## Default Callbacks
+
+The handler uses the initialized Express config callbacks if they are provided.
+
+| Callback | Default behavior |
+| :--- | :--- |
+| `onSignIn` | Calls `res.end()` |
+| `onError` | Logs the error message and returns `500` with an empty response body |
+
+## Failure Behavior
+
+- If `thunderID()` has not been mounted first, the handler logs an error and returns `500`
+- If sign-in fails, the handler calls `onError`
+- If the original request URL already contains an error parameter, the underlying client rejects the request
+
+## Notes
+
+- The session cookie is set during the authorization redirect and callback flow
+- The underlying Express client uses the configured `sessionCookie` settings when writing the cookie
+
+## Related APIs
+
+- [`thunderID()`](https://thunderid.dev/docs/next/sdks/express/apis/middleware/thunderid.md)
+- [`handleSignOut()`](https://thunderid.dev/docs/next/sdks/express/apis/middleware/handle-sign-out.md)
+- [`Redirect Flow`](https://thunderid.dev/docs/next/sdks/express/guides/redirect-flow.md)

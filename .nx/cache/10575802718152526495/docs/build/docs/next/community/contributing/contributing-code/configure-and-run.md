@@ -1,0 +1,298 @@
+# Configure and Run
+
+# Configure and Run
+
+## Build from Source
+
+Building from source produces a distributable `.zip` file at `PROJECT_ROOT/target/dist/`.
+
+
+  <CodeBlock lang="bash" label="Linux/macOS">
+    make build
+
+
+    .\build.ps1 build
+
+</CodeGroup>
+
+**What this does:**
+
+- Compiles the Go backend binary
+- Initializes SQLite databases (config, runtime, user)
+- Builds the frontend React apps (ThunderID Gate + ThunderID Console)
+- Builds the documentation
+- Builds sample apps
+
+## Configure the Server
+
+Open `backend/cmd/server/deployment.yaml` in your favorite text editor and make the following changes:
+
+**Add CORS allowed origins:**
+
+```yaml
+cors:
+  allowed_origins:
+    - "https://localhost:5190"
+    - "https://localhost:5191"
+```
+
+> **Tip**
+>
+> This configuration allows the ThunderID Gate and ThunderID Console applications to communicate with the backend server during development.
+
+
+**Configure the Gate client:**
+
+```yaml
+gate_client:
+  port: 5190
+```
+
+> **Tip**
+>
+> This configuration points the backend server to the local ThunderID Gate application for authentication.
+
+
+## Run the Server
+
+### Option A: All-in-one (Backend + Frontend together)
+
+Start the ThunderID server and apps in development mode.
+
+
+  <CodeBlock lang="bash" label="Linux/macOS">
+    make run
+
+
+    .\build.ps1 run
+
+</CodeGroup>
+
+> **Note**
+>
+> This command will automatically set up your complete development environment:
+>
+> **What happens:**
+>
+> - Installs frontend dependencies and builds packages
+> - Starts the frontend development servers
+> - Generates TLS certificates (if missing)
+> - Initializes SQLite databases
+> - Starts the backend server
+> - Runs the bootstrap script which creates:
+>   - The `Console` application with the correct redirect URIs
+>   - The default admin user (credentials default to `admin` / `admin`; configurable via `ADMIN_USERNAME` / `ADMIN_PASSWORD` environment variables)
+>
+> **Services that start:**
+>
+> - **Backend server**: [https://localhost:8090](https://localhost:8090)
+> - **ThunderID Gate** (Login/Register): [https://localhost:5190/gate](https://localhost:5190/gate)
+> - **ThunderID Console** (Admin Console): [https://localhost:5191/console](https://localhost:5191/console)
+
+
+### Option B: Separate terminals (for debugging independently)
+
+Use this approach when you need to debug the backend and frontend independently.
+
+**Terminal 1 - Backend:**
+
+
+  <CodeBlock lang="bash" label="Linux/macOS">
+    make run_backend
+
+
+    .\build.ps1 run_backend
+
+</CodeGroup>
+
+**Terminal 2 - Frontend:**
+
+
+  <CodeBlock lang="bash" label="Linux/macOS">
+    make run_frontend
+
+
+    .\build.ps1 run_frontend
+
+</CodeGroup>
+
+**Terminal 3 - Seed the initial data (one-time only):**
+
+
+  <CodeBlock lang="bash" label="Linux/macOS">
+    {`SKIP_SECURITY=true API_BASE="https://localhost:8090" \\
+  backend/cmd/server/bootstrap/01-default-resources.sh \\
+  --console-redirect-uris "https://localhost:5191/console"`}
+
+
+    {`$env:SKIP_SECURITY = "true"
+$env:API_BASE = "https://localhost:8090"
+& backend\\cmd\\server\\bootstrap\\01-default-resources.ps1 \`
+  --console-redirect-uris "https://localhost:5191/console"`}
+
+</CodeGroup>
+
+This creates the `Console` application and the default admin user (credentials default to `admin` / `admin`). You only need to do this once — the data persists in the SQLite databases.
+
+> **Warning**
+>
+> Don't use `./setup.sh` here. That script is designed for the packaged distribution zip and expects a compiled `./thunderid` binary at the project root. From source code, always use the bootstrap script directly as shown above, or use `make run` (Option A) which handles everything for you.
+
+
+## Setup and Data Seeding
+
+ThunderID provides two different data seeding paths, depending on how the system is initialized.
+
+| Command | Use Case | Seeded Data |
+|---------|----------|-------------|
+| `make run` | Source development | Default resources |
+| `./setup.sh` | Deployment / release initialization | Default resources |
+
+### Development Seeding (`make run`)
+
+For development environments, `make run` executes the `backend/cmd/server/bootstrap/01-default-resources.sh` bootstrap script, which seeds the core resources required to start the server and access the console:
+
+- Default Organization Unit
+- Default User Type (Person)
+- Admin user (credentials default to `admin` / `admin`; configurable via `ADMIN_USERNAME` / `ADMIN_PASSWORD` environment variables)
+- System resource server with system actions and permissions
+- Administrator role and role assignment
+- `Console` application
+
+### Full Bootstrap (`./setup.sh`)
+
+For release artifacts and deployment environments, `./setup.sh` performs a one-time initialization:
+
+1. Starts ThunderID temporarily with `SKIP_SECURITY=true`
+2. Waits until the server becomes ready (`/health/readiness`)
+3. Executes all scripts in the `./bootstrap` directory in filename order
+4. Stops the temporary server after initialization is complete
+
+**Bootstrap Scripts:**
+
+- **`01-default-resources.sh`** — Seeds the core identity resources (same as development seeding above)
+
+**In short:**
+- Use `make run` when running ThunderID from source.
+- Use `./setup.sh` when initializing a fresh runtime environment with the full bootstrap data.
+
+## Advanced Setup (Manual Mode)
+
+<details>
+<summary><strong>Click to expand - Manual Frontend Setup</strong></summary>
+
+For developers who want to run frontend components separately without using `make run` commands.
+
+### Installing Dependencies
+
+1. Navigate to the ThunderID frontend directory.
+
+```bash
+cd frontend
+```
+
+2. Install the dependencies using `pnpm`.
+
+```bash
+pnpm install
+```
+
+### Building the Project
+
+Execute the build command to compile the project. This will build all the necessary packages and applications.
+
+```bash
+pnpm build
+```
+
+### Seed Data (Optional)
+
+**Note**: This step is only necessary if you are running the backend server manually and have not yet set up the initial data.
+
+If you have not already created the `Console` application and the default admin user, you can do so by running the following command:
+
+```bash
+API_BASE="https://localhost:8090" \
+  backend/cmd/server/bootstrap/01-default-resources.sh \
+  --console-redirect-uris "https://localhost:5191/console"
+```
+
+### Setting up the ThunderID Gate Application
+
+1. Point the `gate_client` in `deployment.yaml` to the local ThunderID Gate application.
+
+   - If you are running `make run`, change the `gate_client` section in `backend/cmd/server/deployment.yaml`
+   - If you are running the backend server manually, change the `gate_client` section in `<THUNDERID_HOME>/deployment.yaml`
+
+```yaml
+gate_client:
+  port: 5190
+```
+
+2. Add the local development origin of the ThunderID Gate application (https://localhost:5190) to the CORS allowed origins in `<THUNDERID_HOME>/deployment.yaml`.
+
+```yaml
+cors:
+  allowed_origins:
+    - "https://localhost:5190"
+```
+
+3. Run the ThunderID Gate application.
+
+```bash
+cd frontend
+pnpm --filter @thunderid/gate dev
+```
+
+### Setting up the ThunderID Console Application
+
+**IMPORTANT**: This section assumes that you have already created the `Console` application using the initial data setup script. If not, please refer to the [Seed Data](#seed-data-optional) section above.
+
+1. First, retrieve the application ID of the **Console** application from the ThunderID server. This will be the application with the `client_id` **CONSOLE**.
+
+```bash
+curl -k -X GET "https://localhost:8090/applications"
+```
+
+2. Then, get the current **Console** application configuration:
+
+```bash
+curl -k -X GET "https://localhost:8090/applications/<console-application-id>"
+```
+
+**Note**: Replace `<console-application-id>` with the actual application ID (e.g., `6100bc91-ba99-4ce9-87dd-6d4d80178c38`) obtained from the previous step. The `-k` flag allows curl to work with self-signed SSL certificates in development.
+
+3. Copy the response from step 2 and update the `redirectUris` in the JSON object to include the local development URL (ex: https://localhost:5191/console). Locate the `inboundAuthConfig > config` section and update the `redirectUris` array:
+
+```json
+"redirectUris": [
+  "https://localhost:8090/console",
+  "https://localhost:5191/console"
+]
+```
+
+4. Update the **Console** application with the modified configuration by passing the updated JSON directly:
+
+```bash
+curl -k -X PUT "https://localhost:8090/applications/<console-application-id>" \
+  -H "Content-Type: application/json" \
+  -d '<paste-the-modified-json-here>'
+```
+
+5. Add the local development origin of the console application (https://localhost:5191) to the CORS allowed origins in `<THUNDERID_HOME>/deployment.yaml`.
+
+```yaml
+cors:
+  allowed_origins:
+    - "https://localhost:5191"
+```
+
+6. Run the ThunderID Console application.
+
+```bash
+pnpm --filter @thunderid/console dev
+```
+
+This will run the ThunderID Console application on `https://localhost:5191/console`.
+
+</details>

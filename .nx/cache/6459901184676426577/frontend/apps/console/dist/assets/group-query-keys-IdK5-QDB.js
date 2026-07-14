@@ -1,0 +1,1 @@
+var e={GROUPS:`groups`,GROUP:`group`,GROUP_MEMBERS:`group-members`};export{e as t};

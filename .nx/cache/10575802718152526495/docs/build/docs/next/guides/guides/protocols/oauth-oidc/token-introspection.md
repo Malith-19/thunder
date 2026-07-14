@@ -1,0 +1,107 @@
+# Token Introspection
+
+# Token Introspection
+
+**Token Introspection** ([RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662)) is the protected endpoint a resource server calls to ask ThunderID about a token. The response says whether the token is `active`, who it was issued to, what scopes it carries, and the standard set of metadata claims.
+
+Use it when a resource server cannot or should not validate JWTs locally. For example: when scopes change frequently, when the resource server wants the latest revocation status, or when the tokens are not JWTs.
+
+## How It Works
+
+
+<details>
+<summary>How ThunderID Implements It</summary>
+
+| Aspect | Behavior |
+|---|---|
+| Endpoint | `POST /oauth2/introspect` |
+| Authentication | Required — same client authentication method as the token endpoint (see [Client Authentication Methods](https://thunderid.dev/docs/next/guides/guides/protocols/client-authentication-methods.md)) |
+| Who can call | Any registered client. Best practice: register the resource server as a confidential client and use its credentials |
+| `token_type_hint` parameter | Accepted but not used internally — the server determines the token type itself |
+| Inactive token response | `` with HTTP 200 — never leaks reason |
+| Active token response | Standard claims (see below) |
+| Tokens supported | Access tokens and refresh tokens |
+
+### Active Token Response
+
+```json
+{
+  "active": true,
+  "scope": "openid profile payments:read",
+  "client_id": "abc123",
+  "sub": "user-456",
+  "aud": "https://api.example.com/payments",
+  "iss": "https://thunderid.example.com",
+  "exp": 1717000000,
+  "iat": 1716996400,
+  "token_type": "Bearer"
+}
+```
+
+When the token is DPoP-bound, the response also includes the `cnf.jkt` claim.
+
+</details>
+
+## Introspection or Local JWT Validation
+
+ThunderID issues JWT access tokens, so resource servers have two valid options:
+
+| Approach | Pros | Cons | Use when |
+|---|---|---|---|
+| **Local JWT validation** (verify signature via [JWKS](https://thunderid.dev/docs/next/guides/guides/protocols/jwks.md)) | No extra network call; scales trivially | Cannot detect revocation; cached JWKS may be stale | High-volume reads; latency-sensitive APIs |
+| **Introspection** | Always-fresh state; works for non-JWT tokens; centralized policy | One round-trip per call (cacheable) | Sensitive operations; revocation must take effect immediately |
+
+A common pattern is to verify the JWT locally on most calls and call introspection only on high-value operations.
+
+## Try It in ThunderID
+
+Introspection is always available. To call it, register a client with permission to introspect — typically the resource server itself.
+
+### Register an Introspection Client
+
+```http
+POST /oauth2/dcr/register
+Content-Type: application/json
+
+{
+  "client_name": "Payments API",
+  "grant_types": ["client_credentials"],
+  "token_endpoint_auth_method": "client_secret_basic"
+}
+```
+
+### Introspect a Token
+
+```bash
+curl -X POST https://thunderid.example.com/oauth2/introspect \
+  -u "$RS_CLIENT_ID:$RS_CLIENT_SECRET" \
+  -d "token=$ACCESS_TOKEN"
+```
+
+Active token — returns the metadata shown in [Active Token Response](#active-token-response) above:
+
+```json
+{
+  "active": true,
+  "scope": "openid profile payments:read",
+  "client_id": "abc123",
+  "sub": "user-456",
+  "aud": "https://api.example.com/payments",
+  "iss": "https://thunderid.example.com",
+  "exp": 1717000000,
+  "iat": 1716996400,
+  "token_type": "Bearer"
+}
+```
+
+Inactive, expired, or unknown token:
+
+```json
+
+```
+
+## Related Guides
+
+- [JWKS](https://thunderid.dev/docs/next/guides/guides/protocols/jwks.md) — public keys for local JWT validation
+- [Client Authentication Methods](https://thunderid.dev/docs/next/guides/guides/protocols/client-authentication-methods.md) — required on the introspection endpoint
+- [Server Metadata](https://thunderid.dev/docs/next/guides/guides/protocols/server-metadata.md) — `introspection_endpoint` is advertised

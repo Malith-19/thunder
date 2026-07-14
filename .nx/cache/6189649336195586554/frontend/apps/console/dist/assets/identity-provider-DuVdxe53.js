@@ -1,0 +1,1 @@
+var e={OAUTH:`OAUTH`,OIDC:`OIDC`,GOOGLE:`GOOGLE`,GITHUB:`GITHUB`};export{e as t};

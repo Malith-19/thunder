@@ -1,0 +1,65 @@
+/**
+ * Copyright (c) 2024, WSO2 LLC. (https://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { FC, SelectHTMLAttributes } from 'react';
+export interface SelectOption {
+    /**
+     * The text that will be displayed in the select
+     */
+    label: string;
+    /**
+     * The value that will be submitted with the form
+     */
+    value: string;
+}
+export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'className'> {
+    /**
+     * Additional CSS class names
+     */
+    className?: string;
+    /**
+     * Whether the field is disabled
+     */
+    disabled?: boolean;
+    /**
+     * Error message to display below the select
+     */
+    error?: string;
+    /**
+     * Helper text to display below the select
+     */
+    helperText?: string;
+    /**
+     * Label text to display above the select
+     */
+    label?: string;
+    /**
+     * The options to display in the select
+     */
+    options: SelectOption[];
+    /**
+     * Placeholder text for the default/empty option
+     */
+    placeholder?: string;
+    /**
+     * Whether the field is required
+     */
+    required?: boolean;
+}
+declare const Select: FC<SelectProps>;
+export default Select;
+//# sourceMappingURL=Select.d.ts.map

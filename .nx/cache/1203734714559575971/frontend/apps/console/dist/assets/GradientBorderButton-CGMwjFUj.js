@@ -1,0 +1,8 @@
+import{o as e}from"./rolldown-runtime-CMxvf4Kt.js";import{_ as t,l as n}from"./vendor-emotion-BJbDtNae.js";import{Sn as r,en as i,ht as a}from"./vendor-mui-DfBexhDa.js";import{n as o}from"./vendor-react-BRrCN599.js";var s=o(),c=e(t(),1),l=r(),u=n`
+  0% {
+    --gradient-angle: 0deg;
+  }
+  100% {
+    --gradient-angle: 360deg;
+  }
+`;if(typeof window<`u`&&`CSS`in window&&`registerProperty`in CSS)try{CSS.registerProperty({name:`--gradient-angle`,syntax:`<angle>`,initialValue:`0deg`,inherits:!1})}catch{}var d=i(a)(()=>({position:`relative`,display:`inline-flex`,borderRadius:`8px`,padding:`8px 16px`,border:`2px solid transparent`,background:`transparent`,color:`var(--mui-palette-text-primary)`,fontWeight:500,backgroundClip:`padding-box`,isolation:`isolate`,"&::before":{content:`""`,position:`absolute`,inset:0,borderRadius:`8px`,padding:`2px`,background:`conic-gradient(from var(--gradient-angle), #667eea, #764ba2, #f093fb, #4facfe, #00f2fe, #667eea)`,WebkitMask:`linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)`,WebkitMaskComposite:`xor`,maskComposite:`exclude`,animation:`${u} 4s linear infinite`,zIndex:-1},"&:hover":{background:`var(--mui-palette-action-hover)`,"&::before":{animationPlayState:`paused`}},"&.Mui-disabled":{"&::before":{animationPlayState:`paused`,opacity:.6}}})),f=(0,c.forwardRef)((e,t)=>{let n=(0,s.c)(3),r;return n[0]!==e||n[1]!==t?(r=(0,l.jsx)(d,{ref:t,variant:`text`,disableRipple:!0,disableFocusRipple:!0,...e}),n[0]=e,n[1]=t,n[2]=r):r=n[2],r});f.displayName=`GradientBorderButton`;export{f as t};

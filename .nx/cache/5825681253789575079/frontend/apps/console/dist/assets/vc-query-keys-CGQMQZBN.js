@@ -1,0 +1,1 @@
+var e={VCS:`verifiable-credentials`,VC:`verifiable-credential`};export{e as t};

@@ -1,0 +1,89 @@
+/**
+ * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { CSSProperties, FC, ReactNode } from 'react';
+export type MultiInputType = 'text' | 'email' | 'tel' | 'url' | 'password' | 'date' | 'boolean';
+export type MultiInputFieldType = 'STRING' | 'DATE_TIME' | 'BOOLEAN';
+export interface MultiInputProps {
+    /**
+     * Additional CSS class names
+     */
+    className?: string;
+    /**
+     * Whether the field is disabled
+     */
+    disabled?: boolean;
+    /**
+     * Icon to display at the end (right) of each input (in addition to add/remove buttons)
+     */
+    endIcon?: ReactNode;
+    /**
+     * Error message to display below the inputs
+     */
+    error?: string;
+    /**
+     * Field type for different input components
+     */
+    fieldType?: MultiInputFieldType;
+    /**
+     * Helper text to display below the inputs
+     */
+    helperText?: string;
+    /**
+     * Label text to display above the inputs
+     */
+    label?: string;
+    /**
+     * Maximum number of fields to allow (default: unlimited)
+     */
+    maxFields?: number;
+    /**
+     * Minimum number of fields to show (default: 1)
+     */
+    minFields?: number;
+    /**
+     * Callback when values change
+     */
+    onChange: (values: string[]) => void;
+    /**
+     * Placeholder text for input fields
+     */
+    placeholder?: string;
+    /**
+     * Whether the field is required
+     */
+    required?: boolean;
+    /**
+     * Icon to display at the start (left) of each input
+     */
+    startIcon?: ReactNode;
+    /**
+     * Custom style object
+     */
+    style?: CSSProperties;
+    /**
+     * Input type
+     */
+    type?: MultiInputType;
+    /**
+     * Array of values
+     */
+    values: string[];
+}
+declare const MultiInput: FC<MultiInputProps>;
+export default MultiInput;
+//# sourceMappingURL=MultiInput.d.ts.map

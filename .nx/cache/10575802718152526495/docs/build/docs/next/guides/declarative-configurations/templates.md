@@ -1,0 +1,50 @@
+# Template Declarative Resources
+
+# Template Declarative Resources
+
+ThunderID supports loading templated content (for example: email templates) as declarative resources at startup. Templates are YAML files placed under the configured templates directory and are loaded into the `template` service used by executors (e.g., EmailExecutor).
+
+Where to place files
+
+- Templates are loaded from `templates` under the config resources directory. When running from a container the path is `/app/config/resources/templates`.
+
+YAML schema (minimal example)
+
+```yaml
+id: invite-email
+displayName: "User invitation email"
+scenario: USER_INVITE
+type: email
+subject: "You're invited"
+contentType: "text/html"
+body: |
+  Hi,
+  Click here to join: }
+```
+
+Required fields
+
+- `id` — unique template identifier
+- `displayName` — human-friendly name
+- `scenario` — scenario type (see supported values below)
+- `type` — template type (e.g., `email`)
+- `subject` — subject used when sending emails
+- `contentType` — MIME type, e.g. `text/plain` or `text/html`
+- `body` — template body using `}` syntax for placeholder substitution
+
+Supported scenarios
+
+- `USER_INVITE` — used during the user invite flow
+
+Supported context placeholders
+
+- `}` — the invite link for user registration
+
+Notes
+
+- Templates are validated at load time. Unknown or invalid scenarios will cause initialization to fail.
+- Template rendering uses `}` placeholders which are substituted with context data at render time.
+
+Examples and usage
+
+Place example YAML files in the configured templates directory and restart server. The executor will fetch templates by scenario and render them with provided template data.

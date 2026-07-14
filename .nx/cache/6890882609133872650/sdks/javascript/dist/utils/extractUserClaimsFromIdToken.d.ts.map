@@ -1,0 +1,1 @@
+{"version":3,"file":"extractUserClaimsFromIdToken.d.ts","sourceRoot":"","sources":["../../src/utils/extractUserClaimsFromIdToken.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;GAgBG;AAEH,OAAO,EAAC,OAAO,EAAC,MAAM,iBAAiB,CAAC;AAExC;;;;;;;;;;;;;;;;;;;;;;;;;GAyBG;AACH,QAAA,MAAM,4BAA4B,GAAI,SAAS,OAAO,KAAG,MAAM,CAAC,MAAM,EAAE,OAAO,CA2B9E,CAAC;AAEF,eAAe,4BAA4B,CAAC"}

@@ -1,0 +1,39 @@
+import { Fragment, jsx } from "react/jsx-runtime";
+
+//#region src/components/presentation/Organization/BaseOrganization.tsx
+/**
+* Base Organization component that provides the core functionality for displaying organization information.
+* This component takes an organization object as a prop and uses render props to expose it.
+*
+* @remarks This is the base component that can be used in any context where you have
+* an organization object available. For React applications, use the Organization component which
+* automatically retrieves the current organization from Organization context.
+*
+* @example
+* ```tsx
+* import { BaseOrganization } from '@thunderid/auth-react';
+*
+* const MyComponent = ({ organization }) => {
+*   return (
+*     <BaseOrganization organization={organization} fallback={<p>No organization data</p>}>
+*       {(org) => (
+*         <div>
+*           <h1>Organization: {org.name}</h1>
+*           <p>ID: {org.id}</p>
+*         </div>
+*       )}
+*     </BaseOrganization>
+*   );
+* }
+* ```
+*/
+const BaseOrganization = ({ children, fallback = null, organization }) => {
+	if (!organization) return /* @__PURE__ */ jsx(Fragment, { children: fallback });
+	return /* @__PURE__ */ jsx(Fragment, { children: children(organization) });
+};
+BaseOrganization.displayName = "BaseOrganization";
+var BaseOrganization_default = BaseOrganization;
+
+//#endregion
+export { BaseOrganization_default as default };
+//# sourceMappingURL=BaseOrganization.js.map

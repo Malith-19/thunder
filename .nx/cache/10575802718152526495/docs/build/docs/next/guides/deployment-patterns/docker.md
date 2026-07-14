@@ -1,0 +1,233 @@
+# Docker
+
+# Deploy ThunderID with Docker
+
+This guide walks you through deploying ThunderID using Docker. Run it as a single container with SQLite, or connect it to an external PostgreSQL database for a more durable setup — all without any cluster infrastructure.
+
+## Prerequisites
+
+Before you begin, ensure the following tools are installed:
+
+| Tool | Minimum Version | Installation Guide | Version Check |
+|------|----------------|--------------------|---------------|
+| Docker | 20.10 | [Install Docker](https://docs.docker.com/engine/install/) | `docker --version` |
+| Docker Compose | 2.0 | [Install Docker Compose](https://docs.docker.com/compose/install/) | `docker compose version` |
+
+Verify your installation:
+
+```bash
+docker --version
+docker compose version
+docker run hello-world
+```
+
+ThunderID listens on port `8090` by default. Ensure that port is available on your host.
+
+## Run ThunderID with Docker
+
+### Step 1: Pull the Image
+
+Pin to a specific release tag for reproducible deployments:
+
+```bash
+docker pull ghcr.io/thunder-id/thunderid:latest
+```
+
+### Step 2: Set Up the Server
+
+Run the one-time setup script before starting ThunderID for the first time. It initializes the configuration and database:
+
+```bash
+docker run -it --rm \
+  ghcr.io/thunder-id/thunderid:latest \
+  ./setup.sh
+```
+
+If you are using SQLite, mount a named volume so the initialized database is available when the server starts:
+
+```bash
+docker run -it --rm \
+  -v thunderid-data:/opt/thunder/database \
+  ghcr.io/thunder-id/thunderid:latest \
+  ./setup.sh
+```
+
+The container exits after setup completes.
+
+### Step 3: Start the Server
+
+Run ThunderID in the background with a restart policy so it recovers from host reboots and unexpected exits:
+
+```bash
+docker run -d \
+  --name thunderid \
+  --restart unless-stopped \
+  -p 8090:8090 \
+  -v thunderid-data:/opt/thunder/database \
+  ghcr.io/thunder-id/thunderid:latest
+```
+
+ThunderID is now running at `https://localhost:8090`.
+
+To follow the logs:
+
+```bash
+docker logs -f thunderid
+```
+
+### Customize the Configuration
+
+To override the default server configuration, mount a custom `deployment.yaml` file. Create a `deployment.yaml` based on the default configuration and pass it to the container:
+
+```bash
+docker run -d \
+  --name thunderid \
+  --restart unless-stopped \
+  -p 8090:8090 \
+  -v $(pwd)/deployment.yaml:/opt/thunder/deployment.yaml \
+  -v thunderid-data:/opt/thunder/database \
+  ghcr.io/thunder-id/thunderid:latest
+```
+
+To also use custom TLS certificates, mount them alongside the configuration:
+
+```bash
+docker run -d \
+  --name thunderid \
+  --restart unless-stopped \
+  -p 8090:8090 \
+  -v $(pwd)/deployment.yaml:/opt/thunder/deployment.yaml \
+  -v $(pwd)/certs/server.cert:/opt/thunder/config/certs/server.cert \
+  -v $(pwd)/certs/server.key:/opt/thunder/config/certs/server.key \
+  -v thunderid-data:/opt/thunder/database \
+  ghcr.io/thunder-id/thunderid:latest
+```
+
+## Run with Docker Compose
+
+Docker Compose is the recommended way to run ThunderID alongside a PostgreSQL database. Create a `docker-compose.yml` in your working directory:
+
+```yaml
+services:
+  thunderid:
+    image: ghcr.io/thunder-id/thunderid:latest
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./deployment.yaml:/opt/thunder/deployment.yaml
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER: thunderid_user
+      POSTGRES_DB: configdb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U thunderid_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+```
+
+Create a `.env` file alongside `docker-compose.yml` to keep credentials out of version control:
+
+```bash
+POSTGRES_PASSWORD=<your-database-password>
+```
+
+Start the stack:
+
+```bash
+docker compose up -d
+```
+
+View logs:
+
+```bash
+docker compose logs -f
+```
+
+Stop the stack:
+
+```bash
+docker compose down
+```
+
+Stop and remove all data volumes:
+
+```bash
+docker compose down -v
+```
+
+## Access ThunderID
+
+Once the container is running, access ThunderID at the following endpoints:
+
+| Endpoint | URL |
+|----------|-----|
+| Application | `https://localhost:8090` |
+| Sign-in / Register | `https://localhost:8090/signin` |
+| ThunderID Console | `https://localhost:8090/console` |
+
+## Database Setup
+
+### Embedded SQLite (Default)
+
+ThunderID uses SQLite by default. No additional setup is required — it works out of the box with no external dependencies.
+
+Mount a named volume to persist the database across container restarts:
+
+```bash
+-v thunderid-data:/opt/thunder/database
+```
+
+### External PostgreSQL
+
+For a more durable setup, connect ThunderID to an external PostgreSQL database. ThunderID ships with a Docker Compose file to spin up a PostgreSQL instance alongside the server.
+
+1. Navigate to the `install/local-development` directory:
+
+    ```bash
+    cd install/local-development
+    ```
+
+2. Start PostgreSQL in the background:
+
+    ```bash
+    docker compose up -d
+    ```
+
+3. View PostgreSQL logs:
+
+    ```bash
+    docker compose logs -f
+    ```
+
+4. Stop PostgreSQL:
+
+    ```bash
+    docker compose down
+    ```
+
+    To stop PostgreSQL and delete all data:
+
+    ```bash
+    docker compose down -v
+    ```
+
+## Next Steps
+
+
+  - [Docker Production Recommendations](https://thunderid.dev/docs/next/guides/docker-production.md) — Harden your Docker deployment: configure a reverse proxy, set resource limits, add health checks, and manage secrets securely.
+  - [Deploy on Kubernetes](https://thunderid.dev/docs/next/guides/kubernetes.md) — Run ThunderID on your own cluster with full control over infrastructure, scaling, and configuration.
+  - [Deploy on OpenChoreo](https://thunderid.dev/docs/next/guides/openchoreo.md) — Use a platform-managed deployment model with environment separation and promotion workflows.

@@ -1,0 +1,1 @@
+{"version":3,"file":"normalizeThemeConfig.d.ts","sourceRoot":"","sources":["../../src/utils/normalizeThemeConfig.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;GAgBG;AAEH,OAAO,EAAC,gBAAgB,EAAE,WAAW,EAAC,MAAM,oBAAoB,CAAC;AAmBjE;;;;;;;;;GASG;AACH,QAAA,MAAM,oBAAoB,GACxB,QAAQ,gBAAgB,CAAC,WAAW,CAAC,GAAG,SAAS,KAChD,gBAAgB,CAAC,WAAW,CAAC,GAAG,SAmBlC,CAAC;AAEF,eAAe,oBAAoB,CAAC"}

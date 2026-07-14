@@ -1,0 +1,1 @@
+{"version":3,"file":"Hooks.d.ts","sourceRoot":"","sources":["../../src/constants/Hooks.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;GAgBG;AAEH;;GAEG;AACH,oBAAY,KAAK;IACf,MAAM,YAAY;IAClB,OAAO,aAAa;IACpB,UAAU,eAAe;IACzB,gBAAgB,uBAAuB;IACvC,iBAAiB,wBAAwB;IACzC,gBAAgB,uBAAuB;IACvC,kBAAkB,yBAAyB;IAC3C,iBAAiB,wBAAwB;IACzC,WAAW,iBAAiB;IAC5B,aAAa,oBAAoB;CAClC;AAED,eAAe,KAAK,CAAC"}

@@ -1,0 +1,121 @@
+# Resource Indicators
+
+# Resource Indicators
+
+**Resource Indicators for OAuth 2.0** ([RFC 8707](https://datatracker.ietf.org/doc/html/rfc8707)) lets a client tell ThunderID *which* resource server the access token is for. The client passes one or more `resource` parameters. ThunderID looks each one up against the registered resource servers, narrows the granted scopes to those owned by the targeted resource servers, and writes their identifiers into the token's `aud` claim.
+
+The effect: a token issued for the payments API cannot be replayed against the bookings API. Each token is bound to its intended audience.
+
+## How It Works
+
+The `resource` parameter is accepted on the authorization request, the token request, and the refresh request.
+
+```http
+GET /oauth2/authorize
+  ?response_type=code
+  &client_id=$CLIENT_ID
+  &redirect_uri=https://app.example.com/callback
+  &scope=payments:read%20payments:write
+  &resource=https://api.example.com/payments
+  &state=xyz
+```
+
+```http
+POST /oauth2/token
+grant_type=authorization_code
+&code=$CODE
+&resource=https://api.example.com/payments
+```
+
+The issued access token carries the resource identifier as its `aud`:
+
+```json
+{
+  "sub": "user-123",
+  "iss": "https://thunderid.example.com",
+  "aud": "https://api.example.com/payments",
+  "scope": "payments:read payments:write",
+  "exp": 1717000000
+}
+```
+
+<details>
+<summary>How ThunderID Implements It</summary>
+
+| Aspect | Behavior |
+|---|---|
+| Accepted on | `/oauth2/authorize`, `/oauth2/par`, `/oauth2/token` (every grant), `/oauth2/token` with `grant_type=refresh_token` |
+| Value rules | Each `resource` must be an absolute URI with no fragment. Multiple `resource` parameters target multiple resource servers in one request. |
+| Resolution | Each URI is matched to a registered resource server's `identifier` |
+| Unknown identifier | Request rejected with `invalid_target` |
+| Scope filtering | Requested scopes are filtered to those defined on the targeted resource server(s). Scopes not owned by any targeted RS are silently dropped |
+| OIDC standard scopes | `openid`, `profile`, `email`, `phone`, `address` are **not** filtered by resource indicators |
+| Custom scope_claims | Scopes covered by an application's `scopeClaims` mapping also pass through unchanged |
+
+### `aud` Claim Behavior
+
+| Caller passes `resource` | Targeted RS count | `aud` value |
+|---|---|---|
+| One `resource` | 1 | JSON string: `"aud": "https://api.example.com/payments"` |
+| Multiple `resource` parameters | 2+ | JSON array: `"aud": ["https://api.example.com/payments", "https://api.example.com/bookings"]` |
+| No `resource` parameter | — | ThunderID discovers which registered resource servers own the granted scopes and includes their identifiers. Falls back to the `client_id` if no resource server matches. |
+
+Both string and array forms comply with [RFC 7519 §4.1.3](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3). Resource servers must accept either form.
+
+### Scope Filtering Rules
+
+| Scope category | Filtered by `resource`? |
+|---|---|
+| Permissions owned by a targeted resource server | ✅ Kept |
+| Permissions owned by a different resource server | ❌ Dropped |
+| OIDC standard scopes (`openid`, `profile`, `email`, `phone`, `address`) | Always kept |
+| Custom scopes mapped via `scopeClaims` | Always kept |
+
+### Narrowing on Refresh
+
+The `resource` parameter on refresh narrows the audience of the new access token to a subset of the original:
+
+```bash
+curl -X POST https://thunderid.example.com/oauth2/token \
+  -u "$CLIENT_ID:$CLIENT_SECRET" \
+  -d "grant_type=refresh_token" \
+  -d "refresh_token=$REFRESH_TOKEN" \
+  -d "resource=https://api.example.com/payments"
+```
+
+Without `resource`, the new access token preserves the full original audience (RFC 8707 §5).
+
+</details>
+
+## Try It in ThunderID
+
+Resource indicators activate as soon as you register a resource server with an absolute-URI `identifier`.
+
+### Register a Resource Server
+
+See [Resource Servers](https://thunderid.dev/docs/next/guides/guides/resource-servers.md) for full setup. At minimum:
+
+| Field | Value |
+|---|---|
+| `name` | `Payments API` |
+| `handle` | `payments-api` |
+| `identifier` | `https://api.example.com/payments` |
+| `delimiter` | `:` |
+| `permissions` | `payments:read`, `payments:write`, … |
+
+### Request a Token for It
+
+```bash
+curl -X POST https://thunderid.example.com/oauth2/token \
+  -u "$CLIENT_ID:$CLIENT_SECRET" \
+  -d "grant_type=client_credentials" \
+  -d "scope=payments:read" \
+  -d "resource=https://api.example.com/payments"
+```
+
+## Related Guides
+
+- [Authorization](https://thunderid.dev/docs/next/guides/key-concepts/authorization.md) — how resource servers, permissions, and scopes fit together
+- [Resource Servers](https://thunderid.dev/docs/next/guides/guides/resource-servers.md) — register a resource server
+- [Refresh Token](https://thunderid.dev/docs/next/guides/guides/protocols/refresh-token.md) — narrowing on refresh
+- [Token Exchange](https://thunderid.dev/docs/next/guides/guides/protocols/token-exchange.md) — `resource` is supported on exchange too

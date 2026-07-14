@@ -1,0 +1,151 @@
+# Android SDK Overview
+
+# Android SDK
+
+The ThunderID Android SDK provides two libraries for integrating authentication into your Android applications:
+
+- **`dev.thunderid:android`** — Core authentication client with the full IAM API surface
+- **`dev.thunderid:compose`** — Drop-in Jetpack Compose components built on top of `dev.thunderid:android`
+
+Both libraries require a minimum SDK version of API 24 (Android 7.0).
+
+## Installation
+
+
+  <CodeBlock lang="kotlin" label="build.gradle.kts">
+    {`dependencies {
+    implementation("dev.thunderid:compose:0.1.0") // includes :android automatically
+}`}
+
+
+    {`dependencies {
+    implementation 'dev.thunderid:compose:0.1.0'
+}`}
+
+</CodeGroup>
+
+Add the ThunderID Maven repository to your `settings.gradle.kts`:
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        maven("https://maven.thunderid.dev/releases")
+    }
+}
+```
+
+## Getting Started
+
+To get started quickly, follow the [Android Quickstart Guide](https://thunderid.dev/docs/next/guides/getting-started/connect-your-application/android.md) for step-by-step setup instructions.
+
+## Quick Example
+
+```kotlin
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.material3.MaterialTheme
+import dev.thunderid.android.ThunderIDConfig
+import dev.thunderid.compose.LocalThunderID
+import dev.thunderid.compose.ThunderIDProvider
+import dev.thunderid.compose.components.actions.SignOutButton
+import dev.thunderid.compose.components.guards.SignedIn
+import dev.thunderid.compose.components.presentation.auth.SignIn
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MaterialTheme {
+                ThunderIDProvider(
+                    config = ThunderIDConfig(
+                        baseUrl = "https://localhost:8090",
+                        clientId = "<your-client-id>",
+                        scopes = listOf("openid", "profile", "email"),
+                        afterSignInUrl = "dev.thunderid.quickstart://callback",
+                        afterSignOutUrl = "dev.thunderid.quickstart://logout",
+                        applicationId = "<your-application-id>"
+                    )
+                ) {
+                    ContentView()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ContentView() {
+    val thunder = LocalThunderID.current
+    SignedIn {
+        Column {
+            Text("Welcome, $!")
+            SignOutButton()
+        }
+    }
+}
+```
+
+## Features
+
+### `dev.thunderid:android` — Core Client
+
+| Method | Description |
+|--------|-------------|
+| `initialize(config, storage)` | Initialize the SDK with configuration and an optional storage backend |
+| `signIn(payload, request)` | App-native sign-in via the Flow Execution API |
+| `signUp(payload, request)` | App-native registration via the Flow Execution API |
+| `buildSignInUrl(options)` | Build an OAuth 2.0 authorization URL for redirect-based sign-in |
+| `handleRedirectCallback(url)` | Exchange an authorization code for tokens after redirect |
+| `getAccessToken()` | Retrieve the current access token, refreshing automatically if needed |
+| `getUser()` | Retrieve the authenticated user from the JWT or `/oauth2/userinfo` |
+| `getUserProfile()` | Fetch the full user profile from `/scim2/Me` |
+| `updateUserProfile(payload, userId)` | Update the user's profile |
+| `signOut(options)` | Revoke the refresh token and clear the session |
+| `exchangeToken(config)` | Perform an OAuth 2.0 token exchange (STS) |
+| `decodeJwtToken(token)` | Decode a JWT string into a `Map<String, Any?>` |
+
+### `dev.thunderid:compose` — Components
+
+#### Actions
+
+| Component | Description |
+|-----------|-------------|
+| `SignInButton(onClick)` | Pre-styled button that triggers your sign-in flow |
+| `BaseSignInButton(label, isLoading, modifier, onClick)` | Unstyled button for custom UI |
+| `SignOutButton(modifier)` | Calls `signOut()` and refreshes auth state |
+| `BaseSignOutButton(label, isLoading, modifier, onClick)` | Unstyled button for custom UI |
+| `SignUpButton(onClick)` | Pre-styled button that triggers your registration flow |
+
+#### Presentation
+
+| Component | Description |
+|-----------|-------------|
+| `SignIn(applicationId, modifier, onComplete, onError)` | Full embedded sign-in form driven by the Flow Execution API |
+| `BaseSignIn(applicationId, onComplete, onError, content)` | Builder variant; receives a `SignInState` for custom form UI |
+| `SignUp(modifier, onComplete, onError)` | Full embedded registration form |
+| `BaseSignUp(onComplete, onError, content)` | Builder variant for custom registration UI |
+| `UserProfile(modifier, onSaved, onError)` | Editable profile form; loads from `/scim2/Me` and saves via `updateUserProfile` |
+| `BaseUserProfile(onSaved, onError, content)` | Builder variant with full control over the form layout |
+
+#### Guards
+
+| Component | Description |
+|-----------|-------------|
+| `SignedIn(fallback, content)` | Renders `content` only when the user is authenticated |
+| `SignedOut(fallback, content)` | Renders `content` only when the user is not authenticated |
+
+#### State
+
+| Type | Description |
+|------|-------------|
+| `ThunderIDState` | Reactive state class provided via `LocalThunderID` |
+| `LocalThunderID` | `CompositionLocal<ThunderIDState>` — read with `LocalThunderID.current` |
+
+## Customization
+
+The ThunderID Android SDK gives you full control over your application's authentication experience:
+
+- Use `SignIn` and `SignUp` for pre-built forms, or `BaseSignIn` and `BaseSignUp` to render your own UI with the same Flow Execution loop
+- Swap in `BaseSignInButton` and `BaseSignOutButton` to match your design system without touching any auth logic
+- Provide a custom `StorageAdapter` to control where tokens are persisted (default: `EncryptedStorageAdapter` using Android Keystore AES-256-GCM)
+- Override localized strings using `ThunderIDI18n` with your own translation bundles

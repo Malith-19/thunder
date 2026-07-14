@@ -1,0 +1,1 @@
+import{n as e,r as t,t as n}from"./dist-ubjjGlI1.js";export{t as TranslationCreatePage,e as TranslationsEditPage,n as TranslationsListPage};

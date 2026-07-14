@@ -1,0 +1,263 @@
+# ThunderID Documentation (Next)
+
+> ThunderID is a modern, open-source identity management service designed for teams building secure, customizable authentication experiences across applications, services, and AI agents.
+
+## Home
+
+- [Home](https://thunderid.dev/docs/next.md)
+
+## Getting Started
+
+- [What is ThunderID?](https://thunderid.dev/docs/next/guides/getting-started/what-is-thunderid.md)
+- [Get ThunderID](https://thunderid.dev/docs/next/guides/getting-started/get-thunderid.md)
+- [Register an Application](https://thunderid.dev/docs/next/guides/getting-started/register-an-application.md)
+- [Build a Sign-In Flow](https://thunderid.dev/docs/next/guides/getting-started/build-a-flow.md)
+
+### Connect Your Application
+
+- [Connect Your Application](https://thunderid.dev/docs/next/guides/getting-started/connect-your-application.md)
+
+- [React](https://thunderid.dev/docs/next/guides/getting-started/connect-your-application/react.md)
+- [Next.js](https://thunderid.dev/docs/next/guides/getting-started/connect-your-application/nextjs.md)
+- [Express](https://thunderid.dev/docs/next/guides/getting-started/connect-your-application/express.md)
+- [Vue](https://thunderid.dev/docs/next/guides/getting-started/connect-your-application/vue.md)
+- [Nuxt](https://thunderid.dev/docs/next/guides/getting-started/connect-your-application/nuxt.md)
+- [Node.js](https://thunderid.dev/docs/next/guides/getting-started/connect-your-application/node.md)
+- [Vanilla JavaScript](https://thunderid.dev/docs/next/guides/getting-started/connect-your-application/browser.md)
+- [iOS](https://thunderid.dev/docs/next/guides/getting-started/connect-your-application/ios.md)
+- [Android](https://thunderid.dev/docs/next/guides/getting-started/connect-your-application/android.md)
+- [Flutter](https://thunderid.dev/docs/next/guides/getting-started/connect-your-application/flutter.md)
+
+## Working with AI
+
+- [Skills](https://thunderid.dev/docs/next/guides/working-with-ai/skills.md)
+- [MCP Server](https://thunderid.dev/docs/next/guides/working-with-ai/mcp-server.md)
+- [Getting Started with MCP](https://thunderid.dev/docs/next/guides/working-with-ai/get-started-with-mcp.md)
+
+## Use Cases
+
+- [Choose your usecase](https://thunderid.dev/docs/next/use-cases/overview.md)
+
+### Consumer Applications (B2C)
+
+- [Consumer Applications (B2C)](https://thunderid.dev/docs/next/use-cases/b2c.md)
+
+#### Architecture Decisions
+
+- [Architecture Decisions](https://thunderid.dev/docs/next/use-cases/b2c/architecture-decisions.md)
+
+- [Integration Patterns](https://thunderid.dev/docs/next/use-cases/b2c/integration-patterns.md)
+- [Identity Sources](https://thunderid.dev/docs/next/use-cases/b2c/identity-sources.md)
+- [Tokens & APIs](https://thunderid.dev/docs/next/use-cases/b2c/tokens-and-apis.md)
+- [Run & Observe](https://thunderid.dev/docs/next/use-cases/b2c/operations.md)
+
+#### Try It Out
+
+- [Try It Out](https://thunderid.dev/docs/next/use-cases/b2c/try-it-out.md)
+
+- [Set up sample application](https://thunderid.dev/docs/next/use-cases/b2c/try-it-out/setup.md)
+- [Configure It Yourself](https://thunderid.dev/docs/next/use-cases/b2c/try-it-out/configure-it-yourself.md)
+
+##### Walkthroughs
+
+- [Login](https://thunderid.dev/docs/next/use-cases/b2c/try-it-out/add-login.md)
+- [Self Sign-Up](https://thunderid.dev/docs/next/use-cases/b2c/try-it-out/self-sign-up.md)
+- [View Profile](https://thunderid.dev/docs/next/use-cases/b2c/try-it-out/profile-section.md)
+- [Account Recovery](https://thunderid.dev/docs/next/use-cases/b2c/try-it-out/account-recovery.md)
+- [Onboard Internal Users](https://thunderid.dev/docs/next/use-cases/b2c/try-it-out/onboard-internal-users.md)
+
+##### Learn More
+
+- [Identity Concepts](https://thunderid.dev/docs/next/use-cases/b2c/identity-concepts.md)
+
+#### Try In Your Own App
+
+- [Try In Your Own App](https://thunderid.dev/docs/next/use-cases/b2c/try-in-your-own-app.md)
+
+- [Login](https://thunderid.dev/docs/next/use-cases/b2c/try-in-your-own-app/add-login.md)
+- [Self Sign-Up](https://thunderid.dev/docs/next/use-cases/b2c/try-in-your-own-app/self-sign-up.md)
+- [View Profile](https://thunderid.dev/docs/next/use-cases/b2c/try-in-your-own-app/profile-section.md)
+- [Account Recovery](https://thunderid.dev/docs/next/use-cases/b2c/try-in-your-own-app/account-recovery.md)
+- [Onboard Internal Users](https://thunderid.dev/docs/next/use-cases/b2c/try-in-your-own-app/onboard-internal-users.md)
+
+### SaaS Applications (B2B)
+
+- [Multi-Tenant SaaS](https://thunderid.dev/docs/next/use-cases/b2b/multi-tenant-saas.md)
+
+### AI Agents
+
+#### Identity for AI Agents
+
+- [Agent Identity](https://thunderid.dev/docs/next/use-cases/ai-agents/overview.md)
+- [Solution Patterns](https://thunderid.dev/docs/next/use-cases/ai-agents/solution-patterns.md)
+
+##### Try It Out
+
+- [Try It Out](https://thunderid.dev/docs/next/use-cases/ai-agents/try-it-out.md)
+
+- [Protect the Agent](https://thunderid.dev/docs/next/use-cases/ai-agents/try-it-out/protect-the-agent.md)
+- [Acting on Its Own](https://thunderid.dev/docs/next/use-cases/ai-agents/try-it-out/act-on-its-own.md)
+- [Acting on Behalf of a User](https://thunderid.dev/docs/next/use-cases/ai-agents/try-it-out/act-on-behalf-of-user.md)
+
+#### Securing MCP
+
+- [Overview](https://thunderid.dev/docs/next/use-cases/ai-agents/mcp-authorization/overview.md)
+- [Solution Patterns](https://thunderid.dev/docs/next/use-cases/ai-agents/mcp-authorization/solution-patterns.md)
+
+##### Try It Out
+
+- [Try It Out](https://thunderid.dev/docs/next/use-cases/ai-agents/mcp-authorization/try-it-out.md)
+
+###### Walkthroughs
+
+- [MCP Authorization](https://thunderid.dev/docs/next/use-cases/ai-agents/mcp-authorization/try-it-out/connect-via-inspector.md)
+
+###### Learn More
+
+- [Identity Concepts](https://thunderid.dev/docs/next/use-cases/ai-agents/mcp-authorization/identity-concepts.md)
+- [Configure It Yourself](https://thunderid.dev/docs/next/use-cases/ai-agents/mcp-authorization/configure-it-yourself.md)
+
+### Secure Token Service (STS)
+
+- [Protect APIs on KrakenD](https://thunderid.dev/docs/next/use-cases/sts/krakend.md)
+- [Protect APIs on Envoy](https://thunderid.dev/docs/next/use-cases/sts/envoy.md)
+- [Protect APIs on Azure API Management](https://thunderid.dev/docs/next/use-cases/sts/azure-apim.md)
+- [Protect APIs on Kong Konnect](https://thunderid.dev/docs/next/use-cases/sts/kong.md)
+
+## Guides
+
+- [Organization Units](https://thunderid.dev/docs/next/guides/guides/organization-units.md)
+- [Consent](https://thunderid.dev/docs/next/guides/guides/consent.md)
+- [Secure Using a Third-Party IdP](https://thunderid.dev/docs/next/guides/guides/trusted-issuer.md)
+- [Resource Servers](https://thunderid.dev/docs/next/guides/guides/resource-servers.md)
+
+### Applications
+
+- [Manage Applications](https://thunderid.dev/docs/next/guides/guides/applications/manage-applications.md)
+- [Application Settings](https://thunderid.dev/docs/next/guides/guides/applications/application-settings.md)
+
+### Users
+
+- [Manage Users](https://thunderid.dev/docs/next/guides/guides/users/manage-users.md)
+- [Manage Groups](https://thunderid.dev/docs/next/guides/guides/users/manage-groups.md)
+- [User Types](https://thunderid.dev/docs/next/guides/guides/users/user-types.md)
+- [User Type Reference](https://thunderid.dev/docs/next/guides/guides/users/user-type-reference.md)
+
+### Agents
+
+- [Manage Agents](https://thunderid.dev/docs/next/guides/guides/agents/manage-agents.md)
+
+### Integrations
+
+#### Identity Providers
+
+- [What are Identity Providers?](https://thunderid.dev/docs/next/guides/guides/identity-providers/overview.md)
+- [Add Google](https://thunderid.dev/docs/next/guides/guides/identity-providers/add-google.md)
+- [Add GitHub](https://thunderid.dev/docs/next/guides/guides/identity-providers/add-github.md)
+- [Add OIDC Provider](https://thunderid.dev/docs/next/guides/guides/identity-providers/add-oidc-provider.md)
+- [Add OAuth 2.0 Provider](https://thunderid.dev/docs/next/guides/guides/identity-providers/add-oauth-provider.md)
+- [Manage Identity Providers](https://thunderid.dev/docs/next/guides/guides/identity-providers/manage-identity-providers.md)
+- [Connect IdP to Application](https://thunderid.dev/docs/next/guides/guides/identity-providers/connect-idp-to-application.md)
+- [Token Exchange](https://thunderid.dev/docs/next/guides/guides/identity-providers/token-exchange-idp.md)
+
+#### Notifications
+
+- [SMTP Server](https://thunderid.dev/docs/next/guides/guides/smtp-server/smtp-server-configuration.md)
+- [SMS Providers](https://thunderid.dev/docs/next/guides/guides/notifications/sms-providers.md)
+
+### Flows
+
+- [What Are Flows?](https://thunderid.dev/docs/next/guides/guides/flows/what-are-flows.md)
+- [Flow Concepts](https://thunderid.dev/docs/next/guides/guides/flows/flow-concepts.md)
+- [Build a Flow](https://thunderid.dev/docs/next/guides/guides/flows/build-a-flow.md)
+- [Advanced Configurations](https://thunderid.dev/docs/next/guides/guides/flows/advanced-configurations.md)
+
+### Design
+
+- [Style Your Experience](https://thunderid.dev/docs/next/guides/guides/design/overview.md)
+- [Themes](https://thunderid.dev/docs/next/guides/guides/design/themes.md)
+- [Layouts](https://thunderid.dev/docs/next/guides/guides/design/layouts.md)
+- [Design Catalog](https://thunderid.dev/docs/next/guides/guides/design/design-catalog.md)
+
+### Translations
+
+- [Localization](https://thunderid.dev/docs/next/guides/guides/i18n/localization.md)
+- [Manage Translations](https://thunderid.dev/docs/next/guides/guides/i18n/manage-translations.md)
+- [Resolve Translations](https://thunderid.dev/docs/next/guides/guides/i18n/resolve-translations.md)
+
+### Protocols & Standards
+
+- [Protocols & Standards](https://thunderid.dev/docs/next/guides/guides/protocols.md)
+
+#### OAuth & OIDC
+
+- [OAuth & OIDC](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc.md)
+
+##### Grant Types
+
+- [Authorization Code](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/authorization-code.md)
+- [Client Credentials](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/client-credentials.md)
+- [Refresh Token](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/refresh-token.md)
+- [Token Exchange](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/token-exchange.md)
+- [Backchannel Authentication (CIBA)](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/backchannel-authentication.md)
+
+##### Client Authentication
+
+- [Client Authentication Methods](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/client-authentication-methods.md)
+
+##### Security Extensions
+
+- [PKCE](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/pkce.md)
+- [Pushed Authorization Requests](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/par.md)
+- [DPoP — Sender-Constrained Tokens](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/dpop.md)
+- [Issuer Identification](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/issuer-identification.md)
+- [Resource Indicators](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/resource-indicators.md)
+
+##### Token Operations
+
+- [Token Introspection](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/token-introspection.md)
+
+##### Discovery & Registration
+
+- [Server Metadata](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/server-metadata.md)
+- [JWKS](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/jwks.md)
+- [Dynamic Client Registration](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/dynamic-client-registration.md)
+
+##### OIDC
+
+- [OpenID Connect](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/openid-connect.md)
+- [UserInfo](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/userinfo.md)
+- [Claims & Scopes](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/claims-and-scopes.md)
+- [Token Formats](https://thunderid.dev/docs/next/guides/guides/protocols/oauth-oidc/token-formats.md)
+
+#### Verifiable Credentials
+
+- [Verifiable Credentials](https://thunderid.dev/docs/next/guides/guides/protocols/openid4vc.md)
+
+- [OpenID for Verifiable Presentations](https://thunderid.dev/docs/next/guides/guides/protocols/openid4vc/openid4vp.md)
+
+## Key Concepts
+
+- [Authorization](https://thunderid.dev/docs/next/guides/key-concepts/authorization.md)
+- [Tokens](https://thunderid.dev/docs/next/guides/key-concepts/tokens.md)
+
+### Authentication
+
+- [Integration Models](https://thunderid.dev/docs/next/guides/key-concepts/authentication/integration-models.md)
+
+#### Passwordless
+
+- [Passkeys](https://thunderid.dev/docs/next/guides/key-concepts/authentication/passwordless/passkeys.md)
+- [Magic Link](https://thunderid.dev/docs/next/guides/key-concepts/authentication/passwordless/magiclink.md)
+
+## Deployment Patterns
+
+- [Choose Your Deployment](https://thunderid.dev/docs/next/guides/deployment-patterns.md)
+- [Configure your Instance](https://thunderid.dev/docs/next/guides/getting-started/configuration.md)
+- [Production Guidelines](https://thunderid.dev/docs/next/guides/deployment-patterns/production-guidelines.md)
+
+### Deployment Paths
+
+- [Docker](https://thunderid.dev/docs/next/guides/deployment-patterns/docker.md)
+- [Kubernetes](https://thunderid.dev/docs/next/guides/deployment-patterns/kubernetes.md)
+- [OpenChoreo](https://thunderid.dev/docs/next/guides/deployment-patterns/openchoreo.md)

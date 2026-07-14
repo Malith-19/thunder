@@ -1,0 +1,291 @@
+# Applications
+
+# Applications
+
+An application in ThunderID represents the client that your users sign in to. You register your web app, mobile app, or backend service as an application to configure the authentication experience and control which users can access it.
+
+Each application holds:
+
+- An **authentication flow** that defines the steps users follow to sign in.
+- An optional **registration flow** for self-service user sign-up.
+
+OAuth 2.0 applications additionally hold:
+
+- A **Client ID** (and optionally a **Client Secret**) for token-based authentication.
+- OAuth 2.0 settings including redirect URIs, grant types, scopes, and token configuration.
+
+## Application Types
+
+ThunderID provides four application types. Each type maps to an appropriate OAuth 2.0 flow and authentication method.
+
+| Type | Template | Use Case | OAuth 2.0 Flow | Client Secret |
+|------|----------|----------|----------------|---------------|
+| ⚛️ **Browser App** | `spa` | Single-page applications (React, Angular, Vue) | Authorization Code + PKCE | No — public client |
+| 🌐 **Full-stack App** | `server` | Server-rendered web apps (Express, Spring, .NET) | Authorization Code | Yes — confidential client |
+| 📱 **Mobile App** | `mobile` | Native and cross-platform mobile apps (Swift, Kotlin, React Native, Flutter) | Authorization Code + PKCE | No — public client |
+| 🤖 **Backend Service** | `m2m` | Server-to-server communication without user interaction | Client Credentials | Yes — confidential client |
+
+**Browser Apps** and **Mobile Apps** are public clients. They cannot store a client secret securely, so ThunderID uses Proof Key for Code Exchange (PKCE) to protect the authorization code flow.
+
+**Full-stack Apps** and **Backend Services** are confidential clients. They hold a client secret on the server side and authenticate directly with ThunderID's token endpoint.
+
+## Create an Application
+
+
+### Step 1: Basic Details
+
+1. Sign in to the ThunderID Console.
+2. Navigate to **Applications** → **New Application**.
+3. Enter an **Application Name**. This name identifies the application in the Console and may be visible to users on the consent screen.
+4. Optionally, enter a **Description**, **Application URL**, and **Logo URL**.
+
+### Step 2: Select Sign-In Options
+
+Sign-in options are the authentication methods users can use to sign in to this application — for example, username and password, passkey, or a social login provider.
+
+Select one or more sign-in options. At least one is required.
+
+### Step 3: Configure the Sign-In Experience
+
+**Sign-In Approach** determines how users reach the sign-in experience:
+
+- **Redirect to ThunderID sign-in/sign-up handling pages** (recommended) — users are redirected to ThunderID-hosted sign-in pages. You can customize these pages with the Flow Designer and integrate with SDKs.
+- **Embedded sign-in/sign-up components in your app** — the sign-in experience renders inside your application using ThunderID's UI components or APIs. No redirect occurs.
+
+**User Access** controls which user types can authenticate with this application. Select one or more of the allowed user types (for example, **Customer** or **Person**). Only users of the selected types can sign in.
+
+### Step 4: Select Application Type and Configure Redirect
+
+Select the **Application Type** that matches your architecture. For Browser Apps, Full-stack Apps, and Mobile Apps, enter one or more **Authorized Redirect URIs** — the URLs ThunderID sends users back to after authentication.
+
+| Application Type | Redirect URI Format |
+|-----------------|---------------------|
+| Browser App | `https://yourapp.example.com/callback` |
+| Full-stack App | `https://yourserver.example.com/callback` |
+| Mobile App | `com.example.app://auth/callback` (deep link) or `https://yourapp.example.com/auth/callback` (universal link) |
+| Backend Service | Not required |
+
+### Step 5: Create
+
+Click **Create Application**. For OAuth 2.0 applications, ThunderID generates a **Client ID** (and a **Client Secret** for confidential clients).
+
+> **Tip**
+>
+> For OAuth 2.0 applications, copy the **Client ID** from the application details page immediately after creation. You need it in your SDK or OAuth client configuration.
+
+
+## Application Settings
+
+After creating an application, you can configure the following settings from the application details page.
+
+### General Settings
+
+| Setting | Description |
+|---------|-------------|
+| **Name** | Display name for the application. |
+| **Description** | Optional description shown in the Console. |
+| **Application URL** | The primary URL of your application. |
+| **Logo URL** | URL of the application logo. Displayed on the sign-in page and consent screen. |
+| **Terms of Service URL** | URL to the application's Terms of Service. Displayed on the consent screen. |
+| **Privacy Policy URL** | URL to the application's Privacy Policy. Displayed on the consent screen. |
+| **Contacts** | Email addresses of the people responsible for this application. |
+
+### Authentication Flow
+
+The **Authentication Flow** defines the sequence of steps users follow to sign in. You can assign a custom flow built with the Flow Designer, or use the default flow for the deployment.
+
+To change the authentication flow:
+
+1. Open the application and navigate to the **Sign-In** tab.
+2. Select the flow from the **Authentication Flow** dropdown.
+3. Click **Save**.
+
+### Registration Flow
+
+The **Registration Flow** defines the self-service sign-up experience for users. You can enable or disable registration independently of authentication.
+
+| Setting | Description |
+|---------|-------------|
+| **Registration Enabled** | When enabled, users can self-register using the application's sign-up page. |
+| **Registration Flow** | The flow that drives the registration experience. Assign a custom flow or use the deployment default. |
+
+### Login Consent
+
+Login consent presents users with a consent screen before completing sign-in. The consent screen shows the application name, logo, and the scopes being requested.
+
+| Setting | Description |
+|---------|-------------|
+| **Enabled** | When enabled, users see a consent screen during sign-in. |
+| **Validity Period** | How long (in seconds) a granted consent remains valid. Set to `0` for no expiry. Once valid consent exists, users are not prompted again until it expires. |
+
+### Allowed User Types
+
+**Allowed User Types** restrict which categories of users can authenticate with the application. Only users whose type matches one of the allowed types will be able to sign in.
+
+ThunderID's default user types are:
+
+| User Type | Description |
+|-----------|-------------|
+| **Customer** | Self-registering end users. Supports self-registration via the registration flow. |
+| **Person** | Administrator-managed general-purpose accounts. |
+
+You can select multiple user types. If no user types are configured, all user types can access the application.
+
+## OAuth 2.0 Configuration
+
+ThunderID uses OAuth 2.0 and OpenID Connect (OIDC) for authentication. The OAuth 2.0 configuration for an application controls how tokens are issued and what they contain.
+
+### Client ID and Client Secret
+
+ThunderID generates a **Client ID** when you create an OAuth 2.0 application. For confidential clients (Full-stack Apps and Backend Services), ThunderID also generates a **Client Secret**.
+
+- Use the **Client ID** to identify your application in authorization requests.
+- Use the **Client Secret** to authenticate your application at the token endpoint. Store it securely — never expose it in browser-side JavaScript or mobile binaries.
+
+To rotate the client secret, open the application's **OAuth** tab and click **Regenerate Secret**.
+
+### Redirect URIs
+
+Redirect URIs are the URLs ThunderID sends the authorization code (or token) to after a successful sign-in. You must register every URI your application uses.
+
+- Register all environments separately (for example, `http://localhost:3000/callback` for development and `https://yourapp.example.com/callback` for production).
+- Wildcard patterns (`*`, `**`) in the path are supported when `oauth.allow_wildcard_redirect_uri` is enabled. Otherwise, each URI must match exactly. See [Use Wildcard Redirect URIs](https://thunderid.dev/docs/next/guides/guides/applications/application-settings.md#use-wildcard-redirect-uris).
+- For mobile apps, register deep link URIs (for example, `com.example.app://auth/callback`) or universal link URIs.
+
+### Grant Types
+
+Grant types control which OAuth 2.0 flows the application can use.
+
+| Grant Type | Description |
+|------------|-------------|
+| `authorization_code` | Standard redirect-based flow. Required for Browser Apps, Full-stack Apps, and Mobile Apps. |
+| `refresh_token` | Allows the application to get new access tokens without re-authenticating the user. Cannot be the sole grant type. |
+| `client_credentials` | Machine-to-machine flow. No user interaction. Used by Backend Services. |
+| `urn:ietf:params:oauth:grant-type:token-exchange` | OAuth 2.0 Token Exchange ([RFC 8693](https://www.rfc-editor.org/rfc/rfc8693)). Allows trading one token for another — for example, exchanging an external IdP token for a ThunderID token. |
+
+### Token Endpoint Authentication Method
+
+Controls how the application authenticates at the `/oauth2/token` endpoint.
+
+| Method | Description | Use Case |
+|--------|-------------|----------|
+| `client_secret_basic` | Client credentials sent in the `Authorization` header (HTTP Basic). Default. | Full-stack Apps, Backend Services |
+| `client_secret_post` | Client credentials sent in the POST body. | Full-stack Apps, Backend Services that cannot set headers |
+| `private_key_jwt` | Client signs a JWT with its private key. Requires a certificate configured on the application. No client secret. | High-assurance confidential clients |
+| `none` | No client authentication. Public clients only. Must be combined with PKCE. | Browser Apps, Mobile Apps |
+
+### PKCE
+
+Proof Key for Code Exchange (PKCE) protects the authorization code from interception. PKCE is mandatory for public clients (Browser Apps and Mobile Apps) and optional for confidential clients.
+
+| Setting | Description |
+|---------|-------------|
+| **PKCE Required** | When enabled, the application must include a `code_challenge` in every authorization request. |
+| **Public Client** | Marks the application as a public client. Public clients cannot store a client secret and must use PKCE. Token endpoint auth method is automatically set to `none`. |
+
+### Scopes
+
+Scopes define what information and access the application can request from ThunderID. The application lists the scopes it needs; ThunderID returns only the user attributes associated with those scopes.
+
+Standard OIDC scopes:
+
+| Scope | Claims Returned |
+|-------|-----------------|
+| `openid` | `sub` (required for OIDC) |
+| `profile` | `name`, `given_name`, `family_name`, `picture` |
+| `email` | `email`, `email_verified` |
+| `phone` | `phone_number`, `phone_number_verified` |
+| `address` | `address` |
+| `roles` | `roles` |
+
+You can define custom scopes with custom claim mappings. See [Custom Scope-to-Claims Mapping](#custom-scope-to-claims-mapping).
+
+### Token Configuration
+
+ThunderID lets you control the lifetime and content of the tokens it issues for an application.
+
+#### Access Token
+
+| Setting | Description |
+|---------|-------------|
+| **Validity Period** | Lifetime of the access token in seconds. Defaults to the deployment-level setting if not configured. |
+| **User Attributes** | User attributes to include in the access token payload. |
+
+#### ID Token
+
+| Setting | Description |
+|---------|-------------|
+| **Validity Period** | Lifetime of the ID token in seconds. Defaults to the deployment-level setting if not configured. |
+| **User Attributes** | User attributes to include in the ID token. Only attributes that are both listed here and covered by the requested scopes are included. |
+| **Response Type** | Format of the ID token: `JWT` (default, signed only), `JWE` (encrypted), or `NESTED_JWT` (signed then encrypted). |
+| **Encryption Algorithm** | Key-management algorithm for encryption. Required when Response Type is `JWE` or `NESTED_JWT`. Supported: `RSA-OAEP`, `RSA-OAEP-256`. Requires a `JWKS` or `JWKS_URI` certificate on the application. |
+| **Encryption Encoding** | Content-encryption algorithm. Required when Encryption Algorithm is set. Supported: `A128CBC-HS256`, `A256GCM`. |
+
+#### Userinfo Endpoint
+
+| Setting | Description |
+|---------|-------------|
+| **Response Type** | Format of the userinfo response: `JSON` (default), `JWS` (signed), `JWE` (encrypted), or `NESTED_JWT` (signed then encrypted). |
+| **Signing Algorithm** | JWS algorithm when Response Type is `JWS` or `NESTED_JWT`. Supported: `RS256`, `RS512`, `PS256`, `ES256`, `ES384`, `ES512`, `EdDSA`. Requires a certificate on the application. |
+| **Encryption Algorithm** | Key-management algorithm when Response Type is `JWE` or `NESTED_JWT`. Supported: `RSA-OAEP`, `RSA-OAEP-256`. Requires a `JWKS` or `JWKS_URI` certificate. |
+| **Encryption Encoding** | Content-encryption algorithm. Required when Encryption Algorithm is set. Supported: `A128CBC-HS256`, `A256GCM`. |
+| **User Attributes** | Attributes returned by the `/userinfo` endpoint. If not configured, falls back to the ID token attribute list. |
+
+
+### Custom Scope-to-Claims Mapping
+
+You can map custom scopes to specific user attributes. When a client requests a custom scope, ThunderID includes the mapped attributes in the ID token and the `/userinfo` response.
+
+Example:
+
+```json
+"scope_claims": {
+  "profile": ["name", "family_name", "given_name", "picture"],
+  "employee": ["emp_id", "department"]
+}
+```
+
+In this example, requesting the `employee` scope returns `emp_id` and `department` in the token. This overrides the default OIDC `profile` scope mapping.
+
+### ACR Values
+
+Authentication Context Class Reference (ACR) values let you specify the authentication strength required for sign-in. You can configure default ACR values for an application — these are applied when the authorization request does not include an `acr_values` parameter.
+
+ACR values must map to AMR (Authentication Method Reference) values defined in the deployment configuration.
+
+### Certificate Configuration
+
+For applications that use `private_key_jwt` token endpoint auth, sign JWT assertions, or require encrypted ID tokens or userinfo responses, you can attach a certificate.
+
+| Certificate Type | Description |
+|-----------------|-------------|
+| `JWKS` | Provide the JSON Web Key Set (JWKS) inline. |
+| `JWKS_URI` | Provide the URL of the application's JWKS endpoint (for example, `https://yourapp.example.com/.well-known/jwks`). ThunderID fetches the public keys from this URL. Must use HTTPS. |
+
+> **Note**
+>
+> Encrypted ID tokens and encrypted userinfo responses both require a `JWKS` or `JWKS_URI` certificate on the application. The `private_key_jwt` token endpoint auth method also requires a certificate and cannot be combined with a client secret.
+
+
+## Update an Application
+
+1. Navigate to **Applications** and open the application you want to edit.
+2. Update the relevant settings — general details, sign-in options, OAuth 2.0 configuration, token settings, or flows.
+3. Click **Save**.
+
+Changes take effect immediately for new authentication requests. Active sessions and issued tokens are not affected until they expire.
+
+## Delete an Application
+
+1. Open the application from the **Applications** list.
+2. Click **Delete Application** and confirm.
+
+> **Warning**
+>
+> Deleting an application is permanent. Any client using the application's Client ID will immediately lose the ability to authenticate. Issued tokens remain valid until they expire.
+
+
+## Next Steps
+
+- [Flows](https://thunderid.dev/docs/next/guides/guides/flows/what-are-flows.md) — Build and assign custom authentication and registration flows
+- [React Quickstart](https://thunderid.dev/docs/next/guides/getting-started/connect-your-application/react.md) — Integrate ThunderID with a React single-page application

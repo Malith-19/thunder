@@ -1,0 +1,1 @@
+{"version":3,"file":"getMyOrganizations.d.ts","sourceRoot":"","sources":["../../../../src/server/actions/getMyOrganizations.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;GAgBG;AAIH,OAAO,EAAoB,YAAY,EAAC,MAAM,iBAAiB,CAAC;AAGhE;;GAEG;AACH,QAAA,MAAM,kBAAkB,GAAU,UAAU,GAAG,EAAE,YAAY,MAAM,KAAG,OAAO,CAAC,YAAY,EAAE,CAqD3F,CAAC;AAEF,eAAe,kBAAkB,CAAC"}

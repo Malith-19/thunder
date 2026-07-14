@@ -1,0 +1,59 @@
+# View Profile
+
+# View Profile
+
+In this walkthrough, John opens his Wayfinder profile and exercises the two parts of the use case. He **views** what Wayfinder stores about him: name, email, and the other attributes on his `Customer` record. He then **updates** the values he wants to change: his last name and his password.
+
+:::note Prerequisites
+Complete [Set Up Your Environment](https://thunderid.dev/docs/next/use-cases/b2c/setup.md#set-up-your-environment) before starting this walkthrough.
+:::
+
+:::info Background
+[B2C overview](https://thunderid.dev/docs/next/use-cases/b2c/...md#building-blocks-of-the-b2c-identity-journey) covers the requirements story behind this use case.
+:::
+
+## Pick Your Pattern
+
+<details open>
+  <summary>Redirect-based</summary>
+
+In the redirect-based pattern, the consumer app renders the profile screen itself. Profile attributes are read directly from the ID token, and updates go through ThunderID's self-service endpoints — `/users/me` for attribute changes and `/users/me/update-credentials` for password changes. These endpoints act on the signed-in user's own record, so no extra permissions are needed; the access token alone is enough.
+
+**Try the Use Case**
+
+1. Open http://localhost:5173 and sign in as John.
+2. Open the account menu and select **Profile**. The sample reads John's attributes from his ID token and renders the **View** section.
+3. Edit the **Last Name** field and select **Save**.
+4. Select **Change Password**, enter the current password, set a new one, and save.
+
+**Try a Variant**
+
+- Add a new attribute to the `Customer` schema (for example, `seatPreference`) and verify it appears on John's profile page after a refresh. See [User Types](https://thunderid.dev/docs/next/guides/guides/users/user-types.md).
+
+</details>
+
+<details>
+  <summary>App-native step-by-step</summary>
+
+Coming soon. See the [App-native pattern](https://thunderid.dev/docs/next/use-cases/integration-patterns.md#app-native) for what to expect.
+
+</details>
+
+<details>
+  <summary>App-native managed</summary>
+
+Coming soon. See the [App-native pattern](https://thunderid.dev/docs/next/use-cases/integration-patterns.md#app-native) for what to expect.
+
+</details>
+
+<details>
+  <summary>Direct API</summary>
+
+Coming soon. See the [Direct API pattern](https://thunderid.dev/docs/next/use-cases/integration-patterns.md#direct-api) for what to expect.
+
+</details>
+
+## Going Deeper
+
+- Want to understand which attributes Wayfinder stores about John? See [User Types](https://thunderid.dev/docs/next/use-cases/identity-concepts.md#user-types) in the Identity Concepts.
+- Prefer to define the `Customer` schema manually? See [Set Up the Foundation](https://thunderid.dev/docs/next/use-cases/b2c/configure-it-yourself.md#set-up-the-foundation) in Configure It Yourself.

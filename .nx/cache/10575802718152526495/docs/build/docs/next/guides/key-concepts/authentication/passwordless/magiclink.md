@@ -1,0 +1,107 @@
+# Magic Link
+
+# Magic Link
+
+Use Magic Links to offer a seamless, passwordless authentication experience. ThunderID provides a built-in Magic Link capability to send users an email/SMS with a secure link, which authenticates them instantly upon clicking.
+
+## Overview
+
+Magic Links are a secure alternative to passwords that leverage email/SMS for verification.
+The process works as follows:
+1. The user enters their identifier such as email or username.
+2. ThunderID generates a secure, one-time-use token and sends it as a link to the user via a configured delivery method.
+3. The user clicks the link, which verifies their identity and logs them in or completes their registration.
+
+ThunderID supports Magic Links through two primary approaches:
+
+1. **Redirect-Based**: Use ThunderID's hosted authentication pages (`gate`) by selecting a Magic Link flow template in your application settings—no custom UI needed.
+2. **App-Native**: Integrate Magic Links into your own custom UI by interacting directly with the Flow Execution API.
+
+## Prerequisites
+
+- A ThunderID instance running and accessible.
+- **SMTP Server Configuration**: An SMTP server must be configured to send the emails. See [SMTP Server Configuration](https://thunderid.dev/docs/next/guides/smtp-server/smtp-server-configuration.md).
+- The user must have a valid email address profile attribute for the Magic Link to be delivered.
+
+## Redirect-Based Integration
+
+The simplest method to enable Magic Links is through a Redirect-Based integration, where ThunderID natively handles the generation, sending, and verification of the link.
+
+1. **Create an application** in the ThunderID Console.
+2. **Configure a Flow which uses MagicLink using a template provided or by making a custom one.**
+3. **Configure flows** for the application:
+   - Navigate to **Applications** → Select your application → **Flows** tab.
+   - Select an **Flow** that includes Magic Link execution configured.
+4. **Integrate with your application**:
+   - The easiest way to integrate is by using the ThunderID SDKs.
+   - Simply call the `signIn()` method provided by the SDK.
+   - The SDK automatically redirects the user to the hosted Gate UI, prompting them for their email.
+   - Upon submission, Gate displays an "Email Sent" view, and the user receives the Magic Link.
+   - Clicking the link verifies the token and completes the OAuth2 flow, returning the user to your application. The SDK seamlessly handles the token exchange in the background.
+
+For more details, see [Redirect-Based Integration](https://thunderid.dev/docs/next/guides/key-concepts/integration-models.md#redirect-based).
+
+## App-Native Integration
+
+If you are building a custom authentication UI, you can implement Magic Links using the App-Native model by orchestrating the Flow Execution API.
+
+> **Note**
+>
+> Applications configured with the `authorization_code` grant type cannot start flows directly through `POST /flow/execute`. They must initiate authentication through the Authorization endpoint (`GET /oauth2/authorize`). See [Integration Models](https://thunderid.dev/docs/next/guides/key-concepts/integration-models.md#app-native).
+
+
+### Starting the Flow
+
+1) **Start the flow** – send an initial flow request.
+
+```bash
+curl -X POST https://localhost:8090/flow/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+  "applicationId": "<app-id>",
+  "flowType": "AUTHENTICATION"
+}'
+```
+
+- If your flow is configured with a Magic Link step, the response will include an `executionId` and a `challengeToken`, along with an action requiring the user's identifier.
+
+2) **Generate the Magic Link** – submit the email address to advance the flow.
+
+For example
+```bash
+curl -X POST https://localhost:8090/flow/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+  "executionId": "<execution-id-from-step>",
+  "challengeToken": "<challenge-token-from-step>",
+  "action": "magic_link_action",
+  "inputs": {
+    "email": "user@example.com"
+  }
+}'
+```
+
+- The backend generates the Magic Link and sends it to the configured destination, such as email or SMS.
+- The UI should display a status screen instructing the user to check their inbox.
+
+### Verifying the Magic Link
+
+When the user clicks the link in their email, they are redirected to your application's configured callback route.
+
+1) **Extract the token** – grab the `token` from the URL query parameters.
+
+2) **Continue the flow** – submit the token back to the flow engine to verify it.
+
+```bash
+curl -X POST https://localhost:8090/flow/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+  "executionId": "<execution-id-from-step>",
+  "inputs": {
+    "token": "<token-from-url>"
+  }
+}'
+```
+
+- The backend validates the token.
+- On success, the flow advances to the next step of the authentication process.

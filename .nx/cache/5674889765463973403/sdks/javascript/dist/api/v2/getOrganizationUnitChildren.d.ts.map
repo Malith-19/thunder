@@ -1,0 +1,1 @@
+{"version":3,"file":"getOrganizationUnitChildren.d.ts","sourceRoot":"","sources":["../../../src/api/v2/getOrganizationUnitChildren.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;GAgBG;AAGH,OAAO,EAAC,iCAAiC,EAAE,4BAA4B,EAAC,MAAM,mCAAmC,CAAC;AAElH;;;;;;;;;;;;;;;;;;;;;GAqBG;AACH,QAAA,MAAM,2BAA2B,GAAU,uEAOxC,iCAAiC,KAAG,OAAO,CAAC,4BAA4B,CA2C1E,CAAC;AAEF,eAAe,2BAA2B,CAAC"}

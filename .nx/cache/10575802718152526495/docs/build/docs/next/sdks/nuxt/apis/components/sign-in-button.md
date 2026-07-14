@@ -1,0 +1,67 @@
+# <ThunderIDSignInButton />
+
+# ``
+
+The `ThunderIDSignInButton` component initiates the sign-in flow when clicked. It is auto-registered by the Nuxt module and requires no imports.
+
+## Usage
+
+### Basic Usage
+
+```vue title="pages/index.vue" showLineNumbers
+<template>
+
+</template>
+```
+
+### Custom Label
+
+Pass text content to override the default button label:
+
+```vue title="pages/index.vue" showLineNumbers
+<template>
+  Log in to your account
+</template>
+```
+
+### Custom Styling
+
+```vue title="pages/index.vue" showLineNumbers
+<template>
+
+    Sign In
+
+</template>
+```
+
+### Using the Default Slot for Full Control
+
+Access the `signIn` function and `isLoading` state via the default scoped slot to render a fully custom button:
+
+```vue title="components/CustomSignInButton.vue" showLineNumbers
+<template>
+
+    <template #default="">
+      <button
+        :disabled="isLoading"
+        class="px-4 py-2 bg-blue-600 text-white rounded"
+        @click="signIn"
+      >
+        }
+      </button>
+    </template>
+
+</template>
+```
+
+## Slots
+
+| Slot | Slot Props | Description |
+| :--- | :--- | :--- |
+| `default` | `` | Default content rendered inside the button. If omitted, renders a default "Sign In" button |
+
+## Props
+
+| Prop | Type | Required | Description |
+| :--- | :--- | :---: | :--- |
+| `preferences` | `Preferences` | ❌ | Customization options for i18n and theming |

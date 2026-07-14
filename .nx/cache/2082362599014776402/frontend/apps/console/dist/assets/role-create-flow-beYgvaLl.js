@@ -1,0 +1,1 @@
+import{o as e}from"./rolldown-runtime-CMxvf4Kt.js";import{_ as t}from"./vendor-emotion-BJbDtNae.js";var n=(0,e(t(),1).createContext)(void 0),r={BASIC_INFO:`BASIC_INFO`,ORGANIZATION_UNIT:`ORGANIZATION_UNIT`,PERMISSIONS:`PERMISSIONS`};export{n,r as t};

@@ -1,0 +1,1 @@
+{"version":3,"file":"TokenExchangeConfig.d.ts","sourceRoot":"","sources":["../../src/models/TokenExchangeConfig.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;GAgBG;AAEH,OAAO,EAAC,0BAA0B,EAAC,MAAM,uBAAuB,CAAC;AAEjE;;GAEG;AACH,MAAM,WAAW,sBAAuB,SAAQ,0BAA0B;IACxE;;;OAGG;IACH,uBAAuB,CAAC,EAAE,OAAO,CAAC;CACnC;AAED,eAAe,sBAAsB,CAAC"}

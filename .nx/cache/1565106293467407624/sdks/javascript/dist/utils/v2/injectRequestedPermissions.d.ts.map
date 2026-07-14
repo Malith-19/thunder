@@ -1,0 +1,1 @@
+{"version":3,"file":"injectRequestedPermissions.d.ts","sourceRoot":"","sources":["../../../src/utils/v2/injectRequestedPermissions.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;GAgBG;AAEH;;;;;GAKG;AACH,QAAA,MAAM,0BAA0B,GAAI,SAAS,MAAM,CAAC,MAAM,EAAE,OAAO,CAAC,KAAG,MAAM,CAAC,MAAM,EAAE,OAAO,CA0B5F,CAAC;AAEF,eAAe,0BAA0B,CAAC"}

@@ -1,0 +1,42 @@
+# User Profile
+
+# User Profile
+
+These functions read and update user profile data from the OIDC userinfo endpoint.
+
+## `getUserInfo(config)`
+
+Fetch user claims from the OIDC userinfo endpoint. Requires a valid access token attached to the request.
+
+```ts
+
+const user = await getUserInfo({
+  url: 'https://localhost:8090/oauth2/userinfo',
+  headers: {
+    Authorization: `Bearer $`,
+  },
+})
+
+console.log(user.email, user.displayName)
+```
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|:--------:|-------------|
+| `config.url` | `string` | ✅ | Full userinfo endpoint URL |
+| `config.headers` | `Record<string, string>` | — | Request headers. Include `Authorization: Bearer <token>` |
+
+### Response: `User`
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `sub` | `string` | Subject identifier (unique user ID) |
+| `displayName` | `string` | User's display name |
+| `username` | `string` | Username |
+| `email` | `string` | Email address |
+| `given_name` | `string` | First name |
+| `family_name` | `string` | Last name |
+| `picture` | `string` | Profile picture URL |
+
+Additional claims returned by the server are accessible as `user[claimUri]`.

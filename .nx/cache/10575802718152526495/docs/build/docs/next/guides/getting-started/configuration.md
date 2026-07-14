@@ -1,0 +1,791 @@
+# Configuration
+
+# Configuration
+
+ThunderID's behavior is controlled by a combination of default configurations and deployment-specific overrides. This page covers all available configuration options and how to customize them.
+
+## Configuration System
+
+ThunderID uses a two-tier configuration system:
+
+1. **Default Configuration** — Provides sensible defaults for all settings. These are built into ThunderID.
+2. **Deployment Configuration** — Located at `deployment.yaml` in your ThunderID installation directory. This file overrides specific defaults for your deployment.
+
+> **Note**
+>
+> Only settings you want to override need to be specified in `deployment.yaml`. All other values will use the built-in defaults.
+
+
+> **Tip**
+>
+> ThunderID must be restarted after any configuration change.
+
+
+## Server Configuration
+
+Controls the ThunderID server's network settings and identity.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `server.hostname` | `localhost` | The hostname or IP address the server binds to |
+| `server.port` | `8090` | Port the server listens on |
+| `server.http_only` | `false` | If `true`, disables HTTPS and uses HTTP only (not recommended for production) |
+| `server.identifier` | `default-deployment` | Unique identifier for this deployment instance |
+
+## Gate Client Configuration
+
+Configures the connection to ThunderID Gate (the login UI).
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `gate_client.hostname` | `localhost` | The hostname where ThunderID Gate is hosted |
+| `gate_client.port` | `8090` | Port where ThunderID Gate is accessible |
+| `gate_client.scheme` | `https` | Protocol scheme (`http` or `https`) |
+| `gate_client.path` | `/gate` | Base path for ThunderID Gate |
+
+## TLS Configuration
+
+Controls HTTPS/TLS settings for secure communication.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `tls.min_version` | `1.3` | Minimum TLS version to accept (`1.2` or `1.3`) |
+| `tls.cert_file` | `config/certs/server.cert` | Path to TLS certificate file |
+| `tls.key_file` | `config/certs/server.key` | Path to TLS private key file |
+
+:::warning Self-Signed Certificate
+ThunderID ships with a self-signed certificate for local development at `config/certs/server.cert`. For production, replace it with a certificate from a trusted Certificate Authority.
+:::
+
+## Database Configuration
+
+ThunderID uses three separate databases for different purposes. Each database can be configured independently.
+
+Connection parameters are grouped under a type-specific sub-key (`postgres`, `sqlite`, or `redis`). Only `type` is a top-level field; all other settings belong under the matching sub-key.
+
+### Config Database
+
+Stores identity provider configurations, applications, and authentication flows.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `database.config.type` | `sqlite` | Database type (`sqlite` or `postgres`) |
+
+**`database.config.postgres.*`** — only read when `database.config.type: postgres`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `database.config.postgres.hostname` | `""` | Database server hostname |
+| `database.config.postgres.port` | `0` | Database server port |
+| `database.config.postgres.name` | `""` | Database name |
+| `database.config.postgres.username` | `""` | Database username |
+| `database.config.postgres.password` | `""` | Database password |
+| `database.config.postgres.sslmode` | `""` | SSL mode (`disable`, `require`, `verify-ca`, `verify-full`) |
+| `database.config.postgres.max_open_conns` | `500` | Maximum number of open connections |
+| `database.config.postgres.max_idle_conns` | `100` | Maximum number of idle connections |
+| `database.config.postgres.conn_max_lifetime` | `3600` | Maximum connection lifetime in seconds |
+| `database.config.postgres.max_retries` | `3` | Maximum retry attempts for transient errors |
+| `database.config.postgres.min_retry_backoff_ms` | `50` | Minimum delay before retrying in milliseconds |
+| `database.config.postgres.max_retry_backoff_ms` | `2000` | Maximum delay before retrying in milliseconds |
+
+**`database.config.sqlite.*`** — only read when `database.config.type: sqlite`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `database.config.sqlite.path` | `database/configdb.db` | SQLite database file path |
+| `database.config.sqlite.options` | `_journal_mode=WAL&_busy_timeout=5000&_pragma=foreign_keys(1)` | SQLite connection options |
+| `database.config.sqlite.max_open_conns` | `500` | Maximum number of open connections |
+| `database.config.sqlite.max_idle_conns` | `100` | Maximum number of idle connections |
+| `database.config.sqlite.conn_max_lifetime` | `3600` | Maximum connection lifetime in seconds |
+| `database.config.sqlite.max_retries` | `3` | Maximum retry attempts for transient errors |
+| `database.config.sqlite.min_retry_backoff_ms` | `50` | Minimum delay before retrying in milliseconds |
+| `database.config.sqlite.max_retry_backoff_ms` | `2000` | Maximum delay before retrying in milliseconds |
+
+### Runtime Database
+
+Stores runtime data like sessions, tokens, and temporary data. The runtime database supports three backend types: `sqlite`, `postgres`, and `redis`.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `database.runtime.type` | `sqlite` | Database type (`sqlite`, `postgres`, or `redis`) |
+
+**`database.runtime.postgres.*`** — only read when `database.runtime.type: postgres`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `database.runtime.postgres.hostname` | `""` | Database server hostname |
+| `database.runtime.postgres.port` | `0` | Database server port |
+| `database.runtime.postgres.name` | `""` | Database name |
+| `database.runtime.postgres.username` | `""` | Database username |
+| `database.runtime.postgres.password` | `""` | Database password |
+| `database.runtime.postgres.sslmode` | `""` | SSL mode (`disable`, `require`, `verify-ca`, `verify-full`) |
+| `database.runtime.postgres.max_open_conns` | `500` | Maximum number of open connections |
+| `database.runtime.postgres.max_idle_conns` | `100` | Maximum number of idle connections |
+| `database.runtime.postgres.conn_max_lifetime` | `3600` | Maximum connection lifetime in seconds |
+| `database.runtime.postgres.max_retries` | `3` | Maximum retry attempts for transient errors |
+| `database.runtime.postgres.min_retry_backoff_ms` | `50` | Minimum delay before retrying in milliseconds |
+| `database.runtime.postgres.max_retry_backoff_ms` | `2000` | Maximum delay before retrying in milliseconds |
+
+**`database.runtime.sqlite.*`** — only read when `database.runtime.type: sqlite`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `database.runtime.sqlite.path` | `database/runtimedb.db` | SQLite database file path |
+| `database.runtime.sqlite.options` | `_journal_mode=WAL&_busy_timeout=5000&_pragma=foreign_keys(1)` | SQLite connection options |
+| `database.runtime.sqlite.max_open_conns` | `500` | Maximum number of open connections |
+| `database.runtime.sqlite.max_idle_conns` | `100` | Maximum number of idle connections |
+| `database.runtime.sqlite.conn_max_lifetime` | `3600` | Maximum connection lifetime in seconds |
+| `database.runtime.sqlite.max_retries` | `3` | Maximum retry attempts for transient errors |
+| `database.runtime.sqlite.min_retry_backoff_ms` | `50` | Minimum delay before retrying in milliseconds |
+| `database.runtime.sqlite.max_retry_backoff_ms` | `2000` | Maximum delay before retrying in milliseconds |
+
+**`database.runtime.redis.*`** — only read when `database.runtime.type: redis`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `database.runtime.redis.address` | `""` | Redis server address in `host:port` format, for example `localhost:6379` |
+| `database.runtime.redis.username` | `""` | Redis ACL username — leave empty if ACLs are not configured |
+| `database.runtime.redis.password` | `""` | Redis password or ACL user password |
+| `database.runtime.redis.db` | `0` | Redis logical database index (0–15) |
+| `database.runtime.redis.key_prefix` | `""` | Prefix applied to all Redis keys written by ThunderID, for example `thunderid:` |
+| `database.runtime.redis.max_retries` | `5` | Maximum retry attempts for transient Redis network and timeout issues |
+| `database.runtime.redis.min_retry_backoff_ms` | `10` | Minimum delay before Redis retries in milliseconds |
+| `database.runtime.redis.max_retry_backoff_ms` | `100` | Maximum delay before Redis retries in milliseconds |
+| `database.runtime.redis.dial_timeout_ms` | `5000` | Redis connection (dial) timeout in milliseconds |
+| `database.runtime.redis.read_timeout_ms` | `3000` | Redis read timeout in milliseconds |
+| `database.runtime.redis.write_timeout_ms` | `3000` | Redis write timeout in milliseconds |
+
+#### Redis Connection Requirements
+
+- ThunderID requires Redis 6.0 or later.
+- ThunderID connects to a single Redis node. Cluster mode and Sentinel mode are not currently supported.
+- The default Redis port is `6379`. Ensure the port is reachable from the ThunderID server.
+- ThunderID does not enforce TLS at the client configuration level. To encrypt traffic, place a TLS-terminating proxy in front of Redis and point `database.runtime.redis.address` at the proxy endpoint.
+- If your Redis deployment uses Access Control Lists (ACLs), create a dedicated user and grant the following commands: `GET`, `SET`, `DEL`, `EXPIRE`, `EVAL`, `EVALSHA`. Set `database.runtime.redis.username` and `database.runtime.redis.password` accordingly.
+- ThunderID calls `PING` at startup to verify connectivity. The process terminates if the Redis server is unreachable.
+
+#### Database Retry Behavior
+
+ThunderID applies exponential backoff with jitter for transient failures on non-transactional SQL read operations (`Query` path). Retry behavior is configurable per database via `max_retries`, `min_retry_backoff_ms`, and `max_retry_backoff_ms` under the relevant `postgres` or `sqlite` sub-key.
+
+- Retryable classes include transient connectivity errors (`ErrBadConn`, `ErrConnDone`, connection reset/refused), timeouts, deadlocks (`40P01`), and PostgreSQL resource/availability states (`53xxx`, `57P01`, `57P02`, `57P03`, too-many-connections).
+- Non-retryable conditions include no-row outcomes (`ErrNoRows`), syntax/validation issues, and other permanent SQL conditions.
+- Write operations executed via `Execute` are not retried automatically to avoid accidental duplicate writes. If your write path is explicitly idempotent, add idempotency at the business layer (for example with deterministic IDs or upsert semantics).
+- Retry metrics are emitted through OpenTelemetry metric instruments (`thunderid_db_retry_attempts_total`, `thunderid_db_retry_backoff_seconds`, `thunderid_db_operation_seconds`), which can be exported to Prometheus via your OpenTelemetry collector pipeline.
+
+### User Database
+
+Stores user profiles and credentials.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `database.user.type` | `sqlite` | Database type (`sqlite` or `postgres`) |
+
+**`database.user.postgres.*`** — only read when `database.user.type: postgres`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `database.user.postgres.hostname` | `""` | Database server hostname |
+| `database.user.postgres.port` | `0` | Database server port |
+| `database.user.postgres.name` | `""` | Database name |
+| `database.user.postgres.username` | `""` | Database username |
+| `database.user.postgres.password` | `""` | Database password |
+| `database.user.postgres.sslmode` | `""` | SSL mode (`disable`, `require`, `verify-ca`, `verify-full`) |
+| `database.user.postgres.max_open_conns` | `500` | Maximum number of open connections |
+| `database.user.postgres.max_idle_conns` | `100` | Maximum number of idle connections |
+| `database.user.postgres.conn_max_lifetime` | `3600` | Maximum connection lifetime in seconds |
+| `database.user.postgres.max_retries` | `3` | Maximum retry attempts for transient errors |
+| `database.user.postgres.min_retry_backoff_ms` | `50` | Minimum delay before retrying in milliseconds |
+| `database.user.postgres.max_retry_backoff_ms` | `2000` | Maximum delay before retrying in milliseconds |
+
+**`database.user.sqlite.*`** — only read when `database.user.type: sqlite`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `database.user.sqlite.path` | `database/userdb.db` | SQLite database file path |
+| `database.user.sqlite.options` | `_journal_mode=WAL&_busy_timeout=5000&_pragma=foreign_keys(1)` | SQLite connection options |
+| `database.user.sqlite.max_open_conns` | `500` | Maximum number of open connections |
+| `database.user.sqlite.max_idle_conns` | `100` | Maximum number of idle connections |
+| `database.user.sqlite.conn_max_lifetime` | `3600` | Maximum connection lifetime in seconds |
+| `database.user.sqlite.max_retries` | `3` | Maximum retry attempts for transient errors |
+| `database.user.sqlite.min_retry_backoff_ms` | `50` | Minimum delay before retrying in milliseconds |
+| `database.user.sqlite.max_retry_backoff_ms` | `2000` | Maximum delay before retrying in milliseconds |
+
+## Cache Configuration
+
+ThunderID includes both in-memory and Redis-backed caching to improve performance.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `cache.disabled` | `false` | If `true`, disables caching entirely |
+| `cache.type` | `inmemory` | Cache type (`inmemory` or `redis`). When `cache.type` is `redis`, ThunderID does not use the periodic cleanup routine. |
+| `cache.size` | `1000` | Maximum number of cache entries |
+| `cache.ttl` | `3600` | Default time-to-live for cache entries in seconds |
+| `cache.eviction_policy` | `LRU` | Cache eviction policy (`LRU` - Least Recently Used) |
+| `cache.cleanup_interval` | `300` | In-memory only. Interval in seconds to clean up expired entries. Not used when `cache.type` is `redis`. |
+| `cache.properties[]` | `[]` | Per-cache overrides for `name`, `disabled`, `size`, `ttl`, and `eviction_policy` |
+| `cache.redis.address` | `""` | Redis server address in `host:port` format |
+| `cache.redis.username` | `""` | Redis username |
+| `cache.redis.password` | `""` | Redis password |
+| `cache.redis.db` | `0` | Redis database index |
+| `cache.redis.key_prefix` | `thunderid` | Prefix added to all Redis cache keys |
+| `cache.redis.max_retries` | `5` | Maximum retry attempts for transient Redis network and timeout issues |
+| `cache.redis.min_retry_backoff_ms` | `10` | Minimum delay before Redis retries in milliseconds |
+| `cache.redis.max_retry_backoff_ms` | `100` | Maximum delay before Redis retries in milliseconds |
+| `cache.redis.dial_timeout_ms` | `5000` | Redis connection (dial) timeout in milliseconds |
+| `cache.redis.read_timeout_ms` | `3000` | Redis read timeout in milliseconds |
+| `cache.redis.write_timeout_ms` | `3000` | Redis write timeout in milliseconds |
+
+### Cache Property Overrides
+
+Use `cache.properties` when you want to override cache behavior for a specific internal cache instead of changing the global cache settings for all caches.
+
+Each item in `cache.properties` supports these fields:
+
+| Field | Required | Description |
+|---------|---------|-------------|
+| `name` | Yes | Internal cache name to override. The value must match the cache name exactly. |
+| `disabled` | No | Disables only that cache when set to `true`. |
+| `size` | No | Maximum number of entries for that cache. This setting applies to in-memory caches only. |
+| `ttl` | No | Time-to-live for that cache in seconds. |
+| `eviction_policy` | No | Eviction policy for that cache. Supported values are `LRU` and `LFU`. This setting applies to in-memory caches only. |
+
+If you omit a field in a `cache.properties` entry, ThunderID falls back to the corresponding global `cache.*` setting.
+
+That means you can override only the fields you need. ThunderID continues to use the global cache settings for any fields you leave unset.
+
+ThunderID currently uses cache names such as:
+
+- `ApplicationByIDCache`
+- `ApplicationByNameCache`
+- `OAuthAppCache`
+- `FlowByIDCache`
+- `FlowByHandleCache`
+- `CertificateByIDCache`
+- `CertificateByReferenceCache`
+- `EntityTypeByIDCache`
+- `EntityTypeByNameCache`
+- `FlowGraphCache`
+
+> **Note**
+>
+> `FlowGraphCache` is always in-memory. It caches process-local flow graph Go objects during flow execution, not shared system-level cache data.
+
+
+> **Note**
+>
+> When `cache.type` is `redis`, per-cache `ttl` and `disabled` remain useful. Per-cache `size` and `eviction_policy` do not affect Redis behavior because Redis manages memory and eviction independently.
+
+
+### Redis Cache Configuration
+
+Set `cache.type` to `redis` and configure `cache.redis.address` to enable Redis-backed cache storage.
+
+```yaml
+cache:
+  type: "redis"
+  ttl: 3600
+  redis:
+    address: "localhost:6379"
+    username: ""
+    password: ""
+    db: 0
+    key_prefix: "thunderid"
+    max_retries: 5
+    min_retry_backoff_ms: 10
+    max_retry_backoff_ms: 100
+    dial_timeout_ms: 5000
+    read_timeout_ms: 3000
+    write_timeout_ms: 3000
+```
+
+> **Note**
+>
+> When Redis caching is enabled, ThunderID expires keys automatically based on TTL.
+
+
+> **Warning**
+>
+> If ThunderID cannot connect to Redis during startup, it disables the cache layer.
+
+
+## JWT Configuration
+
+Controls JWT (JSON Web Token) generation and validation.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `jwt.validity_period` | `3600` | Default JWT validity period in seconds (1 hour) |
+| `jwt.audience` | `application` | Default audience claim for JWTs |
+| `jwt.preferred_key_id` | `default-key` | Key ID to use for signing JWTs |
+| `jwt.leeway` | `30` | Clock skew tolerance in seconds for token validation |
+
+## OAuth Configuration
+
+OAuth 2.0 and OpenID Connect settings.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `oauth.refresh_token.renew_on_grant` | `false` | If `true`, issues a new refresh token on each access token grant |
+| `oauth.refresh_token.validity_period` | `86400` | Refresh token validity period in seconds (24 hours) |
+| `oauth.authorization_code.validity_period` | `600` | Authorization code validity period in seconds (10 minutes) |
+| `oauth.dcr.insecure` | `false` | If `true`, allows insecure dynamic client registration (development only) |
+| `oauth.allow_wildcard_redirect_uri` | `false` | If `true`, allows wildcard patterns in registered redirect URIs: `*` and `**` in the path component, and `*` in the host component (label-internal, alphanumeric only). When `false`, only exact redirect URI matching is performed and registering a wildcard URI returns a `400 Bad Request` error. |
+
+> **Note**
+>
+> Enabling `oauth.allow_wildcard_redirect_uri` affects all applications in the deployment. See [Use Wildcard Redirect URIs](https://thunderid.dev/docs/next/guides/guides/applications/application-settings.md#use-wildcard-redirect-uris) for pattern syntax and matching rules.
+
+
+## Flow Configuration
+
+Authentication and registration flow settings.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `flow.default_auth_flow_handle` | `default-basic-flow` | Handle of the default authentication flow |
+| `flow.user_onboarding_flow_handle` | `default-user-onboarding` | Handle of the default user onboarding flow |
+| `flow.max_version_history` | `10` | Maximum number of flow versions to retain |
+| `flow.auto_infer_registration` | `true` | If `true`, automatically infers registration from authentication flows |
+| `flow.executors` | *(all built-in executors)* | Whitelist of built-in executor names to register at startup. Omit the key or leave the list empty to register every built-in executor. When set, only the listed executors are available; flows that reference other executors fail validation at startup. Unknown names cause startup to fail. Duplicate names are ignored. |
+
+### Built-in Executors
+
+Use `flow.executors` to limit which built-in flow executors the server registers. This setting applies only to built-in executors. When you embed ThunderID and register custom executors programmatically, call `RegisterExecutor` on the registry returned by `Initialize` after startup; `flow.executors` does not affect custom executors.
+
+**Register all built-in executors (default):**
+
+Omit `flow.executors` or leave it empty:
+
+```yaml
+flow:
+  max_version_history: 10
+  auto_infer_registration: true
+  # executors: []  # optional; omit or empty registers all built-in executors
+```
+
+**Register a subset:**
+
+List only the executor names you need. Built-in executors not in the list are excluded:
+
+```yaml
+flow:
+  executors:
+    - CredentialsAuthExecutor
+    - InviteExecutor
+```
+
+For the complete list of built-in executor names and configuration details, see [Executor Details and Configuration](https://thunderid.dev/docs/next/guides/guides/flows/advanced-configurations.md#executor-details-and-configuration).
+
+## User Configuration
+
+User management settings.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `user.indexed_attributes` | `["username", "email", "mobileNumber", "sub"]` | User attributes that are indexed for fast `lookups` |
+
+## Declarative Resources
+
+Controls declarative configuration support.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `declarative_resources.enabled` | `false` | If `true`, enables declarative resource configuration |
+
+### Resource Loading Precedence
+
+At startup, ThunderID resolves declarative resources using the following precedence. Only the first matching source is used — sources are not merged.
+
+| Priority | Source | When active |
+|----------|--------|-------------|
+| 1 | Single file passed via `./start.sh <file>` | `--resources` flag is set |
+| 2 | `*.yaml`/`*.yml` files placed directly in `config/resources/` (not in subdirectories) | Flag not set; at least one root-level YAML file exists |
+| 3 | Per-type subdirectories under `config/resources/` (e.g. `config/resources/groups/`) | Flag not set; no root-level YAML files found |
+
+If `--resources` is set, `config/resources/` is not read at all, regardless of what files it contains. The two sources never merge.
+
+### Start ThunderID With a Resources File
+
+Pass a single multi-document YAML file to the server at startup as a positional argument to `start.sh`. The file is forwarded to the server binary as the `-resources` flag and read directly at startup.
+
+```bash
+./start.sh resources.yml
+```
+
+With environment variable substitution:
+
+```bash
+./start.sh resources.yml --env my.env
+```
+
+Each document in the file must declare its type with a `# resource_type: <type>` comment at the top. Supported types:
+
+```
+application, flow, group, identity_provider, layout, notification_sender,
+organization_unit, resource_server, role, theme, translation, user, user_schema
+```
+
+Example single file:
+
+```yaml
+# resource_type: application
+name: My App
+ouHandle: default
+authFlowHandle: default-basic-flow
+---
+# resource_type: group
+name: admins
+description: Administrators
+```
+
+> **Warning**
+>
+> When `--resources` is active, any files in `config/resources/` — including per-type subdirectories — are silently ignored. If you need files from the directory to be loaded, do not pass a `--resources` argument.
+
+
+### Resources Directory (No Startup Flag)
+
+If you do not pass a `--resources` argument, ThunderID automatically picks up multi-document YAML files placed directly in the `config/resources/` directory (not in subdirectories). This is priority 2 in the loading precedence and requires no configuration change or restart argument.
+
+Place a multi-document YAML file in `config/resources/`:
+
+```
+repository/
+  resources/
+    my-resources.yaml   ← loaded automatically at startup
+    groups/             ← used only when no root-level YAML files exist
+      admins.yaml
+```
+
+The file must use the same `# resource_type: <type>` document headers as the single-file startup format. On startup, ThunderID scans all `*.yaml` and `*.yml` files at that root level and loads every document whose `resource_type` matches a configured declarative resource type.
+
+> **Note**
+>
+> If any `*.yaml` or `*.yml` file is found at the `config/resources/` root, per-type subdirectories (priority 3) are skipped entirely for that resource type.
+
+
+### Helm Deployment
+
+For Helm deployments, this setting is managed through `declarativeResources.enabled` in the Helm values. When enabled, the chart mounts declarative resource files from either a ConfigMap or Secret into the ThunderID `config/resources` directory.
+
+Two mounting modes are available — use the one that fits your resource layout.
+
+#### Combined File Mode
+
+Use `singleFile.keys` to mount one or more combined YAML files (multi-document format with `# resource_type: <type>` headers) directly under `config/resources`. Each key in your ConfigMap or Secret is mounted as `<key>.yaml` at that path. ThunderID scans the directory at startup and loads every document whose `resource_type` matches a configured declarative resource type.
+
+```yaml
+declarativeResources:
+  enabled: true
+  readOnly: true
+  singleFile:
+    keys:
+      - resources          # mounted as config/resources/resources.yaml
+      - extra-resources    # mounted as config/resources/extra-resources.yaml
+  configMap:
+    name: declarative-resources
+```
+
+The same works with a Secret source (for files containing sensitive values):
+
+```yaml
+declarativeResources:
+  enabled: true
+  readOnly: true
+  singleFile:
+    keys:
+      - resources
+  secret:
+    name: declarative-resources-secret
+```
+
+#### Individual Files Mode
+
+Use `configMap.items` (or `secret.items`) to mount individual files into typed subdirectories under `config/resources`. Each item maps a ConfigMap/Secret key to a specific path.
+
+```yaml
+declarativeResources:
+  enabled: true
+  readOnly: true
+  configMap:
+    name: declarative-resources
+    items:
+      # Format 1 — string shorthand: key and path are the same
+      - "identity_providers/google.yaml"
+      # Format 2 — explicit key/path mapping
+      - key: app1
+        path: applications/application1.yaml
+      # Format 3 — per-item mountPath override (absolute path)
+      - key: org-default
+        path: organization_units/default.yaml
+        mountPath: /opt/thunderid/config/resources/organization_units/default.yaml
+```
+
+> **Note**
+>
+> `singleFile.keys` and `configMap.items` / `secret.items` are mutually exclusive.
+
+
+Templates (email and other templated content) are now supported as a declarative resource. See the templates guide for schema, examples, and the configured directory location: [Template declarative resources](https://thunderid.dev/docs/next/guides/declarative-configurations/templates.md).
+
+## Resource Configuration
+
+Authorization resource settings.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `resource.default_delimiter` | `:` | Default delimiter for resource hierarchies |
+
+
+## Observability Configuration
+
+Monitoring and observability settings. ThunderID supports three output backends — console, file, and OpenTelemetry (OTel) — and you can enable any combination of them independently.
+
+### Top-Level Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `observability.enabled` | `false` | If `true`, enables the observability system. All output backends are inactive when this is `false`. |
+| `observability.failure_mode` | `lenient` | Controls how initialization failures in subscribers are handled. `lenient` logs a warning and continues with the remaining subscribers. `strict` stops initialization and returns an error if any subscriber fails. |
+
+### Console Output
+
+Writes events to standard output. Useful for local development and containerized deployments that collect stdout logs.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `observability.output.console.enabled` | `false` | If `true`, outputs observability events to the console |
+| `observability.output.console.format` | `json` | Output format: `json` or `text` |
+| `observability.output.console.categories` | `["observability.all"]` | Event categories to output. See [Event Categories](#event-categories) for valid values. |
+
+### File Output
+
+Writes events to a local file. The file subscriber appends events in the configured format and creates the output directory automatically if it does not exist.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `observability.output.file.enabled` | `false` | If `true`, outputs observability events to a file |
+| `observability.output.file.file_path` | `logs/observability/observability.log` (relative to the installation directory) | Path to the output file. The directory is created automatically. |
+| `observability.output.file.format` | `json` | Output format: `json` |
+| `observability.output.file.categories` | `["observability.all"]` | Event categories to write. See [Event Categories](#event-categories) for valid values. |
+
+### OpenTelemetry Output
+
+Exports events as OpenTelemetry spans to an OTLP-compatible backend such as Jaeger, Grafana Tempo, or an OpenTelemetry Collector. Events with the same `TraceID` are grouped into a single trace.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `observability.output.opentelemetry.enabled` | `false` | If `true`, exports observability events as OpenTelemetry spans |
+| `observability.output.opentelemetry.exporter_type` | `otlp` | Exporter type: `otlp` (gRPC, for production) or `stdout` (for debugging) |
+| `observability.output.opentelemetry.otlp_endpoint` | `""` | OTLP gRPC endpoint, for example `localhost:4317`. Required when `exporter_type` is `otlp`. |
+| `observability.output.opentelemetry.service_name` | `""` | Service name included in all emitted spans, for example `thunderid-iam` |
+| `observability.output.opentelemetry.service_version` | `""` | Service version included in span resource attributes, for example `1.0.0` |
+| `observability.output.opentelemetry.environment` | `""` | Deployment environment included in span resource attributes, for example `production` |
+| `observability.output.opentelemetry.sample_rate` | `1.0` | Fraction of traces to sample. `1.0` samples all traces; `0.5` samples half. |
+| `observability.output.opentelemetry.categories` | `["observability.all"]` | Event categories to export. See [Event Categories](#event-categories) for valid values. |
+| `observability.output.opentelemetry.insecure` | `false` | If `true`, disables TLS for the OTLP connection. Use only in development environments. |
+
+### Event Categories
+
+Use these values in any `categories` list to filter which events a subscriber receives:
+
+| Value | Description |
+|-------|-------------|
+| `observability.all` | Matches all events regardless of type (default) |
+| `observability.authentication` | Token issuance events |
+| `observability.authorization` | Authorization-related events |
+| `observability.flows` | Authentication and registration flow execution events |
+
+### Example
+
+The following `deployment.yaml` snippet enables console output and OpenTelemetry export to a local collector:
+
+```yaml
+observability:
+  enabled: true
+  failure_mode: lenient
+  output:
+    console:
+      enabled: true
+      format: json
+      categories:
+        - observability.all
+    opentelemetry:
+      enabled: true
+      exporter_type: otlp
+      otlp_endpoint: "localhost:4317"
+      service_name: "thunderid-iam"
+      service_version: "1.0.0"
+      environment: "production"
+      sample_rate: 1.0
+      insecure: false
+      categories:
+        - observability.all
+```
+
+## Crypto Configuration
+
+Cryptographic settings for encryption and signing.
+
+### Encryption
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `crypto.encryption.key` | `file://config/certs/crypto.key` | Path to encryption key file |
+
+### Password Hashing
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `crypto.password_hashing.algorithm` | `PBKDF2` | Password hashing algorithm |
+| `crypto.password_hashing.parameters.iterations` | `600000` | Number of hashing iterations |
+| `crypto.password_hashing.parameters.key_size` | `32` | Derived key size in bytes |
+| `crypto.password_hashing.parameters.salt_size` | `16` | Salt size in bytes |
+
+### Signing Keys
+
+Signing keys are configured as an array. Each key has the following properties:
+
+| Setting | Description |
+|---------|-------------|
+| `crypto.keys[].id` | Unique identifier for the key |
+| `crypto.keys[].cert_file` | Path to certificate file |
+| `crypto.keys[].key_file` | Path to private key file |
+
+**Default Key:**
+```yaml
+- id: "default-key"
+  cert_file: "config/certs/signing.cert"
+  key_file: "config/certs/signing.key"
+```
+
+The key type under `crypto.keys` determines the algorithm in `id_token_signing_alg_values_supported` in the OIDC discovery document. RSA keys advertise `RS256`; ECDSA `P-256`, `P-384`, and `P-521` keys advertise `ES256`, `ES384`, and `ES512`; Ed25519 keys advertise `EdDSA`. If multiple keys are configured, all resulting algorithms are included without duplicates.
+
+## Email Configuration
+
+ThunderID sends emails through an SMTP server for features such as magic link authentication and user invitations. This configuration is optional. Without a configured SMTP server, email-dependent features remain unavailable. Add the following configuration to `deployment.yaml` to configure an SMTP server.
+
+```yaml
+email:
+  smtp:
+    host: "smtp.example.com"
+    port: 587
+    username: "your-username"
+    password: "your-password"
+    from_address: "noreply@example.com"
+    enable_start_tls: true
+    enable_authentication: true
+```
+
+For the full property reference and provider-specific examples, see [Configure SMTP Server](https://thunderid.dev/docs/next/guides/smtp-server/smtp-server-configuration.md).
+
+## Notification Configuration
+
+Controls notification delivery behaviour, including OTP generation parameters.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `notification.otp.length` | `6` | OTP character length. Must be in `[4, 10]`. |
+| `notification.otp.use_numeric_only` | `true` | If `true`, OTPs use digits only; if `false`, OTPs use a mixed alphanumeric character set. |
+| `notification.otp.validity_period_seconds` | `120` | OTP validity period in seconds. Must be in `[30, 600]`. |
+
+## Authentication Provider Configuration
+
+External authentication provider settings.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `authn_provider.type` | `default` | Provider type (`default` or `rest`) |
+| `authn_provider.rest.base_url` | `""` | Base URL for REST authentication provider |
+| `authn_provider.rest.timeout` | `10` | Request timeout in seconds |
+| `authn_provider.rest.security.api_key` | `""` | API key for REST provider authentication |
+
+## CORS Configuration
+
+Cross-Origin Resource Sharing settings (typically defined in `deployment.yaml`).
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `cors.allowed_origins` | `[]` | List of allowed origins. Each entry is either a literal origin string (scheme and host are case-insensitive, trailing dots are stripped, IDN labels are Punycode-encoded, IPv6 hosts are bracketed, ports are preserved verbatim — list each port variant separately) or an object of the shape `` whose RE2 pattern is matched against the raw `Origin` header. The special string `"null"` matches the CORS null origin. The literal `"*"` is rejected — list explicit origins or use a regex. Requests from any other origin are rejected. |
+
+The methods, headers, credentials, and preflight cache TTL applied to each allowed response are configured per route in code; only the allowed-origins list is operator-tunable. Preflight responses default to a 600-second `Access-Control-Max-Age`.
+
+**Example:**
+```yaml
+cors:
+  allowed_origins:
+    - "https://app.example.com"
+    - "https://münchen.example"           # IDN — equal to its Punycode form
+    - "http://[::1]:8080"                 # IPv6 in bracketed form
+    - regex: '^https://[a-z0-9-]+\.staging\.example\.com(:[0-9]+)?$'
+```
+
+> **Note**
+>
+> Regex patterns are taken as-is and matched against the raw `Origin` header byte-for-byte. Make patterns strict (anchor with `^` and `$`, escape `.` literals) so that a hostile origin cannot match them. Invalid patterns cause the server to fail at startup, and patterns that lack `^`/`$` anchors are flagged with a startup warning because they permit partial matches.
+
+
+> **Warning**
+>
+> The `null` origin is shared by sandboxed iframes, `file://` and `data:` documents, and some cross-origin redirects. Because multiple unrelated contexts all emit it, allowing `"null"` cannot identify the caller. List it only when those contexts are intentionally trusted — combined with credentialed responses, it lets any sandboxed page in any browser tab issue authenticated requests.
+
+
+## Passkey Configuration
+
+WebAuthn/Passkey settings (typically defined in `deployment.yaml`).
+
+| Setting | Description |
+|---------|-------------|
+| `passkey.allowed_origins` | Array of allowed origins for passkey operations |
+
+**Example:**
+```yaml
+passkey:
+  allowed_origins:
+    - "https://localhost:8090"
+```
+
+## Security Configuration
+
+Controls server-wide security behavior that is not specific to any single authenticator. Maps to `SecurityConfig` in the backend, nested under `server.security`.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `server.security.jwks_cache_ttl` | `300` | JWKS cache TTL in seconds. Applies to every JWKS consumer in the server (trusted issuer validation, federated OIDC authenticators such as Google, and so on). Fetched signing keys are reused from the in-process cache for this duration before being re-fetched. Plan external-server key rotations with at least this much overlap. Set to `0` to disable caching |
+| `server.security.system_permission_prefix` | `""` (empty) | Prefix for system permission strings used in API authorization. When empty, permissions use their base names (for example, `system`, `system:ou`). When set, the prefix is prepended to every system permission (for example, `mgmt:system`, `mgmt:system:ou`). This value must match the system resource server's current handle. Changes require a server restart |
+
+> **Tip**
+>
+> If the system resource server has a custom handle, set `system_permission_prefix` to match the handle value and restart the server. You must also update the Console scopes to match the new permission strings.
+
+
+## Trusted Issuer Configuration
+
+Maps to `TrustedIssuerConfig` in the backend, nested under `server.security.trusted_issuer`. Setting `server.security.trusted_issuer.issuer` activates the feature: ThunderID trusts access tokens issued by an external authorization server and validates them against the external server's JWKS endpoint. When `issuer` is set, `jwks_url` and `audience` are required and ThunderID fails to start if either is missing. This is used for federated authentication scenarios where a central ThunderID instance issues tokens that tenant instances accept.
+
+Enabling a trusted issuer is additive and non-breaking. ThunderID still accepts the tokens it issues itself, routed by the token's `iss` claim. Existing `client_credentials`, system, and console callers keep working without configuration changes. See [Self-Issued Tokens](https://thunderid.dev/docs/next/guides/guides/trusted-issuer.md#self-issued-tokens) in the Trusted Issuer guide.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `server.security.trusted_issuer.issuer` | `""` | Expected value of the token's `iss` claim. Must match the external authorization server's issuer URL exactly |
+| `server.security.trusted_issuer.jwks_url` | `""` | URL of the external authorization server's JWKS endpoint used to fetch signing keys. Must use HTTPS (HTTP allowed only for `localhost`) |
+| `server.security.trusted_issuer.audience` | `""` | Expected value of the token's `aud` claim. This should be this server's own identifier (typically its public URL) |
+| `server.security.trusted_issuer.required_claims` | `[]` | List of claims that every accepted token must contain. Each entry has a `claim` name and an expected `value`. If any required claim is missing or does not match, the token is rejected |
+
+**Example:**
+```yaml
+server:
+  security:
+    trusted_issuer:
+      issuer: "https://cloud.example.com"
+      jwks_url: "https://cloud.example.com/oauth2/jwks"
+      audience: "https://tenant.example.com"
+      required_claims:
+        - claim: "ouId"
+          value: "tenant-123"
+```
+
+> **Note**
+>
+> The frontend must include a matching `resource` parameter in the authorization request so the external authorization server sets the token's `aud` claim to this server's identifier. See the [Trusted Issuer](https://thunderid.dev/docs/next/guides/guides/trusted-issuer.md) guide for the end-to-end setup.

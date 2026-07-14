@@ -1,0 +1,14 @@
+import{r as e}from"./rolldown-runtime-QTnfLwEv.js";import{Nt as t,b as n,lt as r}from"./dist-CrNHmsnv.js";import{m as i,n as a,t as o}from"./vendor-emotion-Cfw8XpNY.js";import{Zt as s}from"./vendor-mui-D7wxsaM1.js";import{n as c}from"./FlowProvider-DhcpyGq_.js";var l=e(i(),1),u=()=>{let e=(0,l.useContext)(c);if(!e)throw Error(`useFlow must be used within a FlowProvider`);return e},d=(e={})=>{let{initialValues:t={},fields:n=[],validator:r,validateOnChange:i=!1,validateOnBlur:a=!0,requiredMessage:o=`This field is required`}=e,[s,c]=(0,l.useState)({...t}),[u,d]=(0,l.useState)({}),[f,p]=(0,l.useState)({}),[m,h]=(0,l.useState)(!1),g=(0,l.useCallback)(e=>n.find(t=>t.name===e),[n]),_=(0,l.useCallback)(e=>{let t=s[e]||``,n=g(e);if(n?.required&&(!t||t.trim()===``))return o;if(n?.validator){let e=n.validator(t);if(e)return e}return null},[s,g,o]),v=(0,l.useCallback)(()=>{let e={};if(n.forEach(t=>{let n=_(t.name);n&&(e[t.name]=n)}),r){let t=r(s);Object.keys(t).forEach(n=>{t[n]&&(e[n]=t[n])})}return{errors:e,isValid:Object.keys(e).length===0}},[n,_,r,s]),y=Object.keys(f).length===0,b=(0,l.useCallback)((e,t)=>{if(c(n=>({...n,[e]:t})),i){let t=_(e);p(n=>{let r={...n};return t?r[e]=t:delete r[e],r})}},[_,i]),x=(0,l.useCallback)(e=>{c(t=>({...t,...e}))},[]),S=(0,l.useCallback)((e,t=!0)=>{if(d(n=>({...n,[e]:t})),a&&t){let t=_(e);p(n=>{let r={...n};return t?r[e]=t:delete r[e],r})}},[_,a]),C=(0,l.useCallback)(e=>{d(t=>({...t,...e}))},[]),w=(0,l.useCallback)(()=>{d(n.reduce((e,t)=>(e[t.name]=!0,e),{})),p(v().errors)},[n,v]),T=(0,l.useCallback)((e,t)=>{p(n=>({...n,[e]:t}))},[]),E=(0,l.useCallback)(e=>{p(t=>({...t,...e}))},[]),D=(0,l.useCallback)(()=>{p({})},[]),O=(0,l.useCallback)(()=>{c({...t}),d({}),p({}),h(!1)},[t]),k=(0,l.useCallback)(e=>async t=>{t&&t.preventDefault(),h(!0),w(),v().isValid&&await e(s)},[s,w,v]);return{clearErrors:D,errors:f,getFieldProps:(0,l.useCallback)(e=>{let t=g(e);return{error:u[e]?f[e]:void 0,name:e,onBlur:()=>S(e,!0),onChange:t=>b(e,t),required:t?.required||!1,touched:u[e]||!1,value:s[e]||``}},[s,f,u,b,S,g]),handleSubmit:k,isSubmitted:m,isValid:y,reset:O,setError:T,setErrors:E,setTouched:S,setTouchedFields:C,setValue:b,setValues:x,touchAllFields:w,touched:u,validateField:_,validateForm:v,values:s}},f=(e,t,n)=>(0,l.useMemo)(()=>{let e=o`
+      width: auto;
+      object-fit: contain;
+      display: block;
+    `,t=o`
+      height: 32px;
+      max-width: 120px;
+    `,r=o`
+      height: 48px;
+      max-width: 180px;
+    `,i=o`
+      height: 64px;
+      max-width: 240px;
+    `;return{large:i,logo:e,medium:r,size:{large:i,medium:r,small:t}[n],small:t}},[e,t,n]),p=s(),m=({className:e,src:i,alt:o,title:s,size:c=`medium`})=>{let{theme:l,colorScheme:u}=n(),d=f(l,u,c),m=l.images?.logo,h=i||m?.url,g=o||m?.alt||`Logo`,_=s||m?.title;return h?(0,p.jsx)(`img`,{src:h,alt:g,title:_,className:a(t(r(`logo`)),t(r(`logo`,c)),d.logo,d.size,e)}):null};export{d as n,u as r,m as t};

@@ -1,0 +1,800 @@
+{
+  "item": [
+    {
+      "id": "0e9c5664-5a25-40d5-9747-0e2fe61ddfc6",
+      "name": "Export",
+      "description": {
+        "content": "Export all declared resources as a combined YAML document or a downloadable ZIP archive.",
+        "type": "text/plain"
+      },
+      "item": [
+        {
+          "id": "98e4fd2e-dc77-4ae7-bcd7-da53a2396512",
+          "name": "Export resources as JSON",
+          "request": {
+            "name": "Export resources as JSON",
+            "description": {
+              "content": "Exports the requested resources and returns a JSON response containing the combined YAML export content and the generated `.env` file content.\n",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "export"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{host}}",
+                  "key": "host"
+                },
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{port}}",
+                  "key": "port"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "auth": null,
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applications\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"identityProviders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"notificationSenders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"userTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"organizationUnits\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"users\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"groups\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"resourceServers\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"roles\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"flows\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"translations\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"layouts\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"themes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"options\": {\n    \"includeMetadata\": false,\n    \"includeDependencies\": false,\n    \"format\": \"yaml\",\n    \"folderStructure\": {\n      \"groupByType\": false,\n      \"customStructure\": {\n        \"et_4f\": \"<string>\"\n      },\n      \"fileNamingPattern\": \"<string>\"\n    },\n    \"pagination\": {\n      \"page\": \"<integer>\",\n      \"limit\": \"<integer>\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "3e618722-52af-4ead-abfc-0ab6b00bff62",
+              "name": "Combined YAML and environment variable export",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "export"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"applications\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"identityProviders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"notificationSenders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"userTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"organizationUnits\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"users\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"groups\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"resourceServers\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"roles\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"flows\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"translations\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"layouts\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"themes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"options\": {\n    \"includeMetadata\": false,\n    \"includeDependencies\": false,\n    \"format\": \"yaml\",\n    \"folderStructure\": {\n      \"groupByType\": false,\n      \"customStructure\": {\n        \"adipisicing52\": \"<string>\",\n        \"Lorem_177\": \"<string>\",\n        \"Duisb2\": \"<string>\"\n      },\n      \"fileNamingPattern\": \"<string>\"\n    },\n    \"pagination\": {\n      \"page\": \"<integer>\",\n      \"limit\": \"<integer>\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"resources\": \"<string>\",\n  \"environment_variables\": \"<string>\"\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "b3e7836f-926d-4f07-85ec-892476ecf65b",
+              "name": "Bad request",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "export"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"applications\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"identityProviders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"notificationSenders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"userTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"organizationUnits\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"users\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"groups\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"resourceServers\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"roles\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"flows\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"translations\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"layouts\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"themes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"options\": {\n    \"includeMetadata\": false,\n    \"includeDependencies\": false,\n    \"format\": \"yaml\",\n    \"folderStructure\": {\n      \"groupByType\": false,\n      \"customStructure\": {\n        \"adipisicing52\": \"<string>\",\n        \"Lorem_177\": \"<string>\",\n        \"Duisb2\": \"<string>\"\n      },\n      \"fileNamingPattern\": \"<string>\"\n    },\n    \"pagination\": {\n      \"page\": \"<integer>\",\n      \"limit\": \"<integer>\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "87a6be83-10d1-4834-a873-4ab5cf3145d6",
+              "name": "Unauthorized - missing or invalid authentication token",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "export"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"applications\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"identityProviders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"notificationSenders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"userTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"organizationUnits\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"users\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"groups\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"resourceServers\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"roles\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"flows\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"translations\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"layouts\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"themes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"options\": {\n    \"includeMetadata\": false,\n    \"includeDependencies\": false,\n    \"format\": \"yaml\",\n    \"folderStructure\": {\n      \"groupByType\": false,\n      \"customStructure\": {\n        \"adipisicing52\": \"<string>\",\n        \"Lorem_177\": \"<string>\",\n        \"Duisb2\": \"<string>\"\n      },\n      \"fileNamingPattern\": \"<string>\"\n    },\n    \"pagination\": {\n      \"page\": \"<integer>\",\n      \"limit\": \"<integer>\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "92681e8e-fc02-41d0-94f0-72cb2b4d35fc",
+              "name": "Internal server error",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "export"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"applications\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"identityProviders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"notificationSenders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"userTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"organizationUnits\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"users\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"groups\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"resourceServers\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"roles\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"flows\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"translations\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"layouts\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"themes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"options\": {\n    \"includeMetadata\": false,\n    \"includeDependencies\": false,\n    \"format\": \"yaml\",\n    \"folderStructure\": {\n      \"groupByType\": false,\n      \"customStructure\": {\n        \"adipisicing52\": \"<string>\",\n        \"Lorem_177\": \"<string>\",\n        \"Duisb2\": \"<string>\"\n      },\n      \"fileNamingPattern\": \"<string>\"\n    },\n    \"pagination\": {\n      \"page\": \"<integer>\",\n      \"limit\": \"<integer>\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            }
+          ],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "id": "e6cd025e-9883-4cbf-b0ec-973ecb5d69c1",
+          "name": "Export resources as ZIP archive",
+          "request": {
+            "name": "Export resources as ZIP archive",
+            "description": {
+              "content": "Exports the requested resources and returns them as a downloadable ZIP archive. Each exported resource is placed in a separate file (optionally inside a sub-folder determined by `folderPath`). When template variables are detected across the exported resources, a `.env` file is automatically generated and included in the ZIP root; the `.env` file is omitted when no template variables are found.\n",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "export",
+                "zip"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{host}}",
+                  "key": "host"
+                },
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{port}}",
+                  "key": "port"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/zip"
+              }
+            ],
+            "method": "POST",
+            "auth": null,
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applications\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"identityProviders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"notificationSenders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"userTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"organizationUnits\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"users\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"groups\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"resourceServers\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"roles\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"flows\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"translations\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"layouts\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"themes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"options\": {\n    \"includeMetadata\": false,\n    \"includeDependencies\": false,\n    \"format\": \"yaml\",\n    \"folderStructure\": {\n      \"groupByType\": false,\n      \"customStructure\": {\n        \"adipisicing52\": \"<string>\",\n        \"Lorem_177\": \"<string>\",\n        \"Duisb2\": \"<string>\"\n      },\n      \"fileNamingPattern\": \"<string>\"\n    },\n    \"pagination\": {\n      \"page\": \"<integer>\",\n      \"limit\": \"<integer>\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "id": "b7dc451d-2523-4580-9435-6403487fc27b",
+              "name": "ZIP archive containing all exported resource files",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "export",
+                    "zip"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/zip"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"applications\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"identityProviders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"notificationSenders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"userTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"organizationUnits\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"users\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"groups\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"resourceServers\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"roles\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"flows\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"translations\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"layouts\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"themes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"options\": {\n    \"includeMetadata\": false,\n    \"includeDependencies\": false,\n    \"format\": \"yaml\",\n    \"folderStructure\": {\n      \"groupByType\": false,\n      \"customStructure\": {\n        \"adipisicing52\": \"<string>\",\n        \"Lorem_177\": \"<string>\",\n        \"Duisb2\": \"<string>\"\n      },\n      \"fileNamingPattern\": \"<string>\"\n    },\n    \"pagination\": {\n      \"page\": \"<integer>\",\n      \"limit\": \"<integer>\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "disabled": true,
+                  "key": "Content-Disposition",
+                  "value": "<string>",
+                  "description": ""
+                },
+                {
+                  "disabled": true,
+                  "key": "Content-Length",
+                  "value": "<integer>",
+                  "description": ""
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/zip"
+                }
+              ],
+              "body": "<binary>",
+              "cookie": [],
+              "_postman_previewlanguage": "text"
+            },
+            {
+              "id": "44dd9b7f-68e9-478e-b22e-0d885c5708a5",
+              "name": "Bad request",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "export",
+                    "zip"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"applications\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"identityProviders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"notificationSenders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"userTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"organizationUnits\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"users\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"groups\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"resourceServers\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"roles\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"flows\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"translations\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"layouts\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"themes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"options\": {\n    \"includeMetadata\": false,\n    \"includeDependencies\": false,\n    \"format\": \"yaml\",\n    \"folderStructure\": {\n      \"groupByType\": false,\n      \"customStructure\": {\n        \"adipisicing52\": \"<string>\",\n        \"Lorem_177\": \"<string>\",\n        \"Duisb2\": \"<string>\"\n      },\n      \"fileNamingPattern\": \"<string>\"\n    },\n    \"pagination\": {\n      \"page\": \"<integer>\",\n      \"limit\": \"<integer>\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "dee3db89-6a18-440b-8922-9c858255d020",
+              "name": "Unauthorized - missing or invalid authentication token",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "export",
+                    "zip"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"applications\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"identityProviders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"notificationSenders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"userTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"organizationUnits\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"users\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"groups\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"resourceServers\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"roles\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"flows\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"translations\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"layouts\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"themes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"options\": {\n    \"includeMetadata\": false,\n    \"includeDependencies\": false,\n    \"format\": \"yaml\",\n    \"folderStructure\": {\n      \"groupByType\": false,\n      \"customStructure\": {\n        \"adipisicing52\": \"<string>\",\n        \"Lorem_177\": \"<string>\",\n        \"Duisb2\": \"<string>\"\n      },\n      \"fileNamingPattern\": \"<string>\"\n    },\n    \"pagination\": {\n      \"page\": \"<integer>\",\n      \"limit\": \"<integer>\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "3f0369c7-4d6b-40a7-8b17-397aa99a2a2e",
+              "name": "Internal server error",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "export",
+                    "zip"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{host}}",
+                      "key": "host"
+                    },
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{port}}",
+                      "key": "port"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: oauth2",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "<token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"applications\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"identityProviders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"notificationSenders\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"userTypes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"organizationUnits\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"users\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"groups\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"resourceServers\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"roles\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"flows\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"translations\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"layouts\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"themes\": [\n    \"<string>\",\n    \"<string>\"\n  ],\n  \"options\": {\n    \"includeMetadata\": false,\n    \"includeDependencies\": false,\n    \"format\": \"yaml\",\n    \"folderStructure\": {\n      \"groupByType\": false,\n      \"customStructure\": {\n        \"adipisicing52\": \"<string>\",\n        \"Lorem_177\": \"<string>\",\n        \"Duisb2\": \"<string>\"\n      },\n      \"fileNamingPattern\": \"<string>\"\n    },\n    \"pagination\": {\n      \"page\": \"<integer>\",\n      \"limit\": \"<integer>\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"<string>\",\n  \"message\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  },\n  \"description\": {\n    \"key\": \"<string>\",\n    \"defaultValue\": \"<string>\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            }
+          ],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        }
+      ],
+      "event": []
+    }
+  ],
+  "event": [],
+  "variable": [
+    {
+      "description": {
+        "content": "",
+        "type": "text/plain"
+      },
+      "type": "any",
+      "value": "localhost",
+      "key": "host"
+    },
+    {
+      "description": {
+        "content": "",
+        "type": "text/plain"
+      },
+      "type": "any",
+      "value": "8090",
+      "key": "port"
+    },
+    {
+      "type": "string",
+      "value": "https://{{host}}:{{port}}",
+      "key": "baseUrl"
+    },
+    {
+      "key": "clientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clientSecret",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "oauth2",
+    "oauth2": [
+      {
+        "key": "grant_type",
+        "value": "client_credentials"
+      },
+      {
+        "key": "accessTokenUrl",
+        "value": "{{baseUrl}}/oauth2/token"
+      },
+      {
+        "key": "clientId",
+        "value": "{{clientId}}"
+      },
+      {
+        "key": "clientSecret",
+        "value": "{{clientSecret}}"
+      },
+      {
+        "key": "scope",
+        "value": "system"
+      },
+      {
+        "key": "addTokenTo",
+        "value": "header"
+      }
+    ]
+  },
+  "info": {
+    "_postman_id": "2737c18f-7b73-42a6-8ef4-478adc21d953",
+    "name": "Export API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": {
+      "content": "This API exports Resources as combined YAML in JSON responses or as ZIP archives.",
+      "type": "text/plain"
+    }
+  }
+}

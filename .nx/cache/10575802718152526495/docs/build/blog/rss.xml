@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>ThunderID Blog</title>
+        <link>https://thunderid.dev/blog/</link>
+        <description>ThunderID Blog</description>
+        <lastBuildDate>Thu, 21 May 2026 00:00:00 GMT</lastBuildDate>
+        <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
+        <generator>https://github.com/jpmonette/feed</generator>
+        <language>en-US</language>
+        <item>
+            <title><![CDATA[ThunderID: The Open Source IAM Stack Built for Agents, Ready for Quantum, Open by Design]]></title>
+            <link>https://thunderid.dev/blog/introducing-thunderid/</link>
+            <guid>https://thunderid.dev/blog/introducing-thunderid/</guid>
+            <pubDate>Thu, 21 May 2026 00:00:00 GMT</pubDate>
+            <description><![CDATA[Open source IAM has shaped identity infrastructure for decades. It gave real alternatives to proprietary software, made identity tooling free and accessible to anyone. That work mattered, and it still does.]]></description>
+            <content:encoded><![CDATA[<p>Open source IAM has shaped identity infrastructure for decades. It gave real alternatives to proprietary software, made identity tooling free and accessible to anyone. That work mattered, and it still does.</p>
+<p>Most open source IAM projects started more than a decade ago. Humans were the only intelligent actors in a system, and machines followed instructions without reasoning about them. Quantum computing was a research topic, distributed identity infrastructure was still emerging, and deployment practices like GitOps did not exist yet. The design decisions made then reflected that world well.</p>
+<p>That world has changed. AI agents are running in production, holding credentials, calling APIs, and acting on behalf of users and services. Cyberattacks such as <strong>harvest-now-decrypt-later</strong> and <strong>trust-now-forge-later</strong> are real. Digital wallet ecosystems are maturing, and modern teams use containerized deployments and practice GitOps. Open source IAM hasn't caught up, and that gap is real. <!-- -->ThunderID<!-- --> is our attempt to close it: a new open source IAM stack built from scratch, designed for the identity problems of this decade and the one that follows.</p>
+<style data-emotion="css 1ijvo5s">@media (min-width:0px){.css-1ijvo5s{padding-top:calc(2 * var(--oxygen-spacing, 8px));padding-bottom:calc(2 * var(--oxygen-spacing, 8px));}}@media (min-width:1200px){.css-1ijvo5s{padding-top:calc(4 * var(--oxygen-spacing, 8px));padding-bottom:calc(4 * var(--oxygen-spacing, 8px));}}</style><div class="MuiBox-root css-1ijvo5s"><img src="https://thunderid.dev/assets/images/logo.svg" alt="ThunderID Logo" height="75"></div>
+<p>The team at <a href="https://wso2.com/" target="_blank" rel="noopener noreferrer">WSO2</a>, drawing on more than 15 years of experience building and running IAM software at scale, including <a href="https://github.com/wso2/product-is" target="_blank" rel="noopener noreferrer">WSO2 Identity Server</a>, started <!-- -->ThunderID<!-- -->.</p>
+<p>ThunderID<!-- --> is designed around four pillars that address the gaps the current generation of open source IAM doesn't cover well.</p>
+<h2 class="anchor anchorTargetStickyNavbar_U35p" id="agent-native-identity">Agent-native Identity<a href="https://thunderid.dev/blog/introducing-thunderid/#agent-native-identity" class="hash-link" aria-label="Direct link to Agent-native Identity" title="Direct link to Agent-native Identity" translate="no">​</a></h2>
+<p>AI agents deserve their own notion of identity. Most existing IAM solutions treat an agent as a machine credential, a service account, or an application. <!-- -->ThunderID<!-- --> models AI agents as a distinct identity type, built into the foundation rather than added on top.</p>
+<p>What this means in practice:</p>
+<ul>
+<li class="">
+<p>Agents are modelled as a distinct identity type with their own lifecycle, supporting delegated authority, consent-aware access, and full traceability.</p>
+</li>
+<li class="">
+<p>IAM operations are exposed through APIs and MCP, so agent-driven workflows can interact with identity services programmatically.</p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_U35p" id="post-quantum-safe-by-design">Post-quantum-safe by Design<a href="https://thunderid.dev/blog/introducing-thunderid/#post-quantum-safe-by-design" class="hash-link" aria-label="Direct link to Post-quantum-safe by Design" title="Direct link to Post-quantum-safe by Design" translate="no">​</a></h2>
+<p>RSA and ECDSA are the algorithms that form the backbone of today's PKI. Cyberattacks such as harvest-now-decrypt-later and trust-now-forge-later mean credentials and signed assertions issued today may need to remain valid and unforgeable. They may need to stay valid well into the post-quantum window. <!-- -->ThunderID<!-- --> uses a crypto-agile design: algorithms are configurable, not baked in.</p>
+<p>What this means in practice:</p>
+<ul>
+<li class="">
+<p>Post-quantum-safe algorithms including ML-KEM, ML-DSA, and SLH-DSA are supported as first-class options, with a hybrid mode for running classical and post-quantum algorithms in parallel during transition.</p>
+</li>
+<li class="">
+<p>Crypto-agility applies across the full runtime: key management, credential issuance, signed assertions, and service-to-service communication.</p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_U35p" id="decentralized-identity-integration">Decentralized Identity Integration<a href="https://thunderid.dev/blog/introducing-thunderid/#decentralized-identity-integration" class="hash-link" aria-label="Direct link to Decentralized Identity Integration" title="Direct link to Decentralized Identity Integration" translate="no">​</a></h2>
+<p>Decentralized Identifiers (DID), verifiable credentials (VC), digital wallets, and trust registries are moving from specification into production. Among them, digital wallets are increasingly being adopted across personal and enterprise use cases, becoming an integral part of our lives. <!-- -->ThunderID<!-- --> is built to integrate with this ecosystem from the start, not to bolt it on later.</p>
+<p>What this means in practice:</p>
+<ul>
+<li class="">
+<p>Verifiable credential issuance and presentation, so you can issue credentials to digital wallets and accept presentations for authentication and registration without becoming a credential-format expert.</p>
+</li>
+<li class="">
+<p>Standard APIs covering issuer-verifier-holder interaction patterns for integration with DIDs, digital wallets, and trust registries.</p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_U35p" id="lightweight-high-performance-runtime-with-gitops-support">Lightweight, High-Performance Runtime with GitOps Support<a href="https://thunderid.dev/blog/introducing-thunderid/#lightweight-high-performance-runtime-with-gitops-support" class="hash-link" aria-label="Direct link to Lightweight, High-Performance Runtime with GitOps Support" title="Direct link to Lightweight, High-Performance Runtime with GitOps Support" translate="no">​</a></h2>
+<p>ThunderID<!-- --> is written in Go: high performance, low latency, small runtime footprint. The runtime is headless and API-first, with built-in GitOps support.</p>
+<p>What this means in practice:</p>
+<ul>
+<li class="">
+<p>Headless and API-first: the console UI, SDKs, and end-user flows sit on top and are replaceable or white-labelable.</p>
+</li>
+<li class="">
+<p>Declarative configuration with built-in GitOps support: IAM definitions are versioned and deployed through the same pipelines as the rest of your platform, on-premises or in the cloud</p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_U35p" id="developer-experience">Developer Experience<a href="https://thunderid.dev/blog/introducing-thunderid/#developer-experience" class="hash-link" aria-label="Direct link to Developer Experience" title="Direct link to Developer Experience" translate="no">​</a></h2>
+<p>ThunderID<!-- --> aims to provide an opinionated developer experience, with tools and SDKs targeting specific development roles such as application and API developers, AI agent developers, and IAM developers and architects.</p>
+<p>ThunderID<!-- --> ships framework-specific SDKs for React, Next.js, Vue.js, and Nuxt.js. The SDKs include pre-built components you can drop into an application and style with the rest of your UI. You can use them without dealing with the wire-level mechanics of OAuth 2.0, OpenID Connect, or token handling.</p>
+<p>If you work directly at the protocol level, the same flows are available through standard OAuth 2.0 and OpenID Connect. SDKs provide a quicker integration path; the underlying standards define the contract. Both approaches are supported equally.</p>
+<p>Beyond SDKs, <!-- -->ThunderID<!-- --> provides a console UI, RESTful APIs, server-side and client-side SDKs, a flow engine, and a visual flow designer. These tools help you build login, registration, account recovery, and step-up authentication experiences without implementing each flow from scratch.</p>
+<p>AI agents in <!-- -->ThunderID<!-- --> are not only identities managed by the system. They are also actors that interact with it, performing development and operational tasks with a human in the loop. Core IAM operations such as issuing credentials, granting consent, evaluating policies, and executing flows are available through standard APIs and MCP. Agents can discover and invoke identity functions programmatically. These capabilities are also packaged as reusable skills, so agents can consume them without requiring each operation to be individually wrapped by the application.</p>
+<h2 class="anchor anchorTargetStickyNavbar_U35p" id="get-involved">Get Involved<a href="https://thunderid.dev/blog/introducing-thunderid/#get-involved" class="hash-link" aria-label="Direct link to Get Involved" title="Direct link to Get Involved" translate="no">​</a></h2>
+<p>ThunderID<!-- --> is in active development and openly built. The best way to understand the product and roadmap is to try it.</p>
+<p>Start with the <a class="" href="https://thunderid.dev/docs/next/guides/getting-started/get-thunderid/">getting started guide</a>. If you run into something that doesn't work, open a <a href="https://github.com/thunder-id/thunderid/issues" target="_blank" rel="noopener noreferrer">GitHub issue</a>. If you have questions, thoughts on the design, or want to follow the project's direction, join the conversation on <a href="https://github.com/thunder-id/thunderid/discussions" target="_blank" rel="noopener noreferrer">GitHub Discussions</a>.</p>
+<p>This project is shaped by the people who use it and contribute to it. We're glad you're here.</p>]]></content:encoded>
+            <category>ThunderID</category>
+            <category>Identity</category>
+            <category>Security</category>
+            <category>2026</category>
+        </item>
+    </channel>
+</rss>

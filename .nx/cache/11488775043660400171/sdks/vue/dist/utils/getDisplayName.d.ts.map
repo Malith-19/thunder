@@ -1,0 +1,1 @@
+{"version":3,"file":"getDisplayName.d.ts","sourceRoot":"","sources":["../../src/utils/getDisplayName.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;GAgBG;AAEH,OAAO,EAAC,IAAI,EAAC,MAAM,oBAAoB,CAAC;AAGxC,QAAA,MAAM,cAAc,GAClB,gBAAgB,MAAM,CAAC,MAAM,EAAE,MAAM,GAAG,MAAM,EAAE,GAAG,SAAS,CAAC,EAC7D,MAAM,IAAI,EACV,oBAAoB,MAAM,EAAE,KAC3B,MA0BF,CAAC;AAEF,eAAe,cAAc,CAAC"}

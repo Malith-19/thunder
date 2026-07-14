@@ -1,0 +1,9 @@
+{
+  "configKey": "thunderid",
+  "name": "@thunderid/nuxt",
+  "version": "0.1.0",
+  "builder": {
+    "@nuxt/module-builder": "1.0.1",
+    "unbuild": "unknown"
+  }
+}

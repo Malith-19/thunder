@@ -1,0 +1,361 @@
+# Kubernetes
+
+# Deploy ThunderID on Kubernetes
+
+This guide walks you through deploying ThunderID to a Kubernetes cluster using Helm charts. It covers a quick single-command install for development and a production-ready setup with external PostgreSQL.
+
+## Architecture Overview
+
+
+The diagram above shows the ThunderID deployment in Kubernetes, including the application pods, ingress controller, and database configuration.
+
+## Prerequisites
+
+Before you begin, ensure the following are available:
+
+**Infrastructure:**
+- A running Kubernetes cluster (v1.25 or later). You can use [minikube](https://kubernetes.io/docs/tasks/tools/#minikube) or [kind](https://kind.sigs.k8s.io/) locally, or a managed service such as EKS, GKE, or AKS for production.
+- An NGINX Ingress Controller or a compatible alternative.
+- Valid TLS certificates for production deployments.
+
+**Required Tools:**
+
+| Tool | Installation Guide | Version Check |
+|------|--------------------|---------------|
+| Git | [Install Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) | `git --version` |
+| Helm | [Install Helm](https://helm.sh/docs/intro/install/) | `helm version` |
+| kubectl | [Install kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) | `kubectl version` |
+| Docker | [Install Docker](https://docs.docker.com/engine/install/) | `docker --version` |
+
+Verify cluster access before proceeding:
+
+```bash
+kubectl cluster-info
+helm version
+kubectl get pods -n ingress-nginx
+```
+
+## Install ThunderID
+
+### Step 1: Install the Helm Chart
+
+Install ThunderID from the GitHub Container Registry:
+
+```bash
+helm install thunderid oci://ghcr.io/thunder-id/helm-charts/thunderid \
+  --namespace thunderid \
+  --create-namespace
+```
+
+To install a specific version:
+
+```bash
+helm install thunderid oci://ghcr.io/thunder-id/helm-charts/thunderid \
+  --version latest \
+  --namespace thunderid \
+  --create-namespace
+```
+
+### Step 2: Verify the Installation
+
+```bash
+# Check pod status
+kubectl get pods -l app.kubernetes.io/name=thunderid -n thunderid
+
+# Check services
+kubectl get services -l app.kubernetes.io/name=thunderid -n thunderid
+
+# Check ingress
+kubectl get ingress -n thunderid
+```
+
+### Step 3: Access ThunderID
+
+1. Get the external IP address of your NGINX Ingress Controller.
+2. Add an entry to your `/etc/hosts` file that maps the IP address to `thunderid.local`.
+3. Open ThunderID at `http://thunderid.local`.
+
+If you are using a cloud provider, the load balancer assigns the external IP automatically.
+
+## Installation Options
+
+### Option 1: Inline Value Overrides
+
+Pass configuration values directly on the command line. The following example installs ThunderID with SQLite:
+
+```bash
+helm install thunderid oci://ghcr.io/thunder-id/helm-charts/thunderid \
+  --namespace thunderid \
+  --create-namespace \
+  --set configuration.database.config.type=sqlite \
+  --set configuration.database.runtime.type=sqlite \
+  --set configuration.database.user.type=sqlite \
+  --set configuration.consent.database.type=sqlite \
+  --set deployment.securityContext.readOnlyRootFilesystem=false
+```
+
+> **Warning**
+>
+> SQLite on Kubernetes stores database files inside the pod. Without a PersistentVolumeClaim, all data is lost when the pod restarts or is rescheduled to a different node. SQLite also does not support concurrent writes, so `replicaCount` must remain `1`. See [SQLite](#sqlite) for PVC configuration. For multi-replica or durable deployments, use PostgreSQL.
+
+
+> **Note**
+>
+> `--set` values are not saved anywhere. Running `helm get values thunderid` will only show them if you pass `--all`. For anything beyond a quick throwaway install, prefer a values file — it is auditable, version-controllable, and reusable across upgrades. See [Option 2](#option-2-custom-values-file) for the values-file approach.
+
+
+### Option 2: Custom Values File
+
+For production deployments, use a values file to manage configuration:
+
+1. Create a `custom-values.yaml` file:
+
+    ```yaml
+    deployment:
+      replicaCount: 3
+      resources:
+        requests:
+          cpu: 500m
+          memory: 512Mi
+        limits:
+          cpu: 2
+          memory: 1Gi
+
+    ingress:
+      hostname: thunderid.example.com
+
+    configuration:
+      database:
+        config:
+          type: postgres
+          host: postgres.default.svc.cluster.local
+          port: 5432
+          name: configdb
+          username: thunderid_user
+          password: <config-db-password>
+          sslmode: require
+        runtime:
+          type: postgres
+          host: postgres.default.svc.cluster.local
+          port: 5432
+          name: runtimedb
+          username: thunderid_user
+          password: <runtime-db-password>
+          sslmode: require
+        user:
+          type: postgres
+          host: postgres.default.svc.cluster.local
+          port: 5432
+          name: userdb
+          username: thunderid_user
+          password: <user-db-password>
+          sslmode: require
+      consent:
+        database:
+          type: postgres
+          host: postgres.default.svc.cluster.local
+          port: 5432
+          name: consentdb
+          username: thunderid_user
+          password: <consent-db-password>
+          sslmode: require
+    ```
+
+2. Install using the values file:
+
+    ```bash
+    helm install thunderid oci://ghcr.io/thunder-id/helm-charts/thunderid \
+      --namespace thunderid \
+      --create-namespace \
+      -f custom-values.yaml
+    ```
+
+> **Warning**
+>
+> Never write database passwords directly into `custom-values.yaml` or commit it to version control. Instead, store credentials in a Kubernetes Secret and reference them using `valueFrom.secretKeyRef`, or use a tool such as [External Secrets Operator](https://external-secrets.io/) or [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) to manage secrets outside the values file.
+
+
+## Database Setup
+
+ThunderID supports both PostgreSQL and SQLite. PostgreSQL is recommended for production.
+
+### PostgreSQL
+
+Before deploying ThunderID, prepare the PostgreSQL instance:
+
+1. Create the four required databases:
+
+    ```sql
+    CREATE DATABASE configdb;
+    CREATE DATABASE runtimedb;
+    CREATE DATABASE userdb;
+    CREATE DATABASE consentdb;
+    ```
+
+2. Create a dedicated user:
+
+    ```sql
+    CREATE USER thunderid_user WITH PASSWORD '<secure-password>';
+    ```
+
+3. Grant the required privileges in each database. Connect to each database and run both statements. Using `psql`:
+
+    ```bash
+    for db in configdb runtimedb userdb consentdb; do
+      psql -h <db-host> -U postgres -d "$db" <<'SQL'
+        GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO thunderid_user;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public
+          GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO thunderid_user;
+    SQL
+    done
+    ```
+
+    `GRANT ON ALL TABLES` covers tables that already exist. `ALTER DEFAULT PRIVILEGES` ensures tables created by future migrations are also accessible.
+
+4. Run the initialization scripts to create the schema:
+    - Apply the database scripts for configdb, runtimedb, userdb, and [consentdb](https://github.com/wso2/openfgc/blob/main/consent-server/dbscripts/db_schema_postgres.sql).
+
+For a PostgreSQL setup using Helm, refer to the [Bitnami PostgreSQL Helm Chart](https://bitnami.com/stacks/postgresql).
+
+Once the databases are ready, configure ThunderID to connect to them:
+
+```yaml
+configuration:
+  database:
+    config:
+      type: postgres
+      host: postgres.example.com
+      port: 5432
+      name: configdb
+      username: thunderid_user
+      password: <config-db-password>
+      sslmode: require
+    runtime:
+      type: postgres
+      host: postgres.example.com
+      port: 5432
+      name: runtimedb
+      username: thunderid_user
+      password: <runtime-db-password>
+      sslmode: require
+    user:
+      type: postgres
+      host: postgres.example.com
+      port: 5432
+      name: userdb
+      username: thunderid_user
+      password: <user-db-password>
+      sslmode: require
+  consent:
+    database:
+      type: postgres
+      host: postgres.example.com
+      port: 5432
+      name: consentdb
+      username: thunderid_user
+      password: <consent-db-password>
+      sslmode: require
+```
+
+### SQLite
+
+For single-node setups, configure ThunderID to use SQLite:
+
+```yaml
+configuration:
+  database:
+    config:
+      type: sqlite
+      sqlitePath: database/configdb.db
+      sqliteOptions: "_journal_mode=WAL&_busy_timeout=5000&_pragma=foreign_keys(1)"
+    runtime:
+      type: sqlite
+      sqlitePath: database/runtimedb.db
+      sqliteOptions: "_journal_mode=WAL&_busy_timeout=5000&_pragma=foreign_keys(1)"
+    user:
+      type: sqlite
+      sqlitePath: database/userdb.db
+      sqliteOptions: "_journal_mode=WAL&_busy_timeout=5000&_pragma=foreign_keys(1)"
+  consent:
+    database:
+      type: sqlite
+      sqlitePath: repository/database/consentdb.db
+      sqliteOptions: "_journal_mode=WAL&_busy_timeout=5000&_pragma=foreign_keys(1)"
+```
+
+SQLite database files are stored inside the pod by default. To persist data across restarts and rescheduling, enable a PersistentVolumeClaim in the Helm values:
+
+```yaml
+persistence:
+  enabled: true
+  storageClass: "standard"   # replace with your cluster's StorageClass
+  accessMode: ReadWriteOnce
+  size: 1Gi
+```
+
+Also set `deployment.securityContext.readOnlyRootFilesystem: false` when using SQLite — the chart sets this to `true` by default, which prevents SQLite from writing its database files.
+
+Set `replicaCount: 1` when using SQLite — multiple replicas writing to the same SQLite files will corrupt the database.
+
+## Health Checks
+
+The chart configures startup, readiness, and health probes automatically. Override the timing values under `deployment:` in your `custom-values.yaml` if you need to adjust them:
+
+```yaml
+deployment:
+  startupProbe:
+    initialDelaySeconds: 1
+    periodSeconds: 2
+    failureThreshold: 30
+  livenessProbe:
+    periodSeconds: 10
+  readinessProbe:
+    initialDelaySeconds: 1
+    periodSeconds: 10
+```
+
+The probe endpoints and ports are defined by the chart and do not need to be specified.
+
+## Automatic Scaling
+
+To scale ThunderID automatically based on CPU and memory use, enable the HPA in your values file:
+
+```yaml
+deployment:
+  replicaCount: 2   # sets the minimum replica count
+
+hpa:
+  enabled: true
+  maxReplicas: 10
+  averageUtilizationCPU: 65
+  averageUtilizationMemory: 75
+```
+
+HPA requires the [Kubernetes Metrics Server](https://github.com/kubernetes-sigs/metrics-server) to be installed in your cluster. HPA is only compatible with PostgreSQL — do not enable it when using SQLite.
+
+## Image Pull Secrets
+
+If your cluster has GitHub Container Registry rate limits, or if you are mirroring the image to a private registry, configure `imagePullSecrets`.
+
+Create a registry credential secret in the `thunderid` namespace:
+
+```bash
+kubectl create secret docker-registry ghcr-credentials \
+  --docker-server=ghcr.io \
+  --docker-username=<github-username> \
+  --docker-password=<github-personal-access-token> \
+  --namespace thunderid
+```
+
+Reference it in your values file:
+
+```yaml
+imagePullSecrets:
+  - name: ghcr-credentials
+```
+
+## Next Steps
+
+
+  - [Production Deployment Guidelines](https://thunderid.dev/docs/next/guides/production-guidelines.md) — Apply security hardening for production: replace TLS certificates, generate a unique encryption key, configure a CORS allowlist, and set up Redis caching for multi-pod deployments.
+  - [Deploy on OpenChoreo](https://thunderid.dev/docs/next/guides/openchoreo.md) — Use a platform-managed deployment model with built-in environment separation and promotion workflows instead of managing Kubernetes infrastructure yourself.

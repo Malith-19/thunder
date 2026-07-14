@@ -1,0 +1,1 @@
+var e={ROLES:`roles`,ROLE:`role`,ROLE_ASSIGNMENTS:`role-assignments`};export{e as t};

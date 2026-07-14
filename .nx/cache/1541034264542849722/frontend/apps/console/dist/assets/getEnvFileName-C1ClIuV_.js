@@ -1,0 +1,1 @@
+var e={CONFIG:`{{productName}}-config.yml`,ENV:`{{productName}}-environment.env`};function t(t){return e.ENV.replace(`{{productName}}`,t.toLowerCase().replace(/\s+/g,`-`))}export{e as n,t};

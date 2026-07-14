@@ -1,0 +1,1 @@
+var e={AGENTS:`agents`,AGENT:`agent`};export{e as t};

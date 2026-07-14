@@ -1,0 +1,63 @@
+# User Types
+
+# User Types
+
+Every user in ThunderID has a user type that represents a category of users in your organization. The user type determines:
+
+- Which attributes the user has in their profile and the data types of those attributes.
+- Which attributes must be unique across all users of that type.
+- Which attributes are credentials (stored securely and never returned in responses).
+- Whether users of this type can self-register through an application's registration flow.
+
+## User Types and Organization Units
+
+User types work alongside **Organization Units (OUs)** to model your real-world organization:
+
+- The **user type** defines what a user looks like; their attributes, constraints, and registration rules.
+- The **organization unit** defines where a user belongs; their place in your organizational hierarchy.
+
+Each user type belongs to a single OU. Users of that type can only exist under that OU or one of its descendants. Learn more in [Organization Units](https://thunderid.dev/docs/next/guides/organization-units.md).
+
+ThunderID ships with one default user type. Learn more about its schema in [User Type Reference](https://thunderid.dev/docs/next/guides/guides/user-type-reference.md).
+
+| User Type | Description | Organization Unit | Self-Registration |
+|-----------|-------------|-------------------|-------------------|
+| **Person** | Internal or admin-managed users, such as staff or service accounts. | Default | Not allowed |
+
+
+## Create a User Type
+
+1. Navigate to **User Types** in the ThunderID Console and click **Create User Type**.
+2. Enter a **Name** for the user type. The name is used as the type identifier and must be unique.
+3. Select the **Organization Unit** this user type should belong. A user of this type can only be created under this OU or one of its descendants in the hierarchy. See [Organization Units](https://thunderid.dev/docs/next/guides/organization-units.md) for more information.
+4. Select whether to allow self-registration. Enabling this allows users of this type to sign up through the registration flow assigned to your application.
+5. Set the attributes that the user type should have, including data types and constraint modifiers. See [User Type Reference](https://thunderid.dev/docs/next/guides/guides/user-type-reference.md) for details on available settings and attribute options.
+7. Click **Create User Attribute**.
+
+## Update a User Type
+
+1. Navigate to **User Types** and open the user type you want to edit.
+2. Add, remove, or update attribute definitions.
+3. Click **Save**.
+
+> **Warning**
+>
+> Updating a user type schema replaces the entire attribute definition. Changes do not retroactively validate existing users. New users created after the change must conform to the updated schema. Removing a `required` attribute from the schema does not remove that attribute's data from existing users.
+
+
+## Delete a User Type
+
+1. Open the user type from the **User Types** list.
+2. Click **Delete** and confirm.
+
+> **Warning**
+>
+> Deletion fails if users of this type exist. Delete or reassign all users of this type before removing the schema.
+
+
+## Related Guides
+
+- [User Type Reference](https://thunderid.dev/docs/next/guides/guides/user-type-reference.md) - Schema settings, attribute types, and constraint modifiers
+- [Manage Users](https://thunderid.dev/docs/next/guides/guides/manage-users.md) - Create and manage users of each type
+- [Organization Units](https://thunderid.dev/docs/next/guides/organization-units.md) - Understand the OU structure that binds user types.
+- [Flows](https://thunderid.dev/docs/next/guides/flows/what-are-flows.md) - Configure registration flows for self-service sign-up

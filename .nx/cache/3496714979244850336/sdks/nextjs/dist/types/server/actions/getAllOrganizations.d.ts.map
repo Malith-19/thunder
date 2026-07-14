@@ -1,0 +1,1 @@
+{"version":3,"file":"getAllOrganizations.d.ts","sourceRoot":"","sources":["../../../../src/server/actions/getAllOrganizations.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;;;;GAgBG;AAIH,OAAO,EAAC,2BAA2B,EAAoB,MAAM,iBAAiB,CAAC;AAI/E;;GAEG;AACH,QAAA,MAAM,mBAAmB,GAAU,UAAU,GAAG,EAAE,YAAY,MAAM,KAAG,OAAO,CAAC,2BAA2B,CAYzG,CAAC;AAEF,eAAe,mBAAmB,CAAC"}
