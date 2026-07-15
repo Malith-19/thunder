@@ -31,5 +31,7 @@ export const SCOPES = [
   "wayfinder:booking:read",
   "wayfinder:booking:create",
   "wayfinder:booking:cancel",
-  ...(AI_FEATURES_ENABLED ? ["agent:access"] : []),
+  // The AI concierge is only available in redirect mode (see App.jsx), so only request
+  // its scope there — the app-native flow has no use for agent:access.
+  ...(AI_FEATURES_ENABLED && AUTH_CONFIG.isRedirectBased ? ["agent:access"] : []),
 ];

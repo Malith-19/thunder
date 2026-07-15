@@ -19,9 +19,23 @@
 import { SCOPES } from "./config.js";
 
 const AUTH_SERVER_BASE_URL = import.meta.env.VITE_THUNDER_BASE_URL || "";
-const CLIENT_ID = import.meta.env.VITE_THUNDER_CLIENT_ID || "WAYFINDER";
-const APP_ID = import.meta.env.VITE_THUNDER_APP_ID || CLIENT_ID;
+// App-native flows run against a dedicated confidential app (wayfinder-native): it
+// initiates flows directly with a Flow Secret and exchanges the resulting assertion
+// using its own client credentials. Because the assertion audience is bound to this
+// app, the same client must perform both steps. The Flow Secret and client secret are
+// read from the SPA environment — acceptable only because this is a local sample.
+const APP_ID = import.meta.env.VITE_THUNDER_NATIVE_APP_ID || "wayfinder-native";
+const CLIENT_ID = import.meta.env.VITE_THUNDER_NATIVE_CLIENT_ID || "WAYFINDER-NATIVE";
+const CLIENT_SECRET = import.meta.env.VITE_THUNDER_NATIVE_CLIENT_SECRET || "";
+const FLOW_SECRET = import.meta.env.VITE_THUNDER_NATIVE_FLOW_SECRET || "";
+const FLOW_SECRET_HEADER = "Flow-Secret";
 const FETCH_TIMEOUT_MS = 15000;
+
+function flowHeaders() {
+  const headers = { "Content-Type": "application/json" };
+  if (FLOW_SECRET) headers[FLOW_SECRET_HEADER] = FLOW_SECRET;
+  return headers;
+}
 
 async function fetchWithTimeout(url, options = {}) {
   const controller = new AbortController();
@@ -48,7 +62,7 @@ export async function initiateFlow(flowType) {
   }
   const res = await fetchWithTimeout(`${AUTH_SERVER_BASE_URL}/flow/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: flowHeaders(),
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`Flow initiation failed: ${res.status}`);
@@ -63,7 +77,7 @@ export async function submitFlowStep({ executionId, action, inputs, challengeTok
 
   const res = await fetchWithTimeout(`${AUTH_SERVER_BASE_URL}/flow/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: flowHeaders(),
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error(`Flow step failed: ${res.status}`);
@@ -71,9 +85,15 @@ export async function submitFlowStep({ executionId, action, inputs, challengeTok
 }
 
 export async function exchangeAssertion(assertion) {
+  const headers = { "Content-Type": "application/x-www-form-urlencoded" };
+  // wayfinder-native is a confidential client, so the token exchange is authenticated
+  // with client_secret_basic. The secret ships in the SPA bundle (sample-only).
+  if (CLIENT_SECRET) {
+    headers["Authorization"] = `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`;
+  }
   const res = await fetchWithTimeout(`${AUTH_SERVER_BASE_URL}/oauth2/token`, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers,
     body: new URLSearchParams({
       grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
       subject_token: assertion,

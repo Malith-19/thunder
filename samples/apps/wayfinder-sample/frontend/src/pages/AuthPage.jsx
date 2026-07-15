@@ -19,10 +19,18 @@
 import { Navigate } from "react-router-dom";
 import { AUTH_CONFIG } from "../auth/config";
 import { NativeAuthPage } from "./NativeAuthPage";
-import { NativeVerboseAuthPage } from "./NativeVerboseAuthPage";
 
 export function AuthPage() {
   if (AUTH_CONFIG.isRedirectBased) return <Navigate to="/" replace />;
-  if (AUTH_CONFIG.isVerbose) return <NativeVerboseAuthPage />;
+  // Verbose (SDK-driven) native mode is not currently supported: the @thunderid/react
+  // SignIn/SignUp components drive /flow/execute internally and cannot attach the
+  // Flow Secret header that app-native flow initiation now requires. Fall back to
+  // standard mode so sign-in keeps working.
+  if (AUTH_CONFIG.isVerbose) {
+    console.warn(
+      "[wayfinder] Verbose native mode is not supported (the SDK cannot send the " +
+        "Flow Secret header). Falling back to standard app-native mode."
+    );
+  }
   return <NativeAuthPage />;
 }

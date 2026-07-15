@@ -47,6 +47,9 @@ import { buildResultsPath, readCriteria } from "./utils/routes";
 const AGENT_CHAT_URL = import.meta.env.VITE_AGENT_CHAT_URL || "http://localhost:8790/chat";
 const THUNDER_BASE_URL = import.meta.env.VITE_THUNDER_BASE_URL || "";
 const AI_FEATURES_ENABLED = import.meta.env.VITE_AI_FEATURES_ENABLED === "true";
+// The AI concierge relies on redirect-based agent consent (an authorization_code popup),
+// which has no app-native equivalent yet. Hide all AI surfaces outside redirect mode.
+const AI_FEATURES_AVAILABLE = AI_FEATURES_ENABLED && AUTH_CONFIG.isRedirectBased;
 
 function createChatMessage(role, content) {
   return {
@@ -823,8 +826,8 @@ function AppRoutes({ authReady, criteria, locations, onSearch }) {
       <Route path="/signup" element={authReady ? <AuthPage key="signup" /> : <BookingsUnavailable />} />
       <Route path="/recovery" element={authReady ? <AuthPage key="recovery" /> : <BookingsUnavailable />} />
       <Route path="/auth" element={<Navigate to="/signin" replace />} />
-      {AI_FEATURES_ENABLED && <Route path="/agent-callback" element={<AgentCallbackRoute />} />}
-      {AI_FEATURES_ENABLED && (
+      {AI_FEATURES_AVAILABLE && <Route path="/agent-callback" element={<AgentCallbackRoute />} />}
+      {AI_FEATURES_AVAILABLE && (
         <Route
           path="/signin-as-agent"
           element={authReady ? <AgentSignInRoute /> : <BookingsUnavailable />}
@@ -932,7 +935,7 @@ function App({ authReady }) {
         locations={locations}
         onSearch={handleSearch}
       />
-      {AI_FEATURES_ENABLED && !isAuthPage && <ChatWidget authReady={authReady} />}
+      {AI_FEATURES_AVAILABLE && !isAuthPage && <ChatWidget authReady={authReady} />}
       {!isAuthPage && <SiteFooter authReady={authReady} />}
     </div>
   );

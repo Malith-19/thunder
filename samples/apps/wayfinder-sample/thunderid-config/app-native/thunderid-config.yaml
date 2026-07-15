@@ -1056,6 +1056,71 @@ inboundAuthConfig:
           - groups
 
 ---
+# resource_type: application
+# Backend-style app dedicated to app-native flow execution. Unlike wayfinder-app
+# (public, authorization_code), this is a confidential, non-redirect client: it may
+# initiate flows directly via /flow/execute by presenting its Flow Secret, and it
+# exchanges the resulting assertion for tokens using its client credentials. The
+# assertion audience is bound to this app, so the same client must perform both the
+# flow and the token exchange.
+id: wayfinder-native
+name: Wayfinder (App Native)
+description: Wayfinder Travel sample application for app-native flow execution
+ouHandle: default
+url: http://localhost:5173
+logoUrl: "emoji:✈️"
+registrationFlowHandle: wayfinder-registration-autosignin-flow
+recoveryFlowHandle: wayfinder-recovery-flow
+isRegistrationFlowEnabled: true
+isRecoveryFlowEnabled: true
+flowSecret: "{{.WAYFINDER_NATIVE_FLOW_SECRET}}"
+assertion:
+  validityPeriod: 3600
+  userAttributes:
+    - given_name
+    - family_name
+    - email
+    - groups
+    - username
+allowedUserTypes:
+  - Customer
+inboundAuthConfig:
+  - type: oauth2
+    config:
+      clientId: "{{.WAYFINDER_NATIVE_CLIENT_ID}}"
+      clientSecret: "{{.WAYFINDER_NATIVE_CLIENT_SECRET}}"
+      grantTypes:
+        - urn:ietf:params:oauth:grant-type:token-exchange
+      tokenEndpointAuthMethod: client_secret_basic
+      pkceRequired: false
+      publicClient: false
+      token:
+        accessToken:
+          userConfig:
+            validityPeriod: 3600
+            attributes:
+              - given_name
+              - family_name
+              - email
+              - groups
+        idToken:
+          validityPeriod: 3600
+          userAttributes:
+            - given_name
+            - family_name
+            - email
+            - groups
+      scopeClaims:
+        email:
+          - email
+        profile:
+          - username
+          - given_name
+          - family_name
+        group:
+          - groups
+
+---
 # resource_type: flow
 id: 0193b0a1-1001-7000-8000-000000000006
 name: Default Wayfinder CIBA Email Notification Flow
