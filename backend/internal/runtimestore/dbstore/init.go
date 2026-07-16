@@ -19,9 +19,18 @@
 // Package dbstore provides a database-backed runtime store implementation.
 package dbstore
 
-import "github.com/thunder-id/thunderid/pkg/thunderidengine/providers"
+import (
+	"github.com/thunder-id/thunderid/internal/system/database/provider"
+	"github.com/thunder-id/thunderid/internal/system/transaction"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine/providers"
+)
 
 // Initialize creates and returns a new DBStore instance for the given deployment.
-func Initialize(deploymentID string) providers.RuntimeStoreProvider {
-	return newDBStore(deploymentID)
+func Initialize(deploymentID string) (providers.RuntimeStoreProvider, transaction.Transactioner, error) {
+	dbProvider := provider.GetDBProvider()
+	transactioner, error := dbProvider.GetRuntimeDBTransactioner()
+	if error != nil {
+		return nil, nil, error
+	}
+	return newDBStore(dbProvider, deploymentID), transactioner, nil
 }

@@ -11,7 +11,13 @@
         "jwks_url": "",
         "audience": "",
         "required_claims": []
-      }
+      },
+      "token_revocation": {
+        "enabled": true,
+        "source": "db",
+        "sync_interval_seconds": 60
+      },
+      "direct_auth_secret": ""
     }
   },
   "gate_client": {

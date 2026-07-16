@@ -943,7 +943,7 @@ nodes:
   type: TASK_EXECUTION
   properties:
     requiredScopes:
-    - system
+    - system:user
   executor:
     name: PermissionValidator
   onSuccess: user_type_resolver
@@ -4577,14 +4577,15 @@ inboundAuthConfig:
       publicClient: true
       token:
         accessToken:
-          validityPeriod: 3600
-          userAttributes:
-            - given_name
-            - family_name
-            - email
-            - groups
-            - name
-            - ouId
+          userConfig:
+            validityPeriod: 3600
+            attributes:
+              - given_name
+              - family_name
+              - email
+              - groups
+              - name
+              - ouId
         idToken:
           validityPeriod: 3600
           userAttributes:
