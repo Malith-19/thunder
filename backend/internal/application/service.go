@@ -1115,6 +1115,13 @@ func (as *applicationService) validateApplicationFields(
 		isOAuthConfig = true
 	}
 	as.validateConsentConfig(app)
+
+	// An attestation config identifies exactly one platform build of the app; the verifier dispatch
+	// cannot pick between two simultaneously.
+	if attestation := app.Attestation; attestation != nil &&
+		attestation.Android != nil && attestation.Apple != nil {
+		return &ErrorAmbiguousAttestationConfig
+	}
 	return nil
 }
 
@@ -1702,7 +1709,7 @@ func (as *applicationService) resolveAttestationCredentialsForPersist(
 		}
 	}
 
-	inboundClient.Attestation = &providers.AttestationConfig{Android: &android}
+	inboundClient.Attestation = &providers.AttestationConfig{Android: &android, Apple: inboundClient.Attestation.Apple}
 	return nil
 }
 

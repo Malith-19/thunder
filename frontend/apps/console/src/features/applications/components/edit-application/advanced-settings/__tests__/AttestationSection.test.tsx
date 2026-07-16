@@ -28,6 +28,12 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+// Selects a platform from the attestation platform Autocomplete.
+async function selectPlatform(user: ReturnType<typeof userEvent.setup>, optionKey: string) {
+  await user.click(screen.getByRole('combobox'));
+  await user.click(await screen.findByRole('option', {name: optionKey}));
+}
+
 describe('AttestationSection', () => {
   const mockOnAttestationChange = vi.fn();
 
@@ -36,15 +42,30 @@ describe('AttestationSection', () => {
   });
 
   describe('Rendering', () => {
-    it('should render the attestation section', () => {
+    it('should render the attestation section with the platform selector', () => {
       render(<AttestationSection onAttestationChange={mockOnAttestationChange} />);
 
       expect(screen.getByText('applications:edit.advanced.labels.attestation')).toBeInTheDocument();
       expect(screen.getByText('applications:edit.advanced.attestation.intro')).toBeInTheDocument();
+      expect(screen.getByText('applications:edit.advanced.attestation.labels.platform')).toBeInTheDocument();
     });
 
-    it('should render the package name and credentials fields', () => {
+    it('should not render platform fields when no platform is configured', () => {
       render(<AttestationSection onAttestationChange={mockOnAttestationChange} />);
+
+      expect(
+        screen.queryByLabelText('applications:edit.advanced.attestation.labels.packageName'),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('applications:edit.advanced.attestation.labels.teamId')).not.toBeInTheDocument();
+    });
+
+    it('should render the Android fields when an android config is present', () => {
+      render(
+        <AttestationSection
+          attestation={{android: {packageName: 'com.example.app'}}}
+          onAttestationChange={mockOnAttestationChange}
+        />,
+      );
 
       expect(screen.getByLabelText('applications:edit.advanced.attestation.labels.packageName')).toBeInTheDocument();
       expect(
@@ -76,28 +97,61 @@ describe('AttestationSection', () => {
 
       expect(screen.queryByDisplayValue('secret-json')).not.toBeInTheDocument();
     });
+
+    it('should render the Apple fields with values when an apple config is present', () => {
+      render(
+        <AttestationSection
+          attestation={{apple: {teamId: 'ABCDE12345', bundleId: 'com.example.myapp'}}}
+          onAttestationChange={mockOnAttestationChange}
+        />,
+      );
+
+      expect(screen.getByDisplayValue('ABCDE12345')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('com.example.myapp')).toBeInTheDocument();
+    });
   });
 
   describe('Editing', () => {
-    it('should emit an attestation config when the package name is set', async () => {
+    it('should emit an android config after selecting Android and setting the package name', async () => {
       const user = userEvent.setup({delay: null});
       render(<AttestationSection onAttestationChange={mockOnAttestationChange} />);
 
-      // The field is controlled by (unchanging) props in this test, so type a single character
-      // and assert the emitted config carries it.
+      await selectPlatform(user, 'applications:edit.advanced.attestation.platform.android');
       const input = screen.getByLabelText('applications:edit.advanced.attestation.labels.packageName');
       await user.type(input, 'x');
 
       expect(mockOnAttestationChange).toHaveBeenLastCalledWith({android: {packageName: 'x'}});
     });
 
-    it('should emit null when the only configured value is cleared', async () => {
+    it('should emit an apple config after selecting iOS and setting the team id', async () => {
+      const user = userEvent.setup({delay: null});
+      render(<AttestationSection onAttestationChange={mockOnAttestationChange} />);
+
+      await selectPlatform(user, 'applications:edit.advanced.attestation.platform.apple');
+      const input = screen.getByLabelText('applications:edit.advanced.attestation.labels.teamId');
+      await user.type(input, 'A');
+
+      expect(mockOnAttestationChange).toHaveBeenLastCalledWith({apple: {teamId: 'A'}});
+    });
+
+    it('should emit null when the platform is set to None', async () => {
       const user = userEvent.setup({delay: null});
       render(
         <AttestationSection
-          attestation={{android: {packageName: 'x'}}}
+          attestation={{android: {packageName: 'com.example.app'}}}
           onAttestationChange={mockOnAttestationChange}
         />,
+      );
+
+      await selectPlatform(user, 'applications:edit.advanced.attestation.platform.none');
+
+      expect(mockOnAttestationChange).toHaveBeenLastCalledWith(null);
+    });
+
+    it('should emit null when the only configured value is cleared', async () => {
+      const user = userEvent.setup({delay: null});
+      render(
+        <AttestationSection attestation={{android: {packageName: 'x'}}} onAttestationChange={mockOnAttestationChange} />,
       );
 
       const input = screen.getByLabelText('applications:edit.advanced.attestation.labels.packageName');
@@ -108,7 +162,9 @@ describe('AttestationSection', () => {
 
     it('should add a digest row when Add Digest is clicked', async () => {
       const user = userEvent.setup({delay: null});
-      render(<AttestationSection onAttestationChange={mockOnAttestationChange} />);
+      render(
+        <AttestationSection attestation={{android: {packageName: 'x'}}} onAttestationChange={mockOnAttestationChange} />,
+      );
 
       await user.click(screen.getByText('applications:edit.advanced.attestation.addDigest'));
 
