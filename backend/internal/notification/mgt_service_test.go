@@ -55,6 +55,11 @@ func (r *stubDependencyRegistry) CascadeDelete(context.Context, string, string) 
 	return 0, nil
 }
 
+func (r *stubDependencyRegistry) ValidateReferenceUpdate(
+	context.Context, string, string) *tidcommon.ServiceError {
+	return nil
+}
+
 // newNoBlockingDepsRegistry returns a registry reporting confirmed-empty dependencies, so that
 // deletion is permitted by the blocking guard.
 func newNoBlockingDepsRegistry() *stubDependencyRegistry {
@@ -273,6 +278,29 @@ func (suite *NotificationSenderMgtServiceTestSuite) TestListSenders_StoreError()
 	suite.mockStore.EXPECT().listSenders(mock.Anything).Return(nil, errors.New("database error")).Once()
 
 	result, err := suite.service.ListSenders(context.Background())
+	suite.Nil(result)
+	suite.NotNil(err)
+	suite.Equal(tidcommon.InternalServerError.Code, err.Code)
+}
+
+func (suite *NotificationSenderMgtServiceTestSuite) TestListSendersByType() {
+	senders := []common.NotificationSenderDTO{suite.getValidTwilioSender()}
+	senders[0].ID = "id1"
+
+	suite.mockStore.EXPECT().listSendersByType(mock.Anything, common.NotificationSenderTypeMessage).
+		Return(senders, nil).Once()
+
+	result, err := suite.service.ListSendersByType(context.Background(), common.NotificationSenderTypeMessage)
+	suite.Nil(err)
+	suite.NotNil(result)
+	suite.Len(result, 1)
+}
+
+func (suite *NotificationSenderMgtServiceTestSuite) TestListSendersByType_StoreError() {
+	suite.mockStore.EXPECT().listSendersByType(mock.Anything, common.NotificationSenderTypeMessage).
+		Return(nil, errors.New("database error")).Once()
+
+	result, err := suite.service.ListSendersByType(context.Background(), common.NotificationSenderTypeMessage)
 	suite.Nil(result)
 	suite.NotNil(err)
 	suite.Equal(tidcommon.InternalServerError.Code, err.Code)

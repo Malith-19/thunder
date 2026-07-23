@@ -49,7 +49,7 @@ func TestEngineTestSuite(t *testing.T) {
 
 func newAuthenticatedAuthUser() providers.AuthUser {
 	var authUser providers.AuthUser
-	_ = authUser.UnmarshalJSON([]byte(`{"entityReferenceToken":"tok","attributeToken":"tok"}`))
+	_ = authUser.UnmarshalJSON([]byte(`{"default":{"entityReferenceToken":"tok","attributeToken":"tok"}}`))
 	return authUser
 }
 
@@ -557,7 +557,7 @@ func (s *EngineTestSuite) TestUpdateContextWithNodeResponse_ReplacesAuthUserWhen
 
 	var newAuthUser providers.AuthUser
 	err := newAuthUser.UnmarshalJSON([]byte(
-		`{"entityReference":{"entityId":"user-456"},"attributes":{}}`))
+		`{"default":{"entityReference":{"entityId":"user-456"},"attributes":{}}}`))
 	s.NoError(err)
 
 	nodeResp := &common.NodeResponse{
@@ -2589,6 +2589,7 @@ func (s *EngineTestSuite) TestExecuteNodePackage_IncompleteExitClearsNodeScopeBe
 
 	mockGraph := coremock.NewGraphInterfaceMock(t)
 	mockGraph.On("HasSegments").Return(false).Maybe()
+	mockGraph.On("GetID").Return("flow-incomplete").Maybe()
 	mockGraph.On("GetInterceptors", providers.InterceptorModePreNode).
 		Return([]core.InterceptorUnitInterface{unit}).Maybe()
 	mockGraph.On("GetInterceptors", providers.InterceptorModePostNode).

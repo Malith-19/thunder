@@ -46,6 +46,9 @@ const (
 	ExecutorNameAttributeUniquenessValidator = "AttributeUniquenessValidator"
 	ExecutorNameSMSExecutor                  = "SMSExecutor"
 	ExecutorNameFederatedAuthResolver        = "FederatedAuthResolverExecutor"
+	ExecutorNameSSOCheck                     = "SSOCheckExecutor"
+	ExecutorNameSession                      = "SessionExecutor"
+	ExecutorNameSessionSignOut               = "SessionSignOutExecutor"
 	ExecutorNameOTPExecutor                  = "OTPExecutor"
 )
 
@@ -69,7 +72,6 @@ const (
 	userAttributeSub      = "sub"
 
 	userInputCode  = "code"
-	userInputNonce = "nonce"
 	userInputState = "state"
 
 	userInputOuName           = "ouName"
@@ -117,5 +119,5 @@ const (
 
 // nonSearchableInputs contains the list of user inputs/ attributes that are non-searchable.
 var nonSearchableInputs = []string{
-	"password", "code", "nonce", "otp", "token", "userInputMagicLinkToken", "otpSessionToken",
+	"password", "code", "otp", "token", "userInputMagicLinkToken", "otpSessionToken",
 }

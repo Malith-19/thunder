@@ -35,7 +35,6 @@ import {
 import {
   Bot,
   Building,
-  FileOutput,
   Group,
   Home,
   IdCard,
@@ -55,6 +54,7 @@ import {
 import {useEffect, useMemo, useState, type JSX, type ReactNode} from 'react';
 import {useTranslation} from 'react-i18next';
 import {Link as NavigateLink, Outlet, useLocation, useNavigate} from 'react-router';
+import RouteConfig from '../configs/RouteConfig';
 
 const ICON_BUTTON_SX = {
   minWidth: 40,
@@ -106,25 +106,30 @@ function SidebarFooterButtons(): ReactNode {
     >
       <Button
         variant="outlined"
-        aria-label={t('navigation:pages.openProject')}
+        aria-label={t('navigation:pages.importExport', 'Import / Export')}
         startIcon={<SquareArrowRightEnter size={18} />}
-        onClick={() => void navigate('/import-configuration')}
-        sx={ICON_BUTTON_SX}
-      />
-      <Button
-        variant="outlined"
-        startIcon={<FileOutput size={18} />}
-        onClick={() => void navigate('/export')}
+        onClick={() => void navigate(RouteConfig.importExport.list())}
         sx={buttonSx}
       >
-        {!collapsed && t('navigation:pages.export', 'Export Config')}
+        {!collapsed && t('navigation:pages.importExport', 'Import / Export')}
       </Button>
     </Box>
   );
 }
 
-export default function DashboardLayout(): ReactNode {
-  const {signIn, clearSession, discovery} = useThunderID();
+/**
+ * Props interface of {@link DashboardLayout}
+ */
+export interface DashboardLayoutProps {
+  /**
+   * Collapses the navigation sidebar to icon-only mode. Set by routes whose
+   * pages need the full screen width (e.g. the flow builder canvas).
+   */
+  collapseSidebar?: boolean;
+}
+
+export default function DashboardLayout({collapseSidebar = false}: DashboardLayoutProps): ReactNode {
+  const {clearSession, discovery} = useThunderID();
   const {isTrustedIssuerGenericOidc, getTrustedIssuerClientId, getClientUrl} = useConfig();
   const {t} = useTranslation();
   const logger = useLogger();
@@ -154,11 +159,14 @@ export default function DashboardLayout(): ReactNode {
       return;
     }
 
-    signOut()
-      .then(() => signIn())
-      .catch((error: unknown) => {
-        logger.error('Sign out/in failed', {error});
-      });
+    // Native ThunderID session: signOut() performs OIDC RP-Initiated Logout, the SDK's default
+    // behavior (no client config required). It clears the local session and redirects to ThunderID's
+    // end_session_endpoint, which confirms the sign-out, terminates the SSO session server-side, and
+    // returns to the console. It falls back to a local-only sign out when no end_session_endpoint is
+    // advertised.
+    signOut().catch((error: unknown) => {
+      logger.error('Sign out failed', {error});
+    });
   };
 
   const appRoutes: NavCategory[] = useMemo(
@@ -169,7 +177,7 @@ export default function DashboardLayout(): ReactNode {
             id: 'home',
             text: t('navigation:pages.home'),
             icon: <Home />,
-            path: '/home',
+            path: RouteConfig.home.list(),
           },
         ],
       },
@@ -180,13 +188,13 @@ export default function DashboardLayout(): ReactNode {
             id: 'applications',
             text: t('navigation:pages.applications'),
             icon: <LayoutGrid />,
-            path: '/applications',
+            path: RouteConfig.applications.list(),
           },
           {
             id: 'resource-servers',
             text: t('navigation:pages.resourceServers', 'Resource Servers'),
             icon: <Server size={16} />,
-            path: '/resource-servers',
+            path: RouteConfig.resourceServers.list(),
           },
         ],
       },
@@ -197,31 +205,31 @@ export default function DashboardLayout(): ReactNode {
             id: 'users',
             text: t('navigation:pages.users'),
             icon: <UsersRound />,
-            path: '/users',
+            path: RouteConfig.users.list(),
           },
           {
             id: 'agents',
             text: t('navigation:pages.agents', 'Agents'),
             icon: <Bot />,
-            path: '/agents',
+            path: RouteConfig.agents.list(),
           },
           {
             id: 'groups',
             text: t('navigation:pages.groups'),
             icon: <Group />,
-            path: '/groups',
+            path: RouteConfig.groups.list(),
           },
           {
             id: 'roles',
             text: t('navigation:pages.roles'),
             icon: <ShieldCheck />,
-            path: '/roles',
+            path: RouteConfig.roles.list(),
           },
           {
             id: 'user-types',
             text: t('navigation:pages.userTypes'),
             icon: <UserRoundCog />,
-            path: '/user-types',
+            path: RouteConfig.userTypes.list(),
           },
         ],
       },
@@ -232,19 +240,19 @@ export default function DashboardLayout(): ReactNode {
             id: 'organization-units',
             text: t('navigation:pages.organizationUnits'),
             icon: <Building />,
-            path: '/organization-units',
+            path: RouteConfig.organizationUnits.list(),
           },
           {
             id: 'flows',
             text: t('navigation:pages.flows'),
             icon: <Workflow />,
-            path: '/flows',
+            path: RouteConfig.flows.list(),
           },
           {
             id: 'connections',
             text: t('navigation:pages.connections'),
             icon: <Layers />,
-            path: '/connections',
+            path: RouteConfig.connections.list(),
           },
           {
             id: 'verifiable-credentials',
@@ -255,13 +263,13 @@ export default function DashboardLayout(): ReactNode {
                 id: 'credentials',
                 text: t('navigation:pages.credentials'),
                 icon: <IdCard />,
-                path: '/verifiable-credentials',
+                path: RouteConfig.verifiableCredentials.list(),
               },
               {
                 id: 'presentations',
                 text: t('navigation:pages.presentations'),
                 icon: <ShieldCheck />,
-                path: '/verifiable-presentations',
+                path: RouteConfig.verifiablePresentations.list(),
               },
             ],
           },
@@ -274,13 +282,13 @@ export default function DashboardLayout(): ReactNode {
             id: 'design',
             text: t('navigation:pages.design', 'Design'),
             icon: <Palette size={16} />,
-            path: '/design',
+            path: RouteConfig.design.list(),
           },
           {
             id: 'translations',
             text: t('navigation:pages.translations'),
             icon: <Languages size={16} />,
-            path: '/translations',
+            path: RouteConfig.translations.list(),
           },
         ],
       },
@@ -291,7 +299,7 @@ export default function DashboardLayout(): ReactNode {
             id: 'settings',
             text: t('navigation:pages.settings'),
             icon: <Settings size={16} />,
-            path: '/settings',
+            path: RouteConfig.settings.list(),
           },
         ],
       },
@@ -364,7 +372,7 @@ export default function DashboardLayout(): ReactNode {
                   <UserMenu.Item
                     label={t('common:userMenu.welcome')}
                     onClick={() => {
-                      void navigate('/welcome');
+                      void navigate(RouteConfig.welcome.root());
                     }}
                   />
                   <UserMenu.Divider />
@@ -381,7 +389,12 @@ export default function DashboardLayout(): ReactNode {
       </AppShell.Navbar>
 
       <AppShell.Sidebar>
-        <Sidebar activeItem={activeItem} expandedMenus={expandedMenus} onToggleExpand={handleToggleExpand}>
+        <Sidebar
+          activeItem={activeItem}
+          expandedMenus={expandedMenus}
+          onToggleExpand={handleToggleExpand}
+          collapsed={collapseSidebar}
+        >
           <Sidebar.Nav>
             {appRoutes.map((categoryGroup) => (
               <Sidebar.Category key={categoryGroup.category}>

@@ -35,19 +35,26 @@ type executor struct {
 	Type          providers.ExecutorType
 	DefaultInputs []providers.Input
 	Prerequisites []providers.Input
+	Meta          *providers.ExecutorMeta
 }
 
 var _ providers.Executor = (*executor)(nil)
 
 // newExecutor creates a new instance of Executor with the given properties.
 func newExecutor(name string, executorType providers.ExecutorType, defaultInputs []providers.Input,
-	prerequisites []providers.Input) providers.Executor {
+	prerequisites []providers.Input, meta *providers.ExecutorMeta) providers.Executor {
 	return &executor{
 		Name:          name,
 		Type:          executorType,
 		DefaultInputs: defaultInputs,
 		Prerequisites: prerequisites,
+		Meta:          meta,
 	}
+}
+
+// GetMeta returns the executor metadata describing its capabilities.
+func (e *executor) GetMeta() *providers.ExecutorMeta {
+	return e.Meta
 }
 
 // GetName returns the name of the executor.
@@ -124,7 +131,9 @@ func (e *executor) ValidatePrerequisites(ctx *providers.NodeContext, execResp *p
 				authenticatedUserAttributes[userAttributeUserID] = entityRef.EntityID
 			}
 		}
-		providerAuthUser, authAttributes, err := authnProvider.GetUserAttributes(ctx.Context, nil, nil, authUser)
+
+		metadata := BuildGetAttributesMetadata(ctx)
+		providerAuthUser, authAttributes, err := authnProvider.GetUserAttributes(ctx.Context, nil, metadata, authUser)
 		if err != nil {
 			logger.Debug(ctx.Context,
 				"Failed to get attributes for authenticated user, proceeding without user attributes")
@@ -188,15 +197,13 @@ func (e *executor) GetUserIDFromContext(ctx *providers.NodeContext, execResp *pr
 
 	if authnProvider != nil && ctx.AuthUser.IsAuthenticated() {
 		authUser, entityRef, err := authnProvider.GetEntityReference(ctx.Context, ctx.AuthUser)
+		execResp.AuthUser = authUser
 		if err != nil {
 			logger.Debug(ctx.Context,
 				"Failed to get entity reference for authenticated user, proceeding without user id")
-		} else {
-			if entityRef.EntityID != "" {
-				return entityRef.EntityID
-			}
+		} else if entityRef != nil && entityRef.EntityID != "" {
+			return entityRef.EntityID
 		}
-		execResp.AuthUser = authUser
 	}
 
 	return ""

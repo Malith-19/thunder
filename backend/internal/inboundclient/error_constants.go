@@ -24,6 +24,7 @@ import (
 	tidcommon "github.com/thunder-id/thunderid/pkg/thunderidengine/common"
 
 	"github.com/thunder-id/thunderid/internal/cert"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine/providers"
 )
 
 var (
@@ -51,6 +52,8 @@ var (
 	ErrFKInvalidRegistrationFlow = errors.New("invalid registration flow ID")
 	// ErrFKInvalidRecoveryFlow is returned when the recovery flow ID does not exist.
 	ErrFKInvalidRecoveryFlow = errors.New("invalid recovery flow ID")
+	// ErrFKInvalidSignOutFlow is returned when the sign-out flow ID does not exist.
+	ErrFKInvalidSignOutFlow = errors.New("invalid sign-out flow ID")
 	// ErrFKFlowDefinitionRetrievalFailed is returned when a flow definition cannot be retrieved.
 	ErrFKFlowDefinitionRetrievalFailed = errors.New("error retrieving flow definition")
 	// ErrFKFlowServerError is returned when a server error occurs while resolving a flow.
@@ -82,14 +85,18 @@ var (
 	ErrOAuthClientCredentialsCannotUseResponseTypes = errors.New("client_credentials grant cannot use response types")
 	// ErrOAuthAuthCodeRequiresCodeResponseType is returned when authorization_code grant lacks code response type.
 	ErrOAuthAuthCodeRequiresCodeResponseType = errors.New("authorization_code grant requires code response type")
-	// ErrOAuthRefreshTokenCannotBeSoleGrant is returned when refresh_token is the only grant type.
-	ErrOAuthRefreshTokenCannotBeSoleGrant = errors.New("refresh_token cannot be the sole grant type")
+	// ErrOAuthRefreshTokenRequiresTokenIssuingGrant is returned when refresh_token is set without a
+	// token-issuing grant (authorization_code or ciba).
+	ErrOAuthRefreshTokenRequiresTokenIssuingGrant = errors.New(
+		"refresh_token grant type requires a token-issuing grant type")
 	// ErrOAuthPKCERequiresAuthCode is returned when PKCE is enabled without authorization_code grant.
 	ErrOAuthPKCERequiresAuthCode = errors.New("PKCE requires authorization_code grant type")
 	// ErrOAuthResponseTypesRequireAuthCode is returned when response types are set without authorization_code grant.
 	ErrOAuthResponseTypesRequireAuthCode = errors.New("response types require authorization_code grant type")
 	// ErrOAuthInvalidTokenEndpointAuthMethod is returned when an unsupported auth method is specified.
 	ErrOAuthInvalidTokenEndpointAuthMethod = errors.New("invalid token endpoint auth method")
+	// ErrOAuthDefaultAudienceTooLong is returned when the access token default audience exceeds the maximum length.
+	ErrOAuthDefaultAudienceTooLong = errors.New("default audience exceeds the maximum allowed length")
 	// ErrOAuthPrivateKeyJWTRequiresCertificate is returned when private_key_jwt is used without a certificate.
 	ErrOAuthPrivateKeyJWTRequiresCertificate = errors.New("private_key_jwt requires a certificate")
 	// ErrOAuthCertificateRequiresClientID is returned when a certificate is provided without an OAuth client ID.
@@ -104,6 +111,12 @@ var (
 	ErrOAuthNoneAuthCannotHaveCertOrSecret = errors.New("none auth method cannot have certificate or secret")
 	// ErrOAuthClientCredentialsCannotUseNoneAuth is returned when client_credentials uses none auth method.
 	ErrOAuthClientCredentialsCannotUseNoneAuth = errors.New("client_credentials cannot use none auth method")
+	// ErrOAuthClientJWTBearerCannotUseNoneAuth is returned when the jwt-bearer grant uses none auth method.
+	// The jwt-bearer (ID-JAG) grant relies on client_id binding and requires a confidential client.
+	ErrOAuthClientJWTBearerCannotUseNoneAuth = errors.New("jwt-bearer grant cannot use none auth method")
+	// ErrOAuthClientIDJAGCannotUseNoneAuth is returned when an ID-JAG configuration uses none auth method.
+	// Requesting ID-JAGs requires a confidential client.
+	ErrOAuthClientIDJAGCannotUseNoneAuth = errors.New("ID-JAG configuration cannot use none auth method")
 	// ErrOAuthPublicClientMustUseNoneAuth is returned when a public client uses an auth method other than none.
 	ErrOAuthPublicClientMustUseNoneAuth = errors.New("public client must use none auth method")
 	// ErrOAuthPublicClientMustHavePKCE is returned when a public client does not have PKCE required.
@@ -200,27 +213,17 @@ func (e *CertOperationError) IsClientError() bool {
 	return e.Underlying != nil && e.Underlying.Type == tidcommon.ClientErrorType
 }
 
-// ConsentSyncError wraps an underlying ServiceError from the consent service, allowing callers
-// to translate it into their own error vocabulary.
-type ConsentSyncError struct {
-	Underlying *tidcommon.ServiceError
+// FlowMismatchError is returned when a flow reached from one of the inbound client's configured flows
+// does not align with the inbound client's per-type flow ID (registration/recovery). SourceFlowType
+// is the type of the client-level flow whose flow reached the mismatched reference; FlowType
+// is the type of the referenced flow.
+type FlowMismatchError struct {
+	SourceFlowType providers.FlowType
+	FlowType       providers.FlowType
+	msg            string
 }
 
-// Error implements the error interface. Falls back through (description → code → generic) so
-// the returned string is never empty even when the underlying error has no description.
-func (e *ConsentSyncError) Error() string {
-	if e.Underlying != nil {
-		if msg := e.Underlying.ErrorDescription.DefaultValue; msg != "" {
-			return msg
-		}
-		if e.Underlying.Code != "" {
-			return "consent sync failed (code " + e.Underlying.Code + ")"
-		}
-	}
-	return "consent sync failed"
-}
-
-// IsClientError reports whether the underlying error is a client error.
-func (e *ConsentSyncError) IsClientError() bool {
-	return e.Underlying != nil && e.Underlying.Type == tidcommon.ClientErrorType
+// Error implements the error interface.
+func (e *FlowMismatchError) Error() string {
+	return e.msg
 }

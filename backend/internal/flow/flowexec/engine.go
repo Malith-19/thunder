@@ -33,6 +33,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/flow/core"
 	"github.com/thunder-id/thunderid/internal/flow/executor"
 	"github.com/thunder-id/thunderid/internal/flow/graphbuilder"
+	"github.com/thunder-id/thunderid/internal/flow/session"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/observability/event"
 	sysutils "github.com/thunder-id/thunderid/internal/system/utils"
@@ -171,8 +172,15 @@ func (fe *flowEngine) executeNodePackage(ctx *EngineContext,
 
 	logger.Debug(ctx.Context, "Executing node")
 
+	// SSO inputs ride on the context (transient, never persisted, and off the engine contract);
+	// only the SSO-Check and Session nodes read them.
+	ssoCtx := session.WithSSOInputs(ctx.Context, session.SSOInputs{
+		Handle:      ctx.SSOHandleIn,
+		FlowID:      ssoFlowID(ctx),
+		FlowVersion: ctx.SSOFlowVersion,
+	})
 	nodeCtx := &providers.NodeContext{
-		Context:          ctx.Context,
+		Context:          ssoCtx,
 		ExecutionID:      ctx.ExecutionID,
 		FlowType:         ctx.FlowType,
 		EntityID:         ctx.AppID,
@@ -187,6 +195,7 @@ func (fe *flowEngine) executeNodePackage(ctx *EngineContext,
 		AuthUser:         ctx.AuthUser,
 		ExecutionHistory: ctx.ExecutionHistory,
 	}
+	nodeCtx.SetInitiatorRequest(ctx.GetInitiatorRequest())
 	if nodeCtx.NodeInputs == nil {
 		nodeCtx.NodeInputs = make([]providers.Input, 0)
 	}
@@ -786,6 +795,22 @@ func (fe *flowEngine) processNodeResponse(ctx *EngineContext, nodeResp *common.N
 	if nodeResp.Status == "" {
 		logger.Error(ctx.Context, "Node response status not found in the flow graph")
 		return nil, false, &tidcommon.InternalServerError
+	}
+
+	// Carry any SSO handle minted by this node onto the flow step so the transport layer can emit
+	// it. The Session node emits the handle on the engine-only EngineData channel (never returned to
+	// the client and off the engine contract). Stamped here (not only at completion) so it survives
+	// an immediately following prompt step that returns the flow as incomplete.
+	if handle := nodeResp.EngineData[common.RuntimeKeySSOSessionHandle]; handle != "" {
+		flowStep.SSOHandleOut = handle
+		flowStep.SSOFlowID = ssoFlowID(ctx)
+	}
+
+	// Carry a session-termination signal onto the flow step so the transport layer clears the
+	// per-flow cookie. The session sign-out node raises it on the engine-only EngineData channel once
+	// it has ended the session.
+	if cleared := nodeResp.EngineData[common.RuntimeKeySSOSessionCleared]; cleared != "" {
+		flowStep.SSOClearFlowID = ssoFlowID(ctx)
 	}
 
 	switch nodeResp.Status {
@@ -1605,4 +1630,22 @@ func processNodeResponseErrorForEventPublish(nodeResp *common.NodeResponse) map[
 			"defaultValue": nodeResp.Error.ErrorDescription.DefaultValue,
 		},
 	}
+}
+
+// ssoFlowID returns the current flow's ID (used as the SSO group key), or "" if no graph
+// is set on the context.
+func ssoFlowID(ctx *EngineContext) string {
+	if ctx == nil {
+		return ""
+	}
+	// A sign-out flow operates on a different flow's session than the one it runs; SessionFlowID
+	// carries that flow (the login flow) so the inbound cookie, SSO inputs, and cookie clear all
+	// resolve under it. Other flows fall back to the running flow's own id.
+	if ctx.SessionFlowID != "" {
+		return ctx.SessionFlowID
+	}
+	if ctx.Graph == nil {
+		return ""
+	}
+	return ctx.Graph.GetID()
 }

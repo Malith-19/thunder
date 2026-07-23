@@ -16,10 +16,8 @@
  * under the License.
  */
 
+import {AuthenticatorTypes, IdentityProviderTypes, type IdentityProvider} from '@thunderid/configure-connections';
 import type {EmbeddedFlowComponent} from '@thunderid/react';
-import {AuthenticatorTypes} from '@/features/connections/models/authenticators';
-import type {IdentityProvider} from '@/features/connections/models/identity-provider';
-import {IdentityProviderTypes} from '@/features/connections/models/identity-provider';
 
 interface PreviewMeta {
   application?: {
@@ -73,16 +71,25 @@ export default function buildPreviewMock(
 
   const components: Record<string, unknown>[] = [];
 
-  // App Logo
+  // App Logo — wrapped in a STACK so it centers via the SDK's container-driven
+  // alignment (StackAdapter defaults alignItems: 'center'), like the real gate.
   components.push({
-    alt: '',
     category: 'DISPLAY',
-    id: 'app_logo',
+    components: [
+      {
+        alt: '',
+        category: 'DISPLAY',
+        id: 'app_logo',
+        resourceType: 'ELEMENT',
+        src: meta?.application?.logoUrl ?? '',
+        type: 'IMAGE',
+        width: '60',
+        height: '60',
+      },
+    ],
+    id: 'app_logo_stack',
     resourceType: 'ELEMENT',
-    src: meta?.application?.logoUrl ?? '',
-    type: 'IMAGE',
-    width: '60',
-    height: '60',
+    type: 'STACK',
   });
 
   // Heading

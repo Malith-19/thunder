@@ -17,11 +17,12 @@
  */
 
 import {useLogger} from '@thunderid/logger/react';
-import {Stack, Button, TextField, InputAdornment, PageContent, PageTitle} from '@wso2/oxygen-ui';
-import {Plus, Search} from '@wso2/oxygen-ui-icons-react';
+import {Stack, Button, PageContent, PageTitle} from '@wso2/oxygen-ui';
+import {Plus} from '@wso2/oxygen-ui-icons-react';
 import type {JSX} from 'react';
 import {useTranslation} from 'react-i18next';
 import {useNavigate} from 'react-router';
+import RouteConfig from '../../../configs/RouteConfig';
 import RolesList from '../components/RolesList';
 
 export default function RolesListPage(): JSX.Element {
@@ -41,7 +42,7 @@ export default function RolesListPage(): JSX.Element {
               startIcon={<Plus size={18} />}
               onClick={() => {
                 (async () => {
-                  await navigate('/roles/create');
+                  await navigate(RouteConfig.roles.create());
                 })().catch((error: unknown) => {
                   logger.error('Failed to navigate to create role page', {error});
                 });
@@ -53,23 +54,6 @@ export default function RolesListPage(): JSX.Element {
         </PageTitle.Actions>
       </PageTitle>
 
-      {/* TODO: Connect search field to state and implement server-side filtering. */}
-      <Stack direction="row" spacing={2} mb={4} flexWrap="wrap" useFlexGap>
-        <TextField
-          placeholder={t('roles:listing.search.placeholder')}
-          size="small"
-          sx={{flexGrow: 1, minWidth: 300}}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search size={16} />
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
-      </Stack>
       <RolesList />
     </PageContent>
   );

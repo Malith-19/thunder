@@ -25,6 +25,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/flow/executor"
 	"github.com/thunder-id/thunderid/internal/flow/graphbuilder"
 	"github.com/thunder-id/thunderid/internal/flow/interceptor"
+	"github.com/thunder-id/thunderid/internal/flow/session"
 	kmprovider "github.com/thunder-id/thunderid/internal/system/kmprovider/common"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
 	"github.com/thunder-id/thunderid/internal/system/transaction"
@@ -40,6 +41,7 @@ func Initialize(
 	interceptorRegistry interceptor.InterceptorRegistryInterface,
 	observabilitySvc providers.ObservabilityProvider,
 	cryptoSvc kmprovider.RuntimeCryptoProvider,
+	attestationVerifier providers.AttestationProvider,
 	graphBuilder graphbuilder.GraphBuilderInterface,
 	storeProvider providers.RuntimeStoreProvider,
 	transactioner transaction.Transactioner,
@@ -50,9 +52,15 @@ func Initialize(
 	flowEngine := newFlowEngine(executorRegistry, interceptorRunner, observabilitySvc,
 		flowProvider, graphBuilder)
 	flowExecService := newFlowExecService(flowProvider, flowStore, flowEngine,
-		actorProvider, observabilitySvc, transactioner, cryptoSvc, graphBuilder, cfg)
+		actorProvider, observabilitySvc, transactioner, cryptoSvc, attestationVerifier,
+		graphBuilder, cfg)
 
-	handler := newFlowExecutionHandler(flowExecService)
+	// Mark the SSO cookie Secure unless the deployment is configured to serve over plain HTTP, and
+	// bound its lifetime to the session's configured absolute timeout (same fallback as the session
+	// executor's timeouts).
+	ssoTransport := session.NewCookieTransport(cfg.SecureCookies)
+	sessionTimeouts := session.NewTimeouts(cfg.Session.IdleTimeoutSeconds, cfg.Session.AbsoluteTimeoutSeconds)
+	handler := newFlowExecutionHandler(flowExecService, ssoTransport, sessionTimeouts.Absolute)
 	registerRoutes(mux, handler)
 
 	return flowExecService, nil

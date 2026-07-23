@@ -52,6 +52,10 @@ function VisualFlow({
   onNodesDelete,
   onEdgesDelete,
   onNodeDragStop,
+  onNodeClick,
+  onEdgeClick,
+  onEdgeMouseEnter,
+  onEdgeMouseLeave,
 }: VisualFlowPropsInterface): ReactElement {
   const {mode, systemMode} = useColorScheme();
 
@@ -71,6 +75,10 @@ function VisualFlow({
       onNodesDelete={onNodesDelete}
       onEdgesDelete={onEdgesDelete}
       onNodeDragStop={onNodeDragStop}
+      onNodeClick={onNodeClick}
+      onEdgeClick={onEdgeClick}
+      onEdgeMouseEnter={onEdgeMouseEnter}
+      onEdgeMouseLeave={onEdgeMouseLeave}
       proOptions={{hideAttribution: true}}
       colorMode={colorMode}
       minZoom={0.2}

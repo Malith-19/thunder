@@ -17,12 +17,22 @@
  */
 
 import {useLogger} from '@thunderid/logger/react';
-import {Alert, Box, CircularProgress, IconButton, LinearProgress, Stack, Typography} from '@wso2/oxygen-ui';
+import {
+  Alert,
+  AppBreadcrumbs,
+  Box,
+  CircularProgress,
+  IconButton,
+  LinearProgress,
+  Stack,
+  Typography,
+} from '@wso2/oxygen-ui';
 import {X} from '@wso2/oxygen-ui-icons-react';
 import type {JSX} from 'react';
 import {useEffect, useMemo} from 'react';
 import {useTranslation} from 'react-i18next';
 import {useNavigate} from 'react-router';
+import RouteConfig from '../../../configs/RouteConfig';
 import useExportConfiguration from '../api/useExportConfiguration';
 import ConfigureExport from '../components/ConfigureExport';
 
@@ -36,12 +46,11 @@ export default function ExportPage(): JSX.Element {
   useEffect(() => {
     mutate({
       applications: ['*'],
-      identityProviders: ['*'],
+      connections: ['*'],
       flows: ['*'],
       themes: ['*'],
       users: ['*'],
       organizationUnits: ['*'],
-      notificationSenders: ['*'],
       userTypes: ['*'],
       translations: ['*'],
       layouts: ['*'],
@@ -86,9 +95,16 @@ export default function ExportPage(): JSX.Element {
           >
             <X size={24} />
           </IconButton>
-          <Typography variant="h5" color="text.primary">
-            {t('export.page.title')}
-          </Typography>
+          <AppBreadcrumbs
+            items={[
+              {
+                key: 'import-export',
+                label: t('landing.title', 'Import / Export'),
+                onClick: () => void navigate(RouteConfig.importExport.list()),
+              },
+              {key: 'export', label: t('export.page.title')},
+            ]}
+          />
         </Stack>
       </Box>
 

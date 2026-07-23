@@ -17,17 +17,34 @@
  */
 
 import {BuilderLayout, BuilderPanelHeader} from '@thunderid/components';
-import {Accordion, AccordionDetails, AccordionSummary, Box, Stack, Typography} from '@wso2/oxygen-ui';
-import {BoxesIcon, BoxIcon, ChevronDownIcon, CogIcon, ZapIcon} from '@wso2/oxygen-ui-icons-react';
-import kebabCase from 'lodash-es/kebabCase';
-import {memo, useCallback, useMemo, type HTMLAttributes, type ReactElement, type ReactNode} from 'react';
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  IconButton,
+  InputAdornment,
+  Stack,
+  TextField,
+  Typography,
+} from '@wso2/oxygen-ui';
+import {
+  BoxesIcon,
+  BoxIcon,
+  ChevronDownIcon,
+  CogIcon,
+  SearchIcon,
+  SearchXIcon,
+  XIcon,
+  ZapIcon,
+} from '@wso2/oxygen-ui-icons-react';
+import {memo, useCallback, useMemo, useState, type HTMLAttributes, type ReactElement, type ReactNode} from 'react';
 import {useTranslation} from 'react-i18next';
 import ResourcePanelDraggable from './ResourcePanelDraggable';
 import useUIPanelState from '../../hooks/useUIPanelState';
-import type {Element} from '../../models/elements';
 import type {Resource, Resources} from '../../models/resources';
-import type {Step} from '../../models/steps';
-import type {Widget} from '../../models/widget';
+import filterResourcePanelItems from '../../utils/filterResourcePanelItems';
+import toResourcePanelItems, {type ResourcePanelListItem} from '../../utils/toResourcePanelItems';
 
 /**
  * Props interface of {@link ResourcePanel}
@@ -68,6 +85,20 @@ export interface ResourcePanelPropsInterface extends HTMLAttributes<HTMLDivEleme
    * Optional right-hand side panel content rendered via BuilderLayout.
    */
   rightPanel?: ReactNode;
+  /**
+   * Optional content rendered at the bottom of the panel, below the resource sections.
+   */
+  footer?: ReactNode;
+}
+
+interface ResourcePanelSection {
+  id: string;
+  icon: ReactElement;
+  titleKey: string;
+  titleFallback: string;
+  descriptionKey: string;
+  descriptionFallback: string;
+  items: ResourcePanelListItem[];
 }
 
 /**
@@ -86,283 +117,241 @@ function ResourcePanel({
   flowHandle = '',
   onFlowTitleChange = undefined,
   rightPanel = undefined,
+  footer = undefined,
   ...rest
 }: ResourcePanelPropsInterface): ReactElement {
   const {t} = useTranslation();
   const {setIsResourcePanelOpen} = useUIPanelState();
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   const handleTogglePanel = useCallback((): void => {
     setIsResourcePanelOpen((prev: boolean) => !prev);
   }, [setIsResourcePanelOpen]);
 
-  const {
-    elements: unfilteredElements,
-    widgets: unfilteredWidgets,
-    steps: unfilteredSteps,
-    executors: unfilteredExecutors,
-  } = resources;
+  const sections: ResourcePanelSection[] = useMemo(
+    () => [
+      {
+        id: 'widgets',
+        icon: <CogIcon size={16} />,
+        titleKey: 'flows:core.resourcePanel.widgets.title',
+        titleFallback: 'Widgets',
+        descriptionKey: 'flows:core.resourcePanel.widgets.description',
+        descriptionFallback: 'Ready-made blocks like social login, OTP, and passkey',
+        items: toResourcePanelItems(resources.widgets, 'widgets'),
+      },
+      {
+        id: 'steps',
+        icon: <BoxIcon size={16} />,
+        titleKey: 'flows:core.resourcePanel.steps.title',
+        titleFallback: 'Steps',
+        descriptionKey: 'flows:core.resourcePanel.steps.description',
+        descriptionFallback: 'Screens and logic that shape your flow',
+        items: toResourcePanelItems(resources.steps, 'steps'),
+      },
+      {
+        id: 'components',
+        icon: <BoxesIcon size={16} />,
+        titleKey: 'flows:core.resourcePanel.components.title',
+        titleFallback: 'Components',
+        descriptionKey: 'flows:core.resourcePanel.components.description',
+        descriptionFallback: 'Form fields, buttons, and display elements',
+        items: toResourcePanelItems(resources.elements, 'components'),
+      },
+      {
+        id: 'executors',
+        icon: <ZapIcon size={16} />,
+        titleKey: 'flows:core.resourcePanel.executors.title',
+        titleFallback: 'Executors',
+        descriptionKey: 'flows:core.resourcePanel.executors.description',
+        descriptionFallback: 'Backend actions like verifying credentials or sending OTPs',
+        items: toResourcePanelItems(resources.executors, 'executors'),
+      },
+    ],
+    [resources],
+  );
 
-  const elements: Element[] = useMemo(
-    () => unfilteredElements?.filter((element: Element) => element.display?.showOnResourcePanel !== false),
-    [unfilteredElements],
-  );
-  const widgets: Widget[] = useMemo(
-    () => unfilteredWidgets?.filter((widget: Widget) => widget.display?.showOnResourcePanel !== false),
-    [unfilteredWidgets],
-  );
-  const steps: Step[] = useMemo(
-    () => unfilteredSteps?.filter((step: Step) => step.display?.showOnResourcePanel !== false),
-    [unfilteredSteps],
-  );
-  const executors: Step[] = useMemo(
-    () => unfilteredExecutors?.filter((executor: Step) => executor.display?.showOnResourcePanel !== false),
-    [unfilteredExecutors],
-  );
+  const isSearching: boolean = searchQuery.trim().length > 0;
 
-  const panelContent = (
-    <>
-      <BuilderPanelHeader
-        title={flowTitle}
-        handle={flowHandle}
-        onPanelToggle={handleTogglePanel}
-        onTitleChange={onFlowTitleChange}
-        hidePanelTooltip={t('flows:core.resourcePanel.hideResources')}
-        editTitleTooltip={t('flows:core.headerPanel.editTitle')}
-        saveTitleTooltip={t('flows:core.headerPanel.saveTitle')}
-        cancelEditTooltip={t('flows:core.headerPanel.cancelEdit')}
-      />
+  const visibleSections: ResourcePanelSection[] = useMemo(() => {
+    if (!isSearching) {
+      return sections;
+    }
 
-      {/* Widgets */}
-      <Accordion
-        square
-        disableGutters
-        sx={{
-          backgroundColor: 'transparent',
-          '&:before': {
-            display: 'none',
-          },
-          overflow: 'hidden',
-          flexShrink: 0,
-        }}
-      >
-        <AccordionSummary
-          expandIcon={<ChevronDownIcon size={14} />}
-          id="panel2-header"
+    return sections
+      .map((section: ResourcePanelSection) => ({
+        ...section,
+        items: filterResourcePanelItems(section.items, searchQuery),
+      }))
+      .filter((section: ResourcePanelSection) => section.items.length > 0);
+  }, [sections, searchQuery, isSearching]);
+
+  // Memoized so the element reference stays stable across unrelated parent re-renders
+  // (e.g. node drag ticks) and React can skip reconciling the whole palette subtree.
+  const panelContent = useMemo(
+    () => (
+      <>
+        <BuilderPanelHeader
+          title={flowTitle}
+          handle={flowHandle}
+          onPanelToggle={handleTogglePanel}
+          onTitleChange={onFlowTitleChange}
+          hidePanelTooltip={t('flows:core.resourcePanel.hideResources')}
+          editTitleTooltip={t('flows:core.headerPanel.editTitle')}
+          saveTitleTooltip={t('flows:core.headerPanel.saveTitle')}
+          cancelEditTooltip={t('flows:core.headerPanel.cancelEdit')}
+        />
+
+        <Box sx={{pb: 1.5, flexShrink: 0}}>
+          <TextField
+            fullWidth
+            size="small"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={t('flows:core.resourcePanel.search.placeholder', 'Search (e.g. MFA, social, consent)')}
+            slotProps={{
+              htmlInput: {
+                'aria-label': t('flows:core.resourcePanel.search.placeholder', 'Search (e.g. MFA, social, consent)'),
+                type: 'search',
+              },
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon size={16} />
+                  </InputAdornment>
+                ),
+                endAdornment: isSearching ? (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => setSearchQuery('')}
+                      aria-label={t('flows:core.resourcePanel.search.clear', 'Clear search')}
+                    >
+                      <XIcon size={14} />
+                    </IconButton>
+                  </InputAdornment>
+                ) : undefined,
+              },
+            }}
+          />
+        </Box>
+
+        <Box
           sx={{
-            minHeight: 48,
-            '&.Mui-expanded': {
-              minHeight: 48,
-            },
-            '& .MuiAccordionSummary-content': {
-              margin: '12px 0',
-              gap: 1,
-            },
-          }}
-          slotProps={{
-            content: {
-              sx: {alignItems: 'center'},
-            },
+            flex: 1,
+            minHeight: 0,
+            overflow: 'hidden auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1,
+            mx: -2,
+            px: 2,
           }}
         >
-          <Box component="span" display="inline-flex" alignItems="center">
-            <CogIcon size={16} />
-          </Box>
-          <Typography variant="subtitle2" fontWeight={600}>
-            {t('flows:core.resourcePanel.widgets.title')}
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails sx={{pt: 0, pb: 2, px: 2}}>
-          <Typography variant="body2" color="text.secondary" gutterBottom sx={{mb: 1.5}}>
-            {t('flows:core.resourcePanel.widgets.description')}
-          </Typography>
-          <Stack direction="column" spacing={1}>
-            {widgets?.map((widget: Widget, index: number) => (
-              <ResourcePanelDraggable
-                id={`${widget.resourceType}-${widget.type}-${index}`}
-                key={widget.type}
-                resource={widget}
-                onAdd={onAdd}
-                disabled={disabled}
-              />
-            ))}
-          </Stack>
-        </AccordionDetails>
-      </Accordion>
+          {visibleSections.map((section: ResourcePanelSection) => (
+            <Accordion
+              key={`${section.id}-${isSearching}`}
+              defaultExpanded={isSearching}
+              square
+              disableGutters
+              sx={{
+                backgroundColor: 'transparent',
+                '&:before': {
+                  display: 'none',
+                },
+                overflow: 'hidden',
+                flexShrink: 0,
+              }}
+            >
+              <AccordionSummary
+                expandIcon={<ChevronDownIcon size={14} />}
+                aria-controls={`panel-${section.id}-content`}
+                id={`panel-${section.id}-header`}
+                sx={{
+                  minHeight: 48,
+                  '&.Mui-expanded': {
+                    minHeight: 48,
+                  },
+                  '& .MuiAccordionSummary-content': {
+                    margin: '12px 0',
+                    gap: 1,
+                  },
+                }}
+                slotProps={{
+                  content: {
+                    sx: {alignItems: 'center'},
+                  },
+                }}
+              >
+                <Box component="span" display="inline-flex" alignItems="center" sx={{flexShrink: 0}}>
+                  {section.icon}
+                </Box>
+                <Stack direction="column">
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    {t(section.titleKey, section.titleFallback)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{lineHeight: 1.3}}>
+                    {t(section.descriptionKey, section.descriptionFallback)}
+                  </Typography>
+                </Stack>
+              </AccordionSummary>
+              <AccordionDetails sx={{pt: 0, pb: 2, px: 2}}>
+                <Stack direction="column" spacing={1}>
+                  {section.items.map(({id, resource}: ResourcePanelListItem) => (
+                    <ResourcePanelDraggable id={id} key={id} resource={resource} onAdd={onAdd} disabled={disabled} />
+                  ))}
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
+          ))}
 
-      {/* Steps */}
-      <Accordion
-        square
-        disableGutters
-        sx={{
-          backgroundColor: 'transparent',
-          '&:before': {
-            display: 'none',
-          },
-          overflow: 'hidden',
-          flexShrink: 0,
-        }}
-      >
-        <AccordionSummary
-          expandIcon={<ChevronDownIcon size={14} />}
-          aria-controls="panel3-content"
-          id="panel3-header"
-          sx={{
-            minHeight: 48,
-            '&.Mui-expanded': {
-              minHeight: 48,
-            },
-            '& .MuiAccordionSummary-content': {
-              margin: '12px 0',
-              gap: 1,
-            },
-          }}
-          slotProps={{
-            content: {
-              sx: {alignItems: 'center'},
-            },
-          }}
-        >
-          <Box component="span" display="inline-flex" alignItems="center">
-            <BoxIcon size={16} />
-          </Box>
-          <Typography variant="subtitle2" fontWeight={600}>
-            {t('flows:core.resourcePanel.steps.title')}
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails sx={{pt: 0, pb: 2, px: 2}}>
-          <Typography variant="body2" color="text.secondary" gutterBottom sx={{mb: 1.5}}>
-            {t('flows:core.resourcePanel.steps.description')}
-          </Typography>
-          <Stack direction="column" spacing={1}>
-            {steps?.map((step: Step, index: number) => (
-              <ResourcePanelDraggable
-                id={`${step.resourceType}-${step.type}-${index}`}
-                key={`${step.type}-${kebabCase(step.display.label)}`}
-                resource={step}
-                onAdd={onAdd}
-                disabled={disabled}
-              />
-            ))}
-          </Stack>
-        </AccordionDetails>
-      </Accordion>
+          {isSearching && visibleSections.length === 0 && (
+            <Stack alignItems="center" spacing={1} sx={{px: 2, py: 4, color: 'text.secondary'}}>
+              <SearchXIcon size={24} />
+              <Typography variant="body2">
+                {t('flows:core.resourcePanel.search.noResults', 'No matching resources')}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" textAlign="center">
+                {t(
+                  'flows:core.resourcePanel.search.noResultsHint',
+                  'Try a different keyword, such as "OTP", "Google", or "passkey"',
+                )}
+              </Typography>
+            </Stack>
+          )}
+        </Box>
 
-      {/* Components */}
-      <Accordion
-        square
-        disableGutters
-        sx={{
-          backgroundColor: 'transparent',
-          '&:before': {
-            display: 'none',
-          },
-          overflow: 'hidden',
-          flexShrink: 0,
-        }}
-      >
-        <AccordionSummary
-          expandIcon={<ChevronDownIcon size={14} />}
-          aria-controls="panel4-content"
-          id="panel4-header"
-          sx={{
-            minHeight: 48,
-            '&.Mui-expanded': {
-              minHeight: 48,
-            },
-            '& .MuiAccordionSummary-content': {
-              margin: '12px 0',
-              gap: 1,
-            },
-          }}
-          slotProps={{
-            content: {
-              sx: {alignItems: 'center'},
-            },
-          }}
-        >
-          <Box component="span" display="inline-flex" alignItems="center">
-            <BoxesIcon size={16} />
+        {footer && (
+          <Box
+            sx={{
+              flexShrink: 0,
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              // Bleed through the drawer paper's padding so the band spans the
+              // full panel width and sits flush with the bottom edge.
+              mx: -2,
+              mb: -2,
+              px: 2,
+              py: 1.5,
+            }}
+          >
+            {footer}
           </Box>
-          <Typography variant="subtitle2" fontWeight={600}>
-            {t('flows:core.resourcePanel.components.title')}
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails sx={{pt: 0, pb: 2, px: 2}}>
-          <Typography variant="body2" color="text.secondary" gutterBottom sx={{mb: 1.5}}>
-            {t('flows:core.resourcePanel.components.description')}
-          </Typography>
-          <Stack direction="column" spacing={1}>
-            {elements?.map((element: Element, index: number) => (
-              <ResourcePanelDraggable
-                id={`${element.resourceType}-${element.type}-${index}`}
-                key={`${element.resourceType}-${element.category}-${element.type}`}
-                resource={element}
-                onAdd={onAdd}
-                disabled={disabled}
-              />
-            ))}
-          </Stack>
-        </AccordionDetails>
-      </Accordion>
-
-      {/* Executors */}
-      <Accordion
-        square
-        disableGutters
-        sx={{
-          backgroundColor: 'transparent',
-          '&:before': {
-            display: 'none',
-          },
-          overflow: 'hidden',
-          flexShrink: 0,
-        }}
-      >
-        <AccordionSummary
-          expandIcon={<ChevronDownIcon size={14} />}
-          aria-controls="panel-executors-content"
-          id="panel-executors-header"
-          sx={{
-            minHeight: 48,
-            '&.Mui-expanded': {
-              minHeight: 48,
-            },
-            '& .MuiAccordionSummary-content': {
-              margin: '12px 0',
-              gap: 1,
-            },
-          }}
-          slotProps={{
-            content: {
-              sx: {alignItems: 'center'},
-            },
-          }}
-        >
-          <Box component="span" display="inline-flex" alignItems="center">
-            <ZapIcon size={16} />
-          </Box>
-          <Typography variant="subtitle2" fontWeight={600}>
-            {t('flows:core.resourcePanel.executors.title')}
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails sx={{pt: 0, pb: 2, px: 2}}>
-          <Typography variant="body2" color="text.secondary" gutterBottom sx={{mb: 1.5}}>
-            {t('flows:core.resourcePanel.executors.description')}
-          </Typography>
-          <Stack direction="column" spacing={1}>
-            {executors?.map((executor: Step, index: number) => (
-              <ResourcePanelDraggable
-                id={`${executor.resourceType}-${executor.type}-${index}`}
-                key={`${executor.type}-${kebabCase(executor.display.label)}`}
-                resource={executor}
-                onAdd={onAdd}
-                disabled={disabled}
-              />
-            ))}
-          </Stack>
-        </AccordionDetails>
-      </Accordion>
-    </>
+        )}
+      </>
+    ),
+    [
+      visibleSections,
+      isSearching,
+      searchQuery,
+      flowTitle,
+      flowHandle,
+      onFlowTitleChange,
+      handleTogglePanel,
+      onAdd,
+      disabled,
+      footer,
+      t,
+    ],
   );
 
   return (
@@ -372,7 +361,9 @@ function ResourcePanel({
       expandTooltip={t('flows:core.resourcePanel.showResources')}
       panelContent={panelContent}
       panelPaperSx={{
-        overflow: 'hidden auto',
+        // The section list scrolls in its own container so the header, search
+        // field, and footer stay fixed.
+        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         borderRight: '1px solid',

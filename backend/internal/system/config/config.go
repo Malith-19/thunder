@@ -22,10 +22,13 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	urlpath "path"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/thunder-id/thunderid/internal/system/log"
@@ -98,10 +101,10 @@ type RedisDataSource struct {
 
 // DatabaseConfig holds the different database configuration details.
 type DatabaseConfig struct {
-	Config    DataSource `yaml:"config"    json:"config"`
-	Runtime   DataSource `yaml:"runtime"   json:"runtime"`
-	User      DataSource `yaml:"user"      json:"user"`
-	Operation DataSource `yaml:"operation" json:"operation"`
+	Config            DataSource `yaml:"config"             json:"config"`
+	RuntimeTransient  DataSource `yaml:"runtime_transient"  json:"runtime_transient"`
+	Entity            DataSource `yaml:"entity"             json:"entity"`
+	RuntimePersistent DataSource `yaml:"runtime_persistent" json:"runtime_persistent"`
 }
 
 // NotificationConfig holds the notification configuration details.
@@ -185,6 +188,19 @@ type PasskeyConfig struct {
 	AllowedOrigins []string `yaml:"allowed_origins" json:"allowed_origins"`
 }
 
+// AttestationConfig holds engine-level platform attestation configuration shared across
+// applications.
+type AttestationConfig struct {
+	Apple AppleAttestationConfig `yaml:"apple" json:"apple"`
+}
+
+// AppleAttestationConfig holds the engine-level Apple App Attest settings. RootCertificate is the
+// PEM-encoded Apple "App Attestation Root CA" certificate used as the trust anchor when verifying
+// attestation certificate chains.
+type AppleAttestationConfig struct {
+	RootCertificate string `yaml:"root_certificate" json:"root_certificate"`
+}
+
 // OpenID4VPConfig holds the OpenID4VP verifier engine configuration. Engine
 // defaults (client_id_scheme, signing key, base URLs, response advertisement, trust
 // anchors) live at the top level; presentation definitions are managed at runtime
@@ -246,7 +262,6 @@ type OpenID4VCIConfig struct {
 
 // AuthnProviderConfig holds the authentication provider configuration details.
 type AuthnProviderConfig struct {
-	Type string     `yaml:"type" json:"type"`
 	Rest RestConfig `yaml:"rest" json:"rest"`
 }
 
@@ -262,6 +277,9 @@ type EntityProviderConfig struct {
 
 // RestConfig holds the REST authentication provider configuration details.
 type RestConfig struct {
+	Enabled bool `yaml:"enabled" json:"enabled"`
+	// CredentialTypes lists the credential keys routed to the REST provider.
+	CredentialTypes     []string           `yaml:"credential_types" json:"credential_types"`
 	BaseURL             string             `yaml:"base_url" json:"base_url"`
 	Timeout             int                `yaml:"timeout" json:"timeout"`
 	CorrelationIDHeader string             `yaml:"correlation_id_header" json:"correlation_id_header"`
@@ -312,6 +330,16 @@ type IdentityProviderConfig struct {
 	//   - If DeclarativeResources.Enabled = true: behaves as "declarative"
 	//   - If DeclarativeResources.Enabled = false: behaves as "mutable"
 	Store string `yaml:"store" json:"store"`
+
+	// GoogleBaseURL overrides the scheme+host of Google's OAuth/OIDC endpoints (path preserved).
+	// Empty (the default) means the real Google endpoints are used. Intended for test
+	// environments that redirect the flow to a local mock server; leave empty in production.
+	GoogleBaseURL string `yaml:"google_base_url" json:"google_base_url"`
+
+	// GitHubBaseURL overrides the scheme+host of GitHub's OAuth endpoints (path preserved).
+	// Empty (the default) means the real GitHub endpoints are used. Intended for test
+	// environments that redirect the flow to a local mock server; leave empty in production.
+	GitHubBaseURL string `yaml:"github_base_url" json:"github_base_url"`
 }
 
 // ApplicationConfig holds the application service configuration.
@@ -408,6 +436,14 @@ type TranslationConfig struct {
 type LogConfig struct {
 	Level  string          `yaml:"level"  json:"level"`
 	Output LogOutputConfig `yaml:"output" json:"output"`
+	Access LogAccessConfig `yaml:"access" json:"access"`
+}
+
+// LogAccessConfig holds the access log settings.
+type LogAccessConfig struct {
+	// ExcludePaths lists extra path prefixes whose requests are served without an access log line.
+	// The Gate and Console frontend prefixes are always excluded in addition to these.
+	ExcludePaths []string `yaml:"exclude_paths" json:"exclude_paths"`
 }
 
 // LogOutputConfig holds the log output destinations.
@@ -557,6 +593,7 @@ type Config struct {
 	EntityType           EntityTypeConfig                 `yaml:"user_type"             json:"user_type"`
 	Observability        engineconfig.ObservabilityConfig `yaml:"observability"         json:"observability"`
 	Passkey              PasskeyConfig                    `yaml:"passkey"               json:"passkey"`
+	Attestation          AttestationConfig                `yaml:"attestation"           json:"attestation"`
 	OpenID4VP            OpenID4VPConfig                  `yaml:"openid4vp"             json:"openid4vp"`
 	OpenID4VCI           OpenID4VCIConfig                 `yaml:"openid4vci"            json:"openid4vci"`
 	AuthnProvider        AuthnProviderConfig              `yaml:"authn_provider"        json:"authn_provider"`
@@ -569,7 +606,6 @@ type Config struct {
 	Translation          TranslationConfig                `yaml:"translation"           json:"translation"`
 	Email                EmailConfig                      `yaml:"email"                 json:"email"`
 	Notification         NotificationConfig               `yaml:"notification"          json:"notification"`
-	Consent              engineconfig.ConsentConfig       `yaml:"consent"               json:"consent"`
 }
 
 // LoadConfig loads the configurations from the specified YAML file and applies defaults.
@@ -594,10 +630,50 @@ func LoadConfig(configPath string, defaultPath string, serverHome string) (*Conf
 
 	// Merge user configuration with defaults
 	mergeConfigs(&cfg, &userCfg)
+
+	// Default gate_client to the server's own URL when not explicitly configured, so the gate only
+	// needs configuring when it is hosted separately from the server.
+	if cfg.GateClient.Hostname == "" || cfg.GateClient.Port == 0 || cfg.GateClient.Scheme == "" {
+		serverURL, err := url.Parse(engineconfig.GetServerURL(&cfg.Server))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse server URL for gate_client derivation: %w", err)
+		}
+		if cfg.GateClient.Scheme == "" {
+			cfg.GateClient.Scheme = serverURL.Scheme
+		}
+		if cfg.GateClient.Hostname == "" {
+			cfg.GateClient.Hostname = serverURL.Hostname()
+		}
+		if cfg.GateClient.Port == 0 {
+			if portStr := serverURL.Port(); portStr != "" {
+				if port, perr := strconv.Atoi(portStr); perr == nil {
+					cfg.GateClient.Port = port
+				}
+			} else if serverURL.Scheme == "http" {
+				cfg.GateClient.Port = 80
+			} else {
+				cfg.GateClient.Port = 443
+			}
+		}
+	}
+
+	// The resolved gate client host must be reachable by a browser. A bind-all address
+	// (0.0.0.0 or ::) produces broken login/error redirects. This happens when server.hostname
+	// is a bind address and neither server.public_url nor gate_client.hostname is configured,
+	// so fail fast with actionable guidance.
+	if isBindAllHost(cfg.GateClient.Hostname) {
+		return nil, fmt.Errorf("gate client hostname resolved to an unreachable bind-all address %q; "+
+			"set server.public_url (or gate_client.hostname) to a browser-reachable host",
+			cfg.GateClient.Hostname)
+	}
+
 	// Derive login_path and error_path from path if not explicitly set
 	if cfg.GateClient.Path != "" {
 		if cfg.GateClient.LoginPath == "" {
 			cfg.GateClient.LoginPath = urlpath.Join(cfg.GateClient.Path, "signin")
+		}
+		if cfg.GateClient.SignOutPath == "" {
+			cfg.GateClient.SignOutPath = urlpath.Join(cfg.GateClient.Path, "signout")
 		}
 		if cfg.GateClient.ErrorPath == "" {
 			cfg.GateClient.ErrorPath = urlpath.Join(cfg.GateClient.Path, "error")
@@ -729,6 +805,15 @@ func mergeStructs(base, user reflect.Value) {
 			base.Set(user)
 		}
 	}
+}
+
+// isBindAllHost reports whether host is an unspecified/bind-all IP address (0.0.0.0 or ::).
+// Such an address is valid to bind a listener to but can never be reached by a browser, so it
+// is invalid as a redirect target. Empty hosts and hostnames such as "localhost" are not
+// treated as bind-all.
+func isBindAllHost(host string) bool {
+	ip := net.ParseIP(strings.TrimSpace(host))
+	return ip != nil && ip.IsUnspecified()
 }
 
 // isZeroValue checks if a reflect.Value represents the zero value for its type.

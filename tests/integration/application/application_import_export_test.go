@@ -103,12 +103,12 @@ func (s *ApplicationImportExportSuite) SetupSuite() {
 	s.Require().NoError(err)
 	s.ouID = ouID
 
-	authFlowID, err := testutils.GetFlowIDByHandle("default-basic-flow", "AUTHENTICATION")
+	authFlowID, err := testutils.GetFlowIDByHandle("default-flow", "AUTHENTICATION")
 	s.Require().NoError(err)
 	s.Require().NotEmpty(authFlowID)
 	s.authFlowID = authFlowID
 
-	regFlowID, err := testutils.GetFlowIDByHandle("default-basic-flow", "REGISTRATION")
+	regFlowID, err := testutils.GetFlowIDByHandle("default-flow", "REGISTRATION")
 	s.Require().NoError(err)
 	s.Require().NotEmpty(regFlowID)
 	s.registrationFlowID = regFlowID
@@ -205,7 +205,7 @@ func (s *ApplicationImportExportSuite) TestExportImportRoundTrip_ConfidentialOAu
 			"exported YAML must not contain a bare `:` key")
 	}
 
-	s.Assert().Contains(yamlContent, "# resource_type: application")
+	s.Assert().Contains(yamlContent, "resource_type: application")
 	s.Assert().Contains(yamlContent, "id: "+createdID)
 	s.Assert().Contains(yamlContent, "ouId: "+s.ouID)
 	s.Assert().Contains(yamlContent, "name: "+appName)

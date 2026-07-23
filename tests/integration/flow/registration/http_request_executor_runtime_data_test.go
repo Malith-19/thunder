@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	mockGoogleRuntimeDataPort       = 8096
+	mockGoogleRuntimeDataPort       = 8093
 	mockNotificationRuntimeDataPort = 8097
 	mockHTTPRuntimeDataPort         = 9092
 )
@@ -387,26 +387,6 @@ func (ts *HTTPRequestRuntimeDataRegistrationFlowTestSuite) SetupSuite() {
 				Value:    "openid email profile",
 				IsSecret: false,
 			},
-			{
-				Name:     "authorization_endpoint",
-				Value:    ts.mockGoogleServer.GetURL() + "/o/oauth2/v2/auth",
-				IsSecret: false,
-			},
-			{
-				Name:     "token_endpoint",
-				Value:    ts.mockGoogleServer.GetURL() + "/token",
-				IsSecret: false,
-			},
-			{
-				Name:     "userinfo_endpoint",
-				Value:    ts.mockGoogleServer.GetURL() + "/v1/userinfo",
-				IsSecret: false,
-			},
-			{
-				Name:     "jwks_endpoint",
-				Value:    ts.mockGoogleServer.GetURL() + "/oauth2/v3/certs",
-				IsSecret: false,
-			},
 		},
 	}
 
@@ -454,6 +434,12 @@ func (ts *HTTPRequestRuntimeDataRegistrationFlowTestSuite) SetupSuite() {
 	ts.Require().NoError(err, "Failed to create runtime data registration flow")
 	ts.config.CreatedFlowIDs = append(ts.config.CreatedFlowIDs, flowID)
 	httpRequestRuntimeDataApp.RegistrationFlowID = flowID
+
+	// Create isolated auth flow to avoid cross-type reference validation with default auth flow.
+	isolatedAuthID, err := testutils.CreateIsolatedAuthFlow("http-request-runtime-data-isolated-auth")
+	ts.Require().NoError(err, "Failed to create isolated auth flow")
+	ts.config.CreatedFlowIDs = append(ts.config.CreatedFlowIDs, isolatedAuthID)
+	httpRequestRuntimeDataApp.AuthFlowID = isolatedAuthID
 
 	httpRequestRuntimeDataApp.OUID = httpRequestRuntimeDataOUID
 	appID, err := testutils.CreateApplication(httpRequestRuntimeDataApp)

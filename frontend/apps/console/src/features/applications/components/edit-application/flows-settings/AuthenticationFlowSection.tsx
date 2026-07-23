@@ -20,6 +20,7 @@ import {SettingsCard} from '@thunderid/components';
 import {Box, Typography, TextField, Autocomplete, CircularProgress, Alert} from '@wso2/oxygen-ui';
 import {useTranslation, Trans} from 'react-i18next';
 import {Link} from 'react-router';
+import RouteConfig from '../../../../../configs/RouteConfig';
 import useGetFlows from '../../../../flows/api/useGetFlows';
 import {FlowType} from '../../../../flows/models/flows';
 import type {Application} from '../../../models/application';
@@ -74,7 +75,11 @@ export default function AuthenticationFlowSection({
   return (
     <SettingsCard
       title={t('applications:edit.flows.labels.authFlow')}
-      description={t('applications:edit.flows.labels.authFlow.description')}
+      description={t(
+        'applications:edit.flows.labels.authFlow.description',
+        'The flow used when someone signs in through this {{entity}}.',
+        {entity: entityLabel},
+      )}
     >
       {(editedApp.authFlowId ?? application.authFlowId) && (
         <Alert severity="info" sx={{mb: 2}}>
@@ -83,12 +88,12 @@ export default function AuthenticationFlowSection({
             components={[
               <Link
                 key="edit"
-                to={`/flows/signin/${editedApp.authFlowId ?? application.authFlowId}`}
+                to={RouteConfig.flows.detail('signin', editedApp.authFlowId ?? application.authFlowId ?? '')}
                 style={{color: 'inherit', fontWeight: 'bold', textDecoration: 'underline'}}
               />,
               <Link
                 key="create"
-                to="/flows"
+                to={RouteConfig.flows.list()}
                 style={{color: 'inherit', fontWeight: 'bold', textDecoration: 'underline'}}
               />,
             ]}

@@ -109,9 +109,8 @@ export default function AddNodeDialog({
   const createResource = useCreateResource(resourceServerId);
   const createAction = useCreateAction(resourceServerId, resourceId);
 
-  const derivedPermission = handle.trim()
-    ? `${parentPermission}${delimiter}${handle.trim()}`
-    : `${parentPermission}${delimiter}…`;
+  const permissionPrefix = parentPermission ? `${parentPermission}${delimiter}` : '';
+  const derivedPermission = handle.trim() ? `${permissionPrefix}${handle.trim()}` : `${permissionPrefix}…`;
 
   const handleClose = (): void => {
     setName('');
@@ -232,6 +231,7 @@ export default function AddNodeDialog({
 
   const isPending = createResource.isPending || createAction.isPending;
   const handleContainsDelimiter = handle.includes(delimiter);
+  const allowedChars = ['.', '_', '-', ':', '/'].filter((c) => c !== delimiter).join(' ');
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
@@ -273,11 +273,13 @@ export default function AddNodeDialog({
                 handleContainsDelimiter
                   ? t(
                       'resourceServers:tree.fields.handleDelimiterError',
-                      `Handle cannot contain the delimiter character "${delimiter}".`,
+                      'Handle cannot contain the delimiter character "{{delimiter}}".',
+                      {delimiter},
                     )
                   : t(
                       'resourceServers:tree.fields.handleHint',
-                      'Lowercase, alphanumeric, and . _ - : / characters. Cannot be changed after creation.',
+                      'Lowercase, alphanumeric, and {{allowedChars}} characters. Cannot be changed after creation.',
+                      {allowedChars},
                     )
               }
             />

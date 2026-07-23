@@ -422,9 +422,11 @@ func (is *idpService) ensureNoBlockingDependencies(ctx context.Context, idpID st
 	})
 }
 
-// validateAttributeConfiguration validates the IDP's attribute configuration: a required default user type, and
-// for each user type's attributes a valid claim-mapping shape with every local (target) claim a
-// non-credential attribute defined in that user type's schema. No-op when no profile is configured.
+// validateAttributeConfiguration validates the IDP's attribute configuration: a default user type is
+// required only when user-type attribute mappings are configured (it selects which mapping profile
+// applies), and for each user type's attributes a valid claim-mapping shape with every local (target)
+// claim a non-credential attribute defined in that user type's schema. No-op when no profile is
+// configured.
 func (is *idpService) validateAttributeConfiguration(
 	ctx context.Context,
 	idp *providers.IDPDTO,
@@ -433,11 +435,16 @@ func (is *idpService) validateAttributeConfiguration(
 	if profile == nil {
 		return nil
 	}
-	if profile.UserTypeResolution == nil || strings.TrimSpace(profile.UserTypeResolution.Default) == "" {
+	if len(profile.UserTypeAttributeMappings) > 0 &&
+		(profile.UserTypeResolution == nil || strings.TrimSpace(profile.UserTypeResolution.Default) == "") {
 		return tidcommon.CustomServiceError(ErrorInvalidAttributeConfiguration, tidcommon.I18nMessage{
 			Key:          "error.idpservice.attribute_configuration_user_type_required_description",
 			DefaultValue: "attribute configuration requires an user type",
 		})
+	}
+
+	if svcErr := is.validateUserTypeResolution(ctx, profile.UserTypeResolution); svcErr != nil {
+		return svcErr
 	}
 
 	seenUserTypes := make(map[string]bool, len(profile.UserTypeAttributeMappings))
@@ -487,6 +494,59 @@ func (is *idpService) validateAttributeConfiguration(
 					Params: map[string]string{"claim": m.LocalAttribute, "userType": entry.UserType},
 				})
 			}
+		}
+	}
+	return nil
+}
+
+// validateUserTypeResolution validates claim-driven user-type resolution. A value mapping requires an
+// external attribute to evaluate it against, but an external attribute may be configured on its own
+// (every identity then resolves to Default until value mappings are added). No mapping entry may be
+// empty, and every mapped local user type must be a valid user type. A no-op for static (default-only)
+// resolution.
+func (is *idpService) validateUserTypeResolution(
+	ctx context.Context,
+	resolution *providers.UserTypeResolution,
+) *tidcommon.ServiceError {
+	if resolution == nil {
+		return nil
+	}
+	hasExternal := strings.TrimSpace(resolution.ExternalAttribute) != ""
+	hasMapping := len(resolution.ValueMapping) > 0
+	if !hasExternal && !hasMapping {
+		return nil
+	}
+	if hasMapping && !hasExternal {
+		return tidcommon.CustomServiceError(ErrorInvalidAttributeConfiguration, tidcommon.I18nMessage{
+			Key:          "error.idpservice.attribute_configuration_resolution_mapping_without_external_description",
+			DefaultValue: "user type resolution value mapping requires an external attribute",
+		})
+	}
+	// A default user type is the required fallback when the claim is missing or its value is unmapped.
+	if strings.TrimSpace(resolution.Default) == "" {
+		return tidcommon.CustomServiceError(ErrorInvalidAttributeConfiguration, tidcommon.I18nMessage{
+			Key: "error.idpservice.attribute_configuration_resolution_default_required_description",
+			DefaultValue: "claim-driven user type resolution requires a default user type as the " +
+				"fallback",
+		})
+	}
+
+	for value, userType := range resolution.ValueMapping {
+		trimmedUserType := strings.TrimSpace(userType)
+		if strings.TrimSpace(value) == "" || trimmedUserType == "" {
+			return tidcommon.CustomServiceError(ErrorInvalidAttributeConfiguration, tidcommon.I18nMessage{
+				Key:          "error.idpservice.attribute_configuration_resolution_empty_mapping_description",
+				DefaultValue: "user type resolution value mapping must not contain empty values",
+			})
+		}
+		if _, svcErr := is.entityTypeService.GetAttributes(
+			ctx, entitytype.TypeCategoryUser, trimmedUserType, false, true, false); svcErr != nil {
+			return tidcommon.CustomServiceError(ErrorInvalidAttributeConfiguration, tidcommon.I18nMessage{
+				Key: "error.idpservice.attribute_configuration_resolution_target_invalid_description",
+				DefaultValue: "user type resolution maps to invalid user type " +
+					"'{{param(userType)}}'",
+				Params: map[string]string{"userType": trimmedUserType},
+			})
 		}
 	}
 	return nil

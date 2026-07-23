@@ -20,6 +20,7 @@ import {SettingsCard} from '@thunderid/components';
 import {Box, Typography, TextField, Autocomplete, CircularProgress, Alert} from '@wso2/oxygen-ui';
 import {useTranslation, Trans} from 'react-i18next';
 import {Link} from 'react-router';
+import RouteConfig from '../../../../../configs/RouteConfig';
 import useGetFlows from '../../../../flows/api/useGetFlows';
 import {FlowType} from '../../../../flows/models/flows';
 import type {Application} from '../../../models/application';
@@ -73,7 +74,11 @@ export default function RecoveryFlowSection({
   return (
     <SettingsCard
       title={t('applications:edit.flows.labels.recoveryFlow')}
-      description={t('applications:edit.flows.labels.recoveryFlow.description')}
+      description={t(
+        'applications:edit.flows.labels.recoveryFlow.description',
+        'Let people recover their account when signing in through this {{entity}}.',
+        {entity: entityLabel},
+      )}
       enabled={editedApp.isRecoveryFlowEnabled ?? application.isRecoveryFlowEnabled ?? false}
       onToggle={application.isReadOnly ? undefined : (enabled) => onFieldChange('isRecoveryFlowEnabled', enabled)}
     >
@@ -84,12 +89,12 @@ export default function RecoveryFlowSection({
             components={[
               <Link
                 key="edit"
-                to={`/flows/recovery/${editedApp.recoveryFlowId ?? application.recoveryFlowId}`}
+                to={RouteConfig.flows.detail('recovery', editedApp.recoveryFlowId ?? application.recoveryFlowId ?? '')}
                 style={{color: 'inherit', fontWeight: 'bold', textDecoration: 'underline'}}
               />,
               <Link
                 key="create"
-                to="/flows"
+                to={RouteConfig.flows.list()}
                 style={{color: 'inherit', fontWeight: 'bold', textDecoration: 'underline'}}
               />,
             ]}

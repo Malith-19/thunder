@@ -20,6 +20,7 @@ import {render, screen, userEvent, waitFor, fireEvent} from '@thunderid/test-uti
 import {afterEach, describe, expect, it, vi} from 'vitest';
 
 const mockNavigate = vi.fn();
+let mockPathname = '/import-configuration';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({t: (key: string) => key}),
@@ -27,12 +28,26 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');
-  return {...actual, useNavigate: () => mockNavigate};
+  return {...actual, useNavigate: () => mockNavigate, useLocation: () => ({pathname: mockPathname})};
 });
 
 vi.mock('@thunderid/logger/react', () => ({
   useLogger: () => ({error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn()}),
 }));
+
+vi.mock('@thunderid/contexts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@thunderid/contexts')>();
+  return {
+    ...actual,
+    useConfig: () => ({
+      config: {
+        brand: {
+          product_name: 'ThunderID',
+        },
+      },
+    }),
+  };
+});
 
 vi.mock('@wso2/oxygen-ui-icons-react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@wso2/oxygen-ui-icons-react')>();
@@ -48,6 +63,7 @@ import ImportConfigurationUploadPage from '../ImportConfigurationUploadPage';
 
 afterEach(() => {
   vi.clearAllMocks();
+  mockPathname = '/import-configuration';
 });
 
 describe('ImportConfigurationUploadPage', () => {
@@ -98,6 +114,25 @@ describe('ImportConfigurationUploadPage', () => {
     await user.click(screen.getByRole('button', {name: 'common:actions.close'}));
 
     expect(mockNavigate).toHaveBeenCalledWith('/home');
+  });
+
+  it('navigates to /import-export when the default breadcrumb is clicked outside the welcome flow', async () => {
+    const user = userEvent.setup();
+    render(<ImportConfigurationUploadPage />);
+
+    await user.click(screen.getByText('landing.title'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/import-export');
+  });
+
+  it('navigates to /welcome when the welcome breadcrumb is clicked from the welcome flow', async () => {
+    mockPathname = '/welcome/import-configuration';
+    const user = userEvent.setup();
+    render(<ImportConfigurationUploadPage />);
+
+    await user.click(screen.getByText('common:welcome.header'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/welcome');
   });
 
   it('shows error when non-yaml file is selected', () => {
@@ -265,5 +300,74 @@ describe('ImportConfigurationUploadPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeInTheDocument();
     });
+  });
+
+  it('accepts .yml file format (not just .yaml)', async () => {
+    const user = userEvent.setup();
+    render(<ImportConfigurationUploadPage />);
+
+    const input = document.getElementById('file-upload') as HTMLInputElement;
+    const file = new File(['key: value'], 'config.yml', {type: 'text/yaml'});
+    await user.upload(input, file);
+
+    expect(screen.getByText('config.yml')).toBeInTheDocument();
+  });
+
+  it('handles drag and drop events on config file area', () => {
+    render(<ImportConfigurationUploadPage />);
+
+    const dropZone = screen.getByText('upload.dropConfig').closest('div')?.parentElement;
+    expect(dropZone).toBeInTheDocument();
+
+    // Simulate drag enter
+    fireEvent.dragEnter(dropZone!, {
+      dataTransfer: {files: []},
+    });
+
+    // Simulate drag over
+    fireEvent.dragOver(dropZone!, {
+      dataTransfer: {files: []},
+    });
+
+    // Simulate drag leave
+    fireEvent.dragLeave(dropZone!, {
+      dataTransfer: {files: []},
+    });
+  });
+
+  it('handles drag and drop events on env file area', () => {
+    render(<ImportConfigurationUploadPage />);
+
+    const envLabel = screen.getByText('upload.env.title');
+    const dropZone = envLabel.closest('div')?.nextElementSibling;
+    expect(dropZone).toBeInTheDocument();
+
+    // Simulate drag enter
+    fireEvent.dragEnter(dropZone!, {
+      dataTransfer: {files: []},
+    });
+
+    // Simulate drag over
+    fireEvent.dragOver(dropZone!, {
+      dataTransfer: {files: []},
+    });
+
+    // Simulate drag leave
+    fireEvent.dragLeave(dropZone!, {
+      dataTransfer: {files: []},
+    });
+  });
+
+  it('accepts .yml file format via drag and drop', () => {
+    render(<ImportConfigurationUploadPage />);
+
+    const dropZone = screen.getByText('upload.dropConfig').closest('div')?.parentElement;
+    const ymlFile = new File(['key: value'], 'config.yml', {type: 'text/yaml'});
+
+    fireEvent.drop(dropZone!, {
+      dataTransfer: {files: [ymlFile]},
+    });
+
+    expect(screen.getByText('config.yml')).toBeInTheDocument();
   });
 });

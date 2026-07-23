@@ -47,7 +47,7 @@ func TestFederatedAuthResolverSuite(t *testing.T) {
 
 func newFederatedAuthResolverAuthenticatedUser() providers.AuthUser {
 	var authUser providers.AuthUser
-	_ = authUser.UnmarshalJSON([]byte(`{"entityReferenceToken":"tok","attributeToken":"tok"}`))
+	_ = authUser.UnmarshalJSON([]byte(`{"default":{"entityReferenceToken":"tok","attributeToken":"tok"}}`))
 	return authUser
 }
 
@@ -59,7 +59,7 @@ func (suite *FederatedAuthResolverTestSuite) SetupTest() {
 		providers.ExecutorTypeAuthentication)
 	suite.mockFlowFactory.On("CreateExecutor", ExecutorNameFederatedAuthResolver,
 		providers.ExecutorTypeAuthentication,
-		([]providers.Input)(nil), ([]providers.Input)(nil)).Return(mockExec)
+		([]providers.Input)(nil), ([]providers.Input)(nil), mock.Anything).Return(mockExec)
 
 	suite.executor = newFederatedAuthResolverExecutor(suite.mockFlowFactory, suite.mockAuthnProvider)
 }

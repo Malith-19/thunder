@@ -31,7 +31,6 @@ import (
 	tidcommon "github.com/thunder-id/thunderid/pkg/thunderidengine/common"
 
 	"github.com/thunder-id/thunderid/internal/cert"
-	"github.com/thunder-id/thunderid/internal/consent"
 	layoutmgt "github.com/thunder-id/thunderid/internal/design/layout/mgt"
 	thememgt "github.com/thunder-id/thunderid/internal/design/theme/mgt"
 	"github.com/thunder-id/thunderid/internal/entityprovider"
@@ -52,7 +51,7 @@ import (
 type InboundClientServiceInterface interface {
 	// CreateInboundClient validates and persists a new inbound auth profile, certificates, and OAuth config.
 	CreateInboundClient(ctx context.Context, client *inboundmodel.InboundClient,
-		oauthProfile *providers.OAuthProfile, hasClientSecret bool, entityName string) error
+		oauthProfile *providers.OAuthProfile, hasClientSecret bool) error
 	// GetInboundClientByEntityID returns the inbound client for the given entity.
 	GetInboundClientByEntityID(ctx context.Context, entityID string) (*inboundmodel.InboundClient, error)
 	// GetInboundClientList returns all inbound clients.
@@ -62,12 +61,15 @@ type InboundClientServiceInterface interface {
 	GetEntityIDsByReference(ctx context.Context, refType, refID string, limit, offset int) ([]string, int, error)
 	// UpdateInboundClient validates and persists updates to an inbound client, certificates, and OAuth config.
 	UpdateInboundClient(ctx context.Context, client *inboundmodel.InboundClient,
-		oauthProfile *providers.OAuthProfile, hasClientSecret bool, oauthClientID string, entityName string) error
+		oauthProfile *providers.OAuthProfile, hasClientSecret bool, oauthClientID string) error
 	// DeleteInboundClient removes the inbound client, OAuth profile, and certificates for the given entity.
 	DeleteInboundClient(ctx context.Context, entityID string) error
 	// Validate resolves flow defaults and validates FK constraints and OAuth profile without persisting.
 	Validate(ctx context.Context, client *inboundmodel.InboundClient,
 		oauthProfile *providers.OAuthProfile, hasClientSecret bool) error
+	// RevalidateFKs re-runs FK validation for the inbound client identified by entityID. Used after
+	// a referenced resource (e.g. a flow) is updated to detect newly-inconsistent references.
+	RevalidateFKs(ctx context.Context, entityID string) error
 	// ResolveInboundAuthProfileHandles resolves flow handle fields in-place to their IDs.
 	// Only fields with an empty ID but a non-empty handle are resolved.
 	ResolveInboundAuthProfileHandles(ctx context.Context, profile *providers.InboundAuthProfile) error
@@ -76,6 +78,13 @@ type InboundClientServiceInterface interface {
 	GetOAuthProfileByEntityID(ctx context.Context, entityID string) (*providers.OAuthProfile, error)
 	// GetOAuthClientByClientID resolves a full OAuthClient by its public client_id.
 	GetOAuthClientByClientID(ctx context.Context, clientID string) (*providers.OAuthClient, error)
+
+	// GetInboundClientAttributes returns the configured user attributes for a single inbound client.
+	// A missing inbound client is treated as one with no configured attributes.
+	GetInboundClientAttributes(ctx context.Context, inboundClientID string) (
+		*inboundmodel.InboundClientAttributes, error)
+	// ListInboundClientAttributes returns the configured user attributes for all inbound clients.
+	ListInboundClientAttributes(ctx context.Context) ([]inboundmodel.InboundClientAttributes, error)
 
 	// IsDeclarative reports whether the entity's inbound profile was loaded from a declarative resource file.
 	IsDeclarative(ctx context.Context, entityID string) bool
@@ -96,7 +105,6 @@ type inboundClientService struct {
 	layoutMgt      layoutmgt.LayoutMgtServiceInterface
 	flowMgt        flowmgt.FlowMgtServiceInterface
 	entityType     entitytype.EntityTypeServiceInterface
-	consentService consent.ConsentServiceInterface
 	logger         *log.Logger
 }
 
@@ -108,7 +116,6 @@ func newInboundClientService(store inboundClientStoreInterface, transactioner tr
 	layoutMgt layoutmgt.LayoutMgtServiceInterface,
 	flowMgt flowmgt.FlowMgtServiceInterface,
 	entityType entitytype.EntityTypeServiceInterface,
-	consentService consent.ConsentServiceInterface,
 ) InboundClientServiceInterface {
 	return &inboundClientService{
 		store:          store,
@@ -119,14 +126,13 @@ func newInboundClientService(store inboundClientStoreInterface, transactioner tr
 		layoutMgt:      layoutMgt,
 		flowMgt:        flowMgt,
 		entityType:     entityType,
-		consentService: consentService,
 		logger:         log.GetLogger().With(log.String(log.LoggerKeyComponentName, "InboundClientService")),
 	}
 }
 
 // CreateInboundClient validates and persists a new inbound auth profile, certificates, and OAuth config.
 func (s *inboundClientService) CreateInboundClient(ctx context.Context, client *inboundmodel.InboundClient,
-	oauthProfile *providers.OAuthProfile, hasClientSecret bool, entityName string) error {
+	oauthProfile *providers.OAuthProfile, hasClientSecret bool) error {
 	if client == nil {
 		return fmt.Errorf("inbound client is required")
 	}
@@ -134,6 +140,9 @@ func (s *inboundClientService) CreateInboundClient(ctx context.Context, client *
 		return ErrCannotModifyDeclarative
 	}
 	if err := s.resolveFlowDefaults(ctx, client); err != nil {
+		return err
+	}
+	if err := s.reconcileReferencedFlows(ctx, client); err != nil {
 		return err
 	}
 	if fkErr := s.validateFKs(ctx, client); fkErr != nil {
@@ -171,11 +180,6 @@ func (s *inboundClientService) CreateInboundClient(ctx context.Context, client *
 				return err
 			}
 		}
-		if s.consentService != nil && s.consentService.IsEnabled() {
-			if err := s.syncConsentOnCreate(txCtx, client.ID, entityName, client, oauthProfile); err != nil {
-				return err
-			}
-		}
 		return nil
 	})
 }
@@ -207,7 +211,7 @@ func (s *inboundClientService) GetEntityIDsByReference(
 
 // UpdateInboundClient validates and persists updates to an inbound client, certificates, and OAuth config.
 func (s *inboundClientService) UpdateInboundClient(ctx context.Context, client *inboundmodel.InboundClient,
-	oauthProfile *providers.OAuthProfile, hasClientSecret bool, oauthClientID string, entityName string) error {
+	oauthProfile *providers.OAuthProfile, hasClientSecret bool, oauthClientID string) error {
 	if client == nil {
 		return fmt.Errorf("inbound client is required")
 	}
@@ -215,6 +219,9 @@ func (s *inboundClientService) UpdateInboundClient(ctx context.Context, client *
 		return ErrCannotModifyDeclarative
 	}
 	if err := s.resolveFlowDefaults(ctx, client); err != nil {
+		return err
+	}
+	if err := s.reconcileReferencedFlows(ctx, client); err != nil {
 		return err
 	}
 	if fkErr := s.validateFKs(ctx, client); fkErr != nil {
@@ -260,11 +267,6 @@ func (s *inboundClientService) UpdateInboundClient(ctx context.Context, client *
 				return opErr
 			}
 		}
-		if s.consentService != nil && s.consentService.IsEnabled() {
-			if err := s.syncConsentOnUpdate(txCtx, client.ID, entityName, client, oauthProfile); err != nil {
-				return err
-			}
-		}
 		return s.syncOAuthProfile(txCtx, client.ID, oauthProfile)
 	})
 }
@@ -291,6 +293,22 @@ func (s *inboundClientService) Validate(ctx context.Context, client *inboundmode
 		}
 	}
 	return nil
+}
+
+// RevalidateFKs re-runs FK validation for the inbound client identified by entityID. Used by the
+// resource-dependency registry to catch newly-inconsistent references after a referenced resource
+// (e.g. a flow) is updated. A missing inbound client is treated as no-op — the reference is
+// stale and will be resolved when the entity itself is updated or removed.
+func (s *inboundClientService) RevalidateFKs(ctx context.Context, entityID string) error {
+	client, err := s.GetInboundClientByEntityID(ctx, entityID)
+	if err != nil {
+		if errors.Is(err, ErrInboundClientNotFound) {
+			return nil
+		}
+		return err
+	}
+
+	return s.validateFKs(ctx, client)
 }
 
 func validateOAuthCertificateClientID(oauthProfile *providers.OAuthProfile, oauthClientID string) error {
@@ -328,6 +346,13 @@ func (s *inboundClientService) ResolveInboundAuthProfileHandles(
 			return ErrFKInvalidRecoveryFlow
 		}
 		profile.RecoveryFlowID = flow.ID
+	}
+	if profile.SignOutFlowID == "" && profile.SignOutFlowHandle != "" {
+		flow, svcErr := s.flowMgt.GetFlowByHandle(ctx, profile.SignOutFlowHandle, providers.FlowTypeSignOut)
+		if svcErr != nil {
+			return ErrFKInvalidSignOutFlow
+		}
+		profile.SignOutFlowID = flow.ID
 	}
 	return nil
 }
@@ -380,6 +405,81 @@ func (s *inboundClientService) DeleteInboundClient(ctx context.Context, entityID
 func (s *inboundClientService) GetOAuthProfileByEntityID(ctx context.Context, entityID string) (
 	*providers.OAuthProfile, error) {
 	return s.store.GetOAuthProfileByEntityID(ctx, entityID)
+}
+
+// GetInboundClientAttributes returns the configured user attributes for a single inbound client. A
+// missing inbound client is treated as an inbound client with no configured attributes.
+func (s *inboundClientService) GetInboundClientAttributes(
+	ctx context.Context, inboundClientID string,
+) (*inboundmodel.InboundClientAttributes, error) {
+	client, err := s.GetInboundClientByEntityID(ctx, inboundClientID)
+	if err != nil {
+		if errors.Is(err, ErrInboundClientNotFound) {
+			return &inboundmodel.InboundClientAttributes{InboundClientID: inboundClientID}, nil
+		}
+		return nil, err
+	}
+	profile, err := s.getOAuthProfile(ctx, inboundClientID)
+	if err != nil {
+		return nil, err
+	}
+	return &inboundmodel.InboundClientAttributes{
+		InboundClientID: client.ID,
+		Attributes:      extractConfiguredAttributes(client, profile),
+	}, nil
+}
+
+// ListInboundClientAttributes returns the configured user attributes for all inbound clients.
+func (s *inboundClientService) ListInboundClientAttributes(
+	ctx context.Context,
+) ([]inboundmodel.InboundClientAttributes, error) {
+	clients, err := s.GetInboundClientList(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	inboundClients := make([]inboundmodel.InboundClientAttributes, 0, len(clients))
+	for i := range clients {
+		profile, err := s.getOAuthProfile(ctx, clients[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		inboundClients = append(inboundClients, inboundmodel.InboundClientAttributes{
+			InboundClientID: clients[i].ID,
+			Attributes:      extractConfiguredAttributes(&clients[i], profile),
+		})
+	}
+	return inboundClients, nil
+}
+
+// getOAuthProfile returns the OAuth profile for an inbound client, treating a missing profile as nil
+// since inbound clients may rely on assertion configuration alone.
+func (s *inboundClientService) getOAuthProfile(
+	ctx context.Context, inboundClientID string,
+) (*providers.OAuthProfile, error) {
+	profile, err := s.GetOAuthProfileByEntityID(ctx, inboundClientID)
+	if err != nil {
+		if errors.Is(err, ErrInboundClientNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return profile, nil
+}
+
+// extractConfiguredAttributes collects the deduplicated user attributes an inbound client is
+// configured to release via its assertion config and OAuth profile.
+func extractConfiguredAttributes(client *providers.InboundClient, profile *providers.OAuthProfile) []string {
+	var assertion *inboundmodel.AssertionConfig
+	if client != nil {
+		assertion = client.Assertion
+	}
+	set := collectConfiguredUserAttributes(assertion, profile)
+	attributes := make([]string, 0, len(set))
+	for attr := range set {
+		attributes = append(attributes, attr)
+	}
+	return attributes
 }
 
 // syncOAuthProfile creates, updates, or deletes the stored OAuth profile to match the desired state.
@@ -462,6 +562,7 @@ func BuildOAuthClient(
 		ClientID:                           clientID,
 		EntityCategory:                     entityCategory,
 		RedirectURIs:                       p.RedirectURIs,
+		PostLogoutRedirectURIs:             p.PostLogoutRedirectURIs,
 		TokenEndpointAuthMethod:            providers.TokenEndpointAuthMethod(p.TokenEndpointAuthMethod),
 		PKCERequired:                       p.PKCERequired,
 		PublicClient:                       p.PublicClient,
@@ -521,6 +622,10 @@ func (s *inboundClientService) resolveFlowDefaults(ctx context.Context, c *inbou
 	if c.RecoveryFlowID == "" {
 		// If a recovery flow is not defined, disable recovery flow for the application.
 		c.IsRecoveryFlowEnabled = false
+	}
+	if c.SignOutFlowID == "" {
+		// If a sign-out flow is not defined, disable sign-out for the application.
+		c.IsSignOutFlowEnabled = false
 	}
 	return nil
 }
@@ -671,6 +776,24 @@ func validateOAuthProfile(p *providers.OAuthProfile, hasClientSecret bool) error
 	}
 	if err := validateIDTokenConfig(p); err != nil {
 		return err
+	}
+	if err := validateAccessTokenConfig(p); err != nil {
+		return err
+	}
+	return nil
+}
+
+// maxDefaultAudienceLength bounds the access token default audience, a single audience identifier
+// (typically a URI), to a sane length.
+const maxDefaultAudienceLength = 2048
+
+// validateAccessTokenConfig validates the access token configuration.
+func validateAccessTokenConfig(p *providers.OAuthProfile) error {
+	if p.Token == nil || p.Token.AccessToken == nil {
+		return nil
+	}
+	if len(p.Token.AccessToken.DefaultAudience) > maxDefaultAudienceLength {
+		return ErrOAuthDefaultAudienceTooLong
 	}
 	return nil
 }
@@ -883,9 +1006,9 @@ func validateGrantAndResponseTypes(p *providers.OAuthProfile) error {
 			return ErrOAuthAuthCodeRequiresCodeResponseType
 		}
 	}
-	if len(p.GrantTypes) == 1 &&
-		slices.Contains(p.GrantTypes, string(providers.GrantTypeRefreshToken)) {
-		return ErrOAuthRefreshTokenCannotBeSoleGrant
+	if slices.Contains(p.GrantTypes, string(providers.GrantTypeRefreshToken)) &&
+		!providers.AnyIssuesRefreshToken(p.GrantTypes) {
+		return ErrOAuthRefreshTokenRequiresTokenIssuingGrant
 	}
 	if p.PKCERequired &&
 		!slices.Contains(p.GrantTypes, string(providers.GrantTypeAuthorizationCode)) {
@@ -933,6 +1056,15 @@ func validateTokenEndpointAuthMethod(p *providers.OAuthProfile, hasClientSecret 
 		if slices.Contains(p.GrantTypes, string(providers.GrantTypeClientCredentials)) {
 			return ErrOAuthClientCredentialsCannotUseNoneAuth
 		}
+		// The jwt-bearer (ID-JAG) grant is bound to the client via client_id only, so it requires a
+		// confidential client.
+		if slices.Contains(p.GrantTypes, string(providers.GrantTypeJWTBearer)) {
+			return ErrOAuthClientJWTBearerCannotUseNoneAuth
+		}
+		// Requesting ID-JAGs is likewise restricted to confidential clients.
+		if p.Token != nil && p.Token.IDJAG != nil && p.Token.IDJAG.Enabled {
+			return ErrOAuthClientIDJAGCannotUseNoneAuth
+		}
 	}
 	return nil
 }
@@ -960,6 +1092,12 @@ func (s *inboundClientService) validateFKs(ctx context.Context, c *inboundmodel.
 		return err
 	}
 	if err := s.validateRecoveryFlowID(ctx, c.RecoveryFlowID); err != nil {
+		return err
+	}
+	if err := s.validateSignOutFlowID(ctx, c.SignOutFlowID); err != nil {
+		return err
+	}
+	if err := s.validateReferencedFlows(ctx, c); err != nil {
 		return err
 	}
 	if err := s.validateThemeID(ctx, c.ThemeID); err != nil {
@@ -1015,6 +1153,21 @@ func (s *inboundClientService) validateRecoveryFlowID(ctx context.Context, flowI
 	}
 	if !valid {
 		return ErrFKInvalidRecoveryFlow
+	}
+	return nil
+}
+
+// validateSignOutFlowID validates that the sign-out flow ID exists and is of the correct type.
+func (s *inboundClientService) validateSignOutFlowID(ctx context.Context, flowID string) error {
+	if flowID == "" || s.flowMgt == nil {
+		return nil
+	}
+	valid, svcErr := s.flowMgt.IsValidFlow(ctx, flowID, providers.FlowTypeSignOut)
+	if svcErr != nil {
+		return ErrFKFlowServerError
+	}
+	if !valid {
+		return ErrFKInvalidSignOutFlow
 	}
 	return nil
 }
@@ -1190,6 +1343,7 @@ func applyInboundDefaults(c *inboundmodel.InboundClient, oauthProfile *providers
 		AccessToken:  accessToken,
 		IDToken:      idToken,
 		RefreshToken: refreshToken,
+		IDJAG:        resolveIDJAG(oauthProfile.Token),
 	}
 	oauthProfile.UserInfo = resolveUserInfo(oauthProfile.UserInfo, idToken)
 	oauthProfile.ScopeClaims = resolveScopeClaims(oauthProfile.ScopeClaims)
@@ -1241,6 +1395,7 @@ func resolveOAuthTokens(in *providers.OAuthTokenConfig,
 	}
 	if in != nil && in.AccessToken != nil {
 		accessToken.ClientConfig = in.AccessToken.ClientConfig
+		accessToken.DefaultAudience = in.AccessToken.DefaultAudience
 	}
 
 	var idToken *providers.IDTokenConfig
@@ -1319,6 +1474,23 @@ func resolveUserAccessTokenSubConfig(
 	return userConfig
 }
 
+// resolveIDJAG resolves the ID-JAG config, defaulting the validity period when unset. Returns nil when
+// the application has no ID-JAG block configured, which disables ID-JAG issuance for the application.
+func resolveIDJAG(in *providers.OAuthTokenConfig) *providers.IDJAGConfig {
+	if in == nil || in.IDJAG == nil {
+		return nil
+	}
+	validityPeriod := in.IDJAG.ValidityPeriod
+	if validityPeriod <= 0 {
+		validityPeriod = providers.DefaultIDJAGValidityPeriod
+	}
+	return &providers.IDJAGConfig{
+		Enabled:          in.IDJAG.Enabled,
+		AllowedAudiences: in.IDJAG.AllowedAudiences,
+		ValidityPeriod:   validityPeriod,
+	}
+}
+
 // resolveUserInfo resolves user info config, defaulting user attributes to the ID token config.
 func resolveUserInfo(in *providers.UserInfoConfig,
 	idToken *providers.IDTokenConfig) *providers.UserInfoConfig {
@@ -1349,191 +1521,120 @@ func resolveScopeClaims(in map[string][]string) map[string][]string {
 	return in
 }
 
-// syncConsentOnCreate creates the attribute consent purpose for a newly registered application.
-func (s *inboundClientService) syncConsentOnCreate(ctx context.Context,
-	entityID, entityName string, client *inboundmodel.InboundClient, profile *providers.OAuthProfile) error {
-	// TODO: Replace with the entity's actual OU when multi-OU consent is supported.
-	const ouID = "default"
-	attrMap := extractRequestedAttributesFromInbound(client, profile)
-	if len(attrMap) == 0 {
-		return nil
-	}
-	attrs := make([]string, 0, len(attrMap))
-	for a := range attrMap {
-		attrs = append(attrs, a)
-	}
-	if err := s.createMissingConsentElements(ctx, ouID, attrs); err != nil {
-		return err
-	}
-	purpose := consent.ConsentPurposeInput{
-		Name:        consent.AttributesPurposeName(entityID),
-		Description: "Consent purpose for application " + entityName,
-		GroupID:     entityID,
-		Namespace:   providers.NamespaceAttribute,
-		Elements:    attributesToPurposeElements(attrMap),
-	}
-	if _, err := s.consentService.CreateConsentPurpose(ctx, ouID, &purpose); err != nil {
-		return s.wrapConsentServiceError(err)
-	}
-	return nil
+// reconcileReferencedFlows walks call-node targets reachable from the inbound client's configured
+// flows and reconciles the client's flow bindings before persistence.
+// This mutates the client in place. It is intended for the create/update paths; the flow-update
+// revalidation path uses validateReferencedFlows instead, which never mutates.
+func (s *inboundClientService) reconcileReferencedFlows(
+	ctx context.Context, c *inboundmodel.InboundClient) error {
+	return s.walkReferencedFlows(ctx, c, true)
 }
 
-// syncConsentOnUpdate updates or creates the attribute consent purpose for an existing application.
-func (s *inboundClientService) syncConsentOnUpdate(ctx context.Context,
-	entityID, entityName string, client *inboundmodel.InboundClient, profile *providers.OAuthProfile) error {
-	// TODO: Replace with the entity's actual OU when multi-OU consent is supported.
-	const ouID = "default"
-	newAttrs := extractRequestedAttributesFromInbound(client, profile)
-	required := make([]string, 0, len(newAttrs))
-	for a := range newAttrs {
-		required = append(required, a)
-	}
-	if len(required) > 0 {
-		if err := s.createMissingConsentElements(ctx, ouID, required); err != nil {
-			return err
-		}
-	}
-
-	allPurposes, err := s.consentService.ListConsentPurposes(ctx, ouID, entityID)
-	if err != nil {
-		return s.wrapConsentServiceError(err)
-	}
-	existing := consent.FilterAttributePurposes(allPurposes)
-
-	if len(existing) == 0 {
-		if len(newAttrs) > 0 {
-			purpose := consent.ConsentPurposeInput{
-				Name:        consent.AttributesPurposeName(entityID),
-				Description: "Consent purpose for application " + entityName,
-				GroupID:     entityID,
-				Namespace:   providers.NamespaceAttribute,
-				Elements:    attributesToPurposeElements(newAttrs),
-			}
-			if _, createErr := s.consentService.CreateConsentPurpose(ctx, ouID, &purpose); createErr != nil {
-				return s.wrapConsentServiceError(createErr)
-			}
-		}
-		return nil
-	}
-
-	if len(newAttrs) == 0 {
-		// No attributes requested; leave the existing attribute purpose intact. Consent purposes
-		// outlive the application so prior consents remain interpretable.
-		return nil
-	}
-
-	if isConsentAttributesUnchanged(existing[0].Elements, newAttrs) {
-		return nil
-	}
-
-	updated := consent.ConsentPurposeInput{
-		Name:        consent.AttributesPurposeName(entityID),
-		Description: "Consent purpose for application " + entityName,
-		GroupID:     entityID,
-		Namespace:   providers.NamespaceAttribute,
-		Elements:    attributesToPurposeElements(newAttrs),
-	}
-	if _, updateErr := s.consentService.UpdateConsentPurpose(ctx, ouID, existing[0].ID, &updated); updateErr != nil {
-		return s.wrapConsentServiceError(updateErr)
-	}
-
-	return nil
+// validateReferencedFlows verifies that call-node targets reachable from the inbound client's
+// configured flows do not contradict the client's existing flow bindings. An unset field on the
+// client is treated as OK — no auto-fill happens here.
+func (s *inboundClientService) validateReferencedFlows(
+	ctx context.Context, c *inboundmodel.InboundClient) error {
+	return s.walkReferencedFlows(ctx, c, false)
 }
 
-// isConsentAttributesUnchanged reports whether the elements on an existing attribute consent
-// purpose are the same set as the requested attributes (i.e. nothing to sync).
-func isConsentAttributesUnchanged(existing []consent.PurposeElement, requested map[string]bool) bool {
-	if len(existing) != len(requested) {
-		return false
-	}
-	for _, el := range existing {
-		if !requested[el.Name] {
-			return false
-		}
-	}
-	return true
-}
-
-// createMissingConsentElements creates any consent elements not yet present in the consent service.
-func (s *inboundClientService) createMissingConsentElements(ctx context.Context,
-	ouID string, names []string) error {
-	if len(names) == 0 {
+// walkReferencedFlows walks call-node targets reachable from the inbound client's configured
+// flows and either reconciles or validates the client's flow bindings, depending on the reconcile flag.
+// If reconcile is true, the client is mutated in place to auto-fill unset flow IDs and disable the
+// corresponding flow flags. If reconcile is false, the function only validates and returns errors for
+// mismatches without mutating the client.
+func (s *inboundClientService) walkReferencedFlows(
+	ctx context.Context, c *inboundmodel.InboundClient, reconcile bool) error {
+	if s.flowMgt == nil {
 		return nil
 	}
-	validNames, err := s.consentService.ValidateConsentElements(ctx, ouID, names)
-	if err != nil {
-		return s.wrapConsentServiceError(err)
-	}
-	existingMap := make(map[string]bool, len(validNames))
-	for _, n := range validNames {
-		existingMap[n] = true
-	}
-	var toCreate []consent.ConsentElementInput
-	for _, n := range names {
-		if !existingMap[n] {
-			toCreate = append(toCreate, consent.ConsentElementInput{
-				Name:      n,
-				Namespace: providers.NamespaceAttribute,
-			})
-		}
-	}
-	if len(toCreate) > 0 {
-		if _, createErr := s.consentService.CreateConsentElements(ctx, ouID, toCreate); createErr != nil {
-			return s.wrapConsentServiceError(createErr)
-		}
-	}
-	return nil
-}
 
-// wrapConsentServiceError wraps a consent service error in a ConsentSyncError.
-func (s *inboundClientService) wrapConsentServiceError(err *tidcommon.ServiceError) error {
-	if err == nil {
-		return nil
+	starts := []struct {
+		id       string
+		flowType providers.FlowType
+	}{
+		{c.AuthFlowID, providers.FlowTypeAuthentication},
+		{c.RegistrationFlowID, providers.FlowTypeRegistration},
+		{c.RecoveryFlowID, providers.FlowTypeRecovery},
+		{c.SignOutFlowID, providers.FlowTypeSignOut},
 	}
-	return &ConsentSyncError{Underlying: err}
-}
-
-// extractRequestedAttributesFromInbound collects user attributes referenced by the client and profile.
-func extractRequestedAttributesFromInbound(
-	client *inboundmodel.InboundClient, profile *providers.OAuthProfile,
-) map[string]bool {
-	attrMap := make(map[string]bool)
-	if client != nil && client.Assertion != nil {
-		for _, a := range client.Assertion.UserAttributes {
-			attrMap[a] = true
+	for _, start := range starts {
+		if start.id == "" {
+			continue
 		}
-	}
-	if profile != nil {
-		if profile.Token != nil {
-			if profile.Token.AccessToken != nil && profile.Token.AccessToken.UserConfig != nil {
-				for _, a := range profile.Token.AccessToken.UserConfig.Attributes {
-					attrMap[a] = true
+
+		targets, svcErr := s.flowMgt.GetReachableCallTargets(ctx, start.id)
+		if svcErr != nil {
+			if svcErr.Type == tidcommon.ClientErrorType {
+				switch start.flowType {
+				case providers.FlowTypeAuthentication:
+					return ErrFKInvalidAuthFlow
+				case providers.FlowTypeRegistration:
+					return ErrFKInvalidRegistrationFlow
+				case providers.FlowTypeRecovery:
+					return ErrFKInvalidRecoveryFlow
+				case providers.FlowTypeSignOut:
+					return ErrFKInvalidSignOutFlow
 				}
 			}
-			if profile.Token.IDToken != nil {
-				for _, a := range profile.Token.IDToken.UserAttributes {
-					attrMap[a] = true
+			return ErrFKFlowServerError
+		}
+
+		for _, t := range targets {
+			// Same-type CALL is subroutine composition, not an alternate entry point for
+			// that type. So it never conflicts with the inbound client's per-type binding.
+			if t.FlowType == start.flowType {
+				continue
+			}
+
+			var expected string
+			switch t.FlowType {
+			case providers.FlowTypeAuthentication:
+				expected = c.AuthFlowID
+			case providers.FlowTypeRegistration:
+				expected = c.RegistrationFlowID
+			case providers.FlowTypeRecovery:
+				expected = c.RecoveryFlowID
+			case providers.FlowTypeSignOut:
+				expected = c.SignOutFlowID
+			default:
+				continue
+			}
+
+			if expected == "" {
+				// The inbound client has no binding for this type. On the reconcile path (create/update),
+				// we auto-fill the reg/recovery/signout binding with the reachable target and force
+				// the enable flag to false. On the validate-only path (flow update revalidation)
+				// we simply accept — no mutation, no rejection.
+				if !reconcile {
+					continue
+				}
+				switch t.FlowType {
+				case providers.FlowTypeRegistration:
+					c.RegistrationFlowID = t.FlowID
+					c.IsRegistrationFlowEnabled = false
+				case providers.FlowTypeRecovery:
+					c.RecoveryFlowID = t.FlowID
+					c.IsRecoveryFlowEnabled = false
+				case providers.FlowTypeSignOut:
+					c.SignOutFlowID = t.FlowID
+					c.IsSignOutFlowEnabled = false
+				}
+				continue
+			}
+
+			if t.FlowID != expected {
+				return &FlowMismatchError{
+					SourceFlowType: start.flowType,
+					FlowType:       t.FlowType,
+					msg: fmt.Sprintf("configured %s flow invokes a %s flow that is not the configured %s flow",
+						strings.ToLower(string(start.flowType)),
+						strings.ToLower(string(t.FlowType)),
+						strings.ToLower(string(t.FlowType))),
 				}
 			}
 		}
-		if profile.UserInfo != nil {
-			for _, a := range profile.UserInfo.UserAttributes {
-				attrMap[a] = true
-			}
-		}
 	}
-	return attrMap
-}
 
-// attributesToPurposeElements maps an attribute set to consent purpose element inputs.
-func attributesToPurposeElements(attributes map[string]bool) []consent.PurposeElement {
-	elements := make([]consent.PurposeElement, 0, len(attributes))
-	for attr := range attributes {
-		elements = append(elements, consent.PurposeElement{
-			Name:        attr,
-			Namespace:   providers.NamespaceAttribute,
-			IsMandatory: false,
-		})
-	}
-	return elements
+	return nil
 }

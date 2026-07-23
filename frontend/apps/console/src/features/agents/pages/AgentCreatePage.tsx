@@ -27,6 +27,7 @@ import type {JSX} from 'react';
 import {useState, useCallback, useEffect, useMemo} from 'react';
 import {useTranslation} from 'react-i18next';
 import {useNavigate} from 'react-router';
+import RouteConfig from '../../../configs/RouteConfig';
 import useCreateAgent from '../api/useCreateAgent';
 import ConfigureAgentDetails from '../components/create-agent/ConfigureAgentDetails';
 import ConfigureName from '../components/create-agent/ConfigureName';
@@ -114,7 +115,7 @@ export default function AgentCreatePage(): JSX.Element {
   const isLastStep = currentStep === activeSteps[activeSteps.length - 1];
 
   const handleClose = (): void => {
-    void navigate('/agents');
+    void navigate(RouteConfig.agents.list());
   };
 
   const handleStepReadyChange = useCallback((step: AgentCreateFlowStep, isReady: boolean): void => {
@@ -147,6 +148,8 @@ export default function AgentCreatePage(): JSX.Element {
           grantTypes: ['client_credentials'],
           tokenEndpointAuthMethod: 'client_secret_basic',
           responseTypes: [],
+          // PKCE requires the authorization_code grant, which new agents don't have yet.
+          pkceRequired: false,
           token: {
             accessToken: {userConfig: {validityPeriod: 3600, attributes: []}},
             // idToken is required by the shared OAuth2Token type; default agent grants don't issue
@@ -183,7 +186,7 @@ export default function AgentCreatePage(): JSX.Element {
   const handleCompleteContinue = (): void => {
     if (!createdAgent) return;
     (async () => {
-      await navigate(`/agents/${createdAgent.id}`);
+      await navigate(RouteConfig.agents.detail(createdAgent.id));
     })().catch((_error: unknown) => {
       logger.error('Failed to navigate to agent details', {error: _error, agentId: createdAgent.id});
     });

@@ -87,7 +87,7 @@ func (suite *AuthAssertExecutorTestSuite) SetupTest() {
 
 	mockExec := createMockExecutorSimple(suite.T(), ExecutorNameAuthAssert, providers.ExecutorTypeUtility)
 	suite.mockFlowFactory.On("CreateExecutor", ExecutorNameAuthAssert, providers.ExecutorTypeUtility,
-		[]providers.Input{}, []providers.Input{}).Return(mockExec)
+		[]providers.Input{}, []providers.Input{}, mock.Anything).Return(mockExec)
 
 	suite.executor = newAuthAssertExecutor(suite.mockFlowFactory, suite.mockJWTService,
 		suite.mockOUService, suite.mockAssertGenerator, suite.mockAuthnProvider, suite.mockEntityProvider,
@@ -116,7 +116,7 @@ func initializeTestRuntime() error {
 
 func newTestAuthenticatedAuthUser() providers.AuthUser {
 	var authUser providers.AuthUser
-	_ = authUser.UnmarshalJSON([]byte(`{"entityReferenceToken":"tok","attributeToken":"tok"}`))
+	_ = authUser.UnmarshalJSON([]byte(`{"default":{"entityReferenceToken":"tok","attributeToken":"tok"}}`))
 	return authUser
 }
 
@@ -476,7 +476,7 @@ func (suite *AuthAssertExecutorTestSuite) TestExecute_WithUserTypeAndOU() {
 }
 
 func (suite *AuthAssertExecutorTestSuite) TestExecute_WithCustomTokenConfig() {
-	// App-level assertion config (validity period only — issuer always comes from  config)
+	// App-level assertion config (validity period only — issuer defaults inside the JWT service)
 	ctx := &providers.NodeContext{
 		ExecutionID:      "flow-123",
 		EntityID:         "app-123",
@@ -495,7 +495,7 @@ func (suite *AuthAssertExecutorTestSuite) TestExecute_WithCustomTokenConfig() {
 	suite.setupGetEntityReference("", "")
 	suite.setupGetUserAttributesEmpty()
 
-	suite.mockJWTService.On("GenerateJWT", mock.Anything, "user-123", "https://auth.example.com", int64(7200),
+	suite.mockJWTService.On("GenerateJWT", mock.Anything, "user-123", "", int64(7200),
 		mock.Anything, mock.Anything, mock.Anything).Return("jwt-token", int64(7200), nil)
 
 	resp, err := suite.executor.Execute(ctx)

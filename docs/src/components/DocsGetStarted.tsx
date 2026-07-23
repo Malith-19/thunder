@@ -47,7 +47,7 @@ const BROWSE_TOPICS = [
   {
     label: 'Guides',
     description: 'Step-by-step how-to guides',
-    href: '/docs/next/guides/getting-started/what-is-thunderid',
+    href: '/docs/next/getting-started/get-thunderid',
     icon: (
       <svg
         width="18"
@@ -67,7 +67,7 @@ const BROWSE_TOPICS = [
   {
     label: 'Deployment',
     description: 'Run ThunderID in production',
-    href: '/docs/next/guides/deployment-patterns',
+    href: '/docs/next/deployment/deployment-paths',
     icon: (
       <svg
         width="18"
@@ -108,7 +108,7 @@ const BROWSE_TOPICS = [
   {
     label: 'SDKs',
     description: 'Client libraries and integrations',
-    href: '/docs/next/sdks/overview',
+    href: '/sdks',
     icon: (
       <svg
         width="18"

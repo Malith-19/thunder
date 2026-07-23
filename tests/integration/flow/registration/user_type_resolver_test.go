@@ -21,9 +21,9 @@ package registration
 import (
 	"testing"
 
+	"github.com/stretchr/testify/suite"
 	"github.com/thunder-id/thunderid/tests/integration/flow/common"
 	"github.com/thunder-id/thunderid/tests/integration/testutils"
-	"github.com/stretchr/testify/suite"
 )
 
 type UserTypeResolverRuntimeTestSuite struct {
@@ -33,9 +33,9 @@ type UserTypeResolverRuntimeTestSuite struct {
 	testUserTypeID2   string
 	testUserTypeName1 string
 	testUserTypeName2 string
-	testAppID         string
-	createdFlowIDs    []string
-	createdUserIDs    []string
+	testAppID          string
+	createdFlowIDs     []string
+	createdUserIDs []string
 }
 
 func TestUserTypeResolverRuntimeTestSuite(t *testing.T) {
@@ -92,12 +92,14 @@ func (ts *UserTypeResolverRuntimeTestSuite) SetupSuite() {
 	ts.testUserTypeName2 = userType2.Name
 
 	// Look up the default registration flow ID
-	regFlowID, err := testutils.GetFlowIDByHandle("default-basic-flow", "REGISTRATION")
+	regFlowID, err := testutils.GetFlowIDByHandle("default-flow", "REGISTRATION")
 	if err != nil {
 		ts.T().Fatalf("Failed to get default registration flow ID: %v", err)
 	}
 
-	// Create test application with two user types (triggers user type selection)
+	// Create test application with two user types (triggers user type selection).
+	// This test uses the default registration flow, which CALLs the default auth flow. Let the
+	// server default AuthFlowID to the default auth flow so the two remain consistent.
 	testApp := testutils.Application{
 		OUID:                      ts.testOUID1,
 		Name:                      "Runtime Meta Test Application",

@@ -43,6 +43,7 @@ const (
 	RequestParamCodeChallengeMethod string = "code_challenge_method"
 	RequestParamRefreshToken        string = "refresh_token"
 	RequestParamResponseType        string = "response_type"
+	RequestParamResponseMode        string = "response_mode"
 	RequestParamState               string = "state"
 	RequestParamIss                 string = "iss"
 	RequestParamResource            string = "resource"
@@ -56,15 +57,18 @@ const (
 	RequestParamActorTokenType      string = "actor_token_type"
 	RequestParamRequestedTokenType  string = "requested_token_type"
 	RequestParamAudience            string = "audience"
+	RequestParamAssertion           string = "assertion"
 	RequestParamClaims              string = "claims"
 	RequestParamClaimsLocales       string = "claims_locales"
 	RequestParamNonce               string = "nonce"
 	RequestParamPrompt              string = "prompt"
 	RequestParamRequestURI          string = "request_uri"
 	RequestParamAcrValues           string = "acr_values"
+	RequestParamMaxAge              string = "max_age"
 	RequestParamDPoPJkt             string = "dpop_jkt"
 	RequestParamLoginHint           string = "login_hint"
 	RequestParamIDTokenHint         string = "id_token_hint"
+	RequestParamPostLogoutRedirect  string = "post_logout_redirect_uri"
 	RequestParamLoginHintToken      string = "login_hint_token" // #nosec G101
 	RequestParamBindingMessage      string = "binding_message"
 	RequestParamRequestedExpiry     string = "requested_expiry"
@@ -75,6 +79,16 @@ const (
 const (
 	HeaderDPoP string = "DPoP"
 )
+
+// OAuth2 response modes.
+const (
+	ResponseModeQuery string = "query"
+)
+
+// IsSupportedResponseMode checks if the response mode is supported.
+func IsSupportedResponseMode(responseMode string) bool {
+	return responseMode == "" || responseMode == ResponseModeQuery
+}
 
 // OIDC prompt parameter values.
 const (
@@ -103,7 +117,6 @@ const (
 	ShowInsecureWarning   string = "showInsecureWarning"
 	AppID                 string = "applicationId"
 	ExecutionID           string = "executionId"
-	Assertion             string = "assertion"
 )
 
 // Oauth message types.
@@ -132,6 +145,9 @@ const (
 const (
 	TokenTypeBearer = "Bearer"
 	TokenTypeDPoP   = "DPoP"
+	// TokenTypeNA is the token_type returned in an RFC 8693 response whose issued token is not an
+	// access token. It is used for the ID-JAG (Identity Assertion Authorization Grant) response.
+	TokenTypeNA = "N_A"
 )
 
 // TokenTypeIdentifier defines a type for RFC 8693 token type identifiers.
@@ -147,6 +163,10 @@ const (
 	TokenTypeIdentifierIDToken TokenTypeIdentifier = "urn:ietf:params:oauth:token-type:id_token"
 	//nolint:gosec // Token type identifier, not a credential
 	TokenTypeIdentifierJWT TokenTypeIdentifier = "urn:ietf:params:oauth:token-type:jwt"
+	// TokenTypeIdentifierIDJAG is the requested/issued token type for an Identity Assertion
+	// Authorization Grant (draft-ietf-oauth-identity-assertion-authz-grant).
+	//nolint:gosec // Token type identifier, not a credential
+	TokenTypeIdentifierIDJAG TokenTypeIdentifier = "urn:ietf:params:oauth:token-type:id-jag"
 )
 
 // supportedTokenTypeIdentifiers is the single source of truth for all supported token type identifiers.
@@ -155,6 +175,7 @@ var supportedTokenTypeIdentifiers = []TokenTypeIdentifier{
 	TokenTypeIdentifierRefreshToken,
 	TokenTypeIdentifierIDToken,
 	TokenTypeIdentifierJWT,
+	TokenTypeIdentifierIDJAG,
 }
 
 // IsValid checks if the TokenTypeIdentifier is valid.
@@ -237,6 +258,7 @@ const (
 	ClaimSub      string = "sub"
 	ClaimIss      string = "iss"
 	ClaimAud      string = "aud"
+	ClaimAzp      string = "azp"
 	ClaimExp      string = "exp"
 	ClaimIat      string = "iat"
 	ClaimJTI      string = "jti"
@@ -256,6 +278,10 @@ const (
 	ClaimAuthorizedPermissions  string = "authorized_permissions"
 	ClaimAuthorizationRequestID string = "authorization_request_id"
 	ClaimClientID               string = "client_id"
+	// ClaimIDP identifies the source identity provider (by issuer) that authenticated the subject of a
+	// jwt-bearer-grant (ID-JAG) access token, so downstream consumers can distinguish a federated
+	// principal from a local one.
+	ClaimIDP string = "idp"
 )
 
 // OIDC subject types.

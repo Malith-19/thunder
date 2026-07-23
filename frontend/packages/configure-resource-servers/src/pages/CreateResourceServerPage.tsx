@@ -40,6 +40,7 @@ import ConfigureOrgUnit from '../components/create-resource-server/ConfigureOrgU
 import ConfigureSeparator from '../components/create-resource-server/ConfigureSeparator';
 import ConfigureType from '../components/create-resource-server/ConfigureType';
 import {DEFAULT_PERMISSION_DELIMITER} from '../constants/permission-constants';
+import useResourceServerRoutes from '../hooks/useResourceServerRoutes';
 import type {PermissionDelimiter} from '../models/permissions';
 import type {ResourceServerType} from '../models/resource-server';
 
@@ -54,6 +55,7 @@ type ResourceServerCreateStep = keyof typeof ResourceServerCreateStep;
 
 export default function CreateResourceServerPage(): JSX.Element {
   const navigate = useNavigate();
+  const routes = useResourceServerRoutes();
   const {t} = useTranslation();
   const {showToast} = useToast();
   const logger = useLogger('CreateResourceServerPage');
@@ -64,7 +66,7 @@ export default function CreateResourceServerPage(): JSX.Element {
   const [currentStep, setCurrentStep] = useState<ResourceServerCreateStep>(ResourceServerCreateStep.TYPE);
   const [selectedType, setSelectedType] = useState<ResourceServerType | undefined>(undefined);
   const [name, setName] = useState('');
-  const [handle, setHandle] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [delimiter, setDelimiter] = useState<PermissionDelimiter>(DEFAULT_PERMISSION_DELIMITER);
   const [ouId, setOuId] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +96,7 @@ export default function CreateResourceServerPage(): JSX.Element {
 
   const handleClose = (): void => {
     (async (): Promise<void> => {
-      await navigate('/resource-servers');
+      await navigate(routes.list());
     })().catch((err: unknown) => {
       logger.error('Failed to navigate to resource servers list', {error: err});
     });
@@ -154,7 +156,7 @@ export default function CreateResourceServerPage(): JSX.Element {
 
     const payload = {
       name: name.trim(),
-      handle: handle.trim() || undefined,
+      identifier: identifier.trim(),
       ouId: resolvedOuId,
       type: selectedType,
       delimiter,
@@ -169,7 +171,7 @@ export default function CreateResourceServerPage(): JSX.Element {
           'success',
         );
         (async (): Promise<void> => {
-          await navigate(`/resource-servers/${created.id}?tab=resources`);
+          await navigate(`${routes.detail(created.id)}?tab=resources`);
         })().catch((err: unknown) => {
           logger.error('Failed to navigate after create', {error: err});
         });
@@ -218,11 +220,10 @@ export default function CreateResourceServerPage(): JSX.Element {
         return (
           <ConfigureName
             name={name}
-            handle={handle}
-            delimiter={delimiter}
+            identifier={identifier}
             selectedType={selectedType}
             onNameChange={setName}
-            onHandleChange={setHandle}
+            onIdentifierChange={setIdentifier}
             onReadyChange={handleNameReadyChange}
           />
         );
@@ -230,7 +231,6 @@ export default function CreateResourceServerPage(): JSX.Element {
         return (
           <ConfigureSeparator
             delimiter={delimiter}
-            handle={handle}
             onDelimiterChange={handleDelimiterChange}
             onReadyChange={handleSeparatorReadyChange}
           />

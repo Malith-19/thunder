@@ -51,7 +51,8 @@ func (s *ExecutorTestSuite) TestNewExecutor() {
 	defaultInputs := []providers.Input{{Identifier: testInputName, Required: true}}
 	prerequisites := []providers.Input{{Identifier: userAttributeUserID, Required: true}}
 
-	exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication, defaultInputs, prerequisites)
+	exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication,
+		defaultInputs, prerequisites, &providers.ExecutorMeta{})
 
 	s.NotNil(exec)
 	s.Equal(testExecutorName, exec.GetName())
@@ -61,17 +62,20 @@ func (s *ExecutorTestSuite) TestNewExecutor() {
 }
 
 func (s *ExecutorTestSuite) TestGetName() {
-	exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication, nil, nil)
+	exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication,
+		nil, nil, &providers.ExecutorMeta{})
 	s.Equal(testExecutorName, exec.GetName())
 }
 
 func (s *ExecutorTestSuite) TestGetType() {
-	exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication, nil, nil)
+	exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication,
+		nil, nil, &providers.ExecutorMeta{})
 	s.Equal(providers.ExecutorTypeAuthentication, exec.GetType())
 }
 
 func (s *ExecutorTestSuite) TestExecute() {
-	exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication, nil, nil)
+	exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication,
+		nil, nil, &providers.ExecutorMeta{})
 	ctx := &providers.NodeContext{ExecutionID: "test-flow"}
 
 	resp, err := exec.Execute(ctx)
@@ -85,7 +89,8 @@ func (s *ExecutorTestSuite) TestGetDefaultInputs() {
 		{Identifier: testInputName, Required: true},
 		{Identifier: "password", Required: true},
 	}
-	exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication, defaultInputs, nil)
+	exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication,
+		defaultInputs, nil, &providers.ExecutorMeta{})
 
 	result := exec.GetDefaultInputs()
 
@@ -94,7 +99,8 @@ func (s *ExecutorTestSuite) TestGetDefaultInputs() {
 
 func (s *ExecutorTestSuite) TestGetPrerequisites() {
 	prerequisites := []providers.Input{{Identifier: userAttributeUserID, Required: true}}
-	exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication, nil, prerequisites)
+	exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication,
+		nil, prerequisites, &providers.ExecutorMeta{})
 
 	result := exec.GetPrerequisites()
 
@@ -208,7 +214,8 @@ func (s *ExecutorTestSuite) TestHasRequiredInputs() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication, tt.defaultInputs, nil)
+			exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication,
+				tt.defaultInputs, nil, &providers.ExecutorMeta{})
 			ctx := &providers.NodeContext{
 				ExecutionID: "test-flow",
 				UserInputs:  tt.userInputs,
@@ -242,7 +249,7 @@ func (s *ExecutorTestSuite) TestHasRequiredInputs() {
 }
 
 func (s *ExecutorTestSuite) newAuthenticatedAuthUser() providers.AuthUser {
-	raw := `{"entityReferenceToken":"tok","entityReference":{"entityId":"user-123","entityCategory":"","entityType":"","ouId":""},"attributeToken":"atok","attributes":{"attributes":{"email":{"value":"test@example.com"}}}}` //nolint:lll
+	raw := `{"default":{"entityReferenceToken":"tok","entityReference":{"entityId":"user-123","entityCategory":"","entityType":"","ouId":""},"attributeToken":"atok","attributes":{"attributes":{"email":{"value":"test@example.com"}}}}}` //nolint:lll
 	var authUser providers.AuthUser
 	err := json.Unmarshal([]byte(raw), &authUser)
 	s.Require().NoError(err)
@@ -451,7 +458,8 @@ func (s *ExecutorTestSuite) TestValidatePrerequisites() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication, nil, tt.prerequisites)
+			exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication,
+				nil, tt.prerequisites, &providers.ExecutorMeta{})
 
 			var authnProvider providers.AuthnProviderManager
 			if tt.setupMock != nil {
@@ -560,7 +568,8 @@ func (s *ExecutorTestSuite) TestGetUserIDFromContext() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication, nil, nil)
+			exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication,
+				nil, nil, &providers.ExecutorMeta{})
 
 			var authnProvider providers.AuthnProviderManager
 			if tt.setupMock != nil {
@@ -628,7 +637,8 @@ func (s *ExecutorTestSuite) TestGetRequiredInputs() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication, tt.defaultInputs, nil)
+			exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication,
+				tt.defaultInputs, nil, &providers.ExecutorMeta{})
 			ctx := &providers.NodeContext{ExecutionID: "test-flow", NodeInputs: tt.nodeInputs}
 
 			result := exec.GetRequiredInputs(ctx)
@@ -649,9 +659,135 @@ func (s *ExecutorTestSuite) TestGetRequiredInputs() {
 }
 
 func (s *ExecutorTestSuite) TestGetExecutionPolicy() {
-	exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication, nil, nil)
+	exec := newExecutor(testExecutorName, providers.ExecutorTypeAuthentication,
+		nil, nil, &providers.ExecutorMeta{})
 
 	s.Nil(exec.GetExecutionPolicy("default"))
 	s.Nil(exec.GetExecutionPolicy(""))
 	s.Nil(exec.GetExecutionPolicy("custom"))
+}
+
+func (s *ExecutorTestSuite) TestBuildProviderMetadata_Empty() {
+	ctx := &providers.NodeContext{}
+
+	metadata := BuildProviderMetadata(ctx)
+
+	s.NotNil(metadata)
+	s.Empty(metadata.RuntimeMetadata)
+}
+
+func (s *ExecutorTestSuite) TestBuildProviderMetadata_ProviderExtKeysIncluded() {
+	ctx := &providers.NodeContext{
+		RuntimeData: map[string]string{
+			"provider_ext_tenant": "tenant-123",
+			"provider_ext_hint":   "hint-value",
+			"other_key":           "should-be-excluded",
+		},
+	}
+
+	metadata := BuildProviderMetadata(ctx)
+
+	s.Equal([]string{"tenant-123"}, metadata.RuntimeMetadata["provider_ext_tenant"])
+	s.Equal([]string{"hint-value"}, metadata.RuntimeMetadata["provider_ext_hint"])
+	s.NotContains(metadata.RuntimeMetadata, "other_key")
+}
+
+func (s *ExecutorTestSuite) TestBuildProviderMetadata_InitiatorRequestFlattened() {
+	ctx := &providers.NodeContext{}
+	ctx.SetInitiatorRequest(&providers.InitiatorRequest{
+		Headers: map[string][]string{
+			"X-Custom-Header": {"header-value"},
+			"Accept":          {"application/json", "text/html"},
+		},
+		QueryParams: map[string][]string{
+			"client_id":  {"my-client"},
+			"MyCustomQP": {"value"},
+		},
+	})
+
+	metadata := BuildProviderMetadata(ctx)
+
+	// Header names are lowercased (HTTP headers are case-insensitive).
+	s.Equal([]string{"header-value"}, metadata.RuntimeMetadata["initiator_header_x-custom-header"])
+	s.Equal([]string{"application/json", "text/html"}, metadata.RuntimeMetadata["initiator_header_accept"])
+	// Query param names preserve original casing (query params are case-sensitive).
+	s.Equal([]string{"my-client"}, metadata.RuntimeMetadata["initiator_query_client_id"])
+	s.Equal([]string{"value"}, metadata.RuntimeMetadata["initiator_query_MyCustomQP"])
+	s.Nil(metadata.RuntimeMetadata["initiator_query_mycustomqp"])
+}
+
+func (s *ExecutorTestSuite) TestBuildProviderMetadata_HeaderCasingCollisionMerges() {
+	ctx := &providers.NodeContext{}
+	ctx.SetInitiatorRequest(&providers.InitiatorRequest{
+		Headers: map[string][]string{
+			"X-Custom": {"a"},
+			"x-custom": {"b"},
+		},
+	})
+
+	metadata := BuildProviderMetadata(ctx)
+
+	// Both header variants normalize to the same lowercase key, so values must be merged
+	// rather than one silently overwriting the other. Order is nondeterministic due to
+	// Go map iteration, so assert on set membership.
+	merged := metadata.RuntimeMetadata["initiator_header_x-custom"]
+	s.ElementsMatch([]string{"a", "b"}, merged)
+}
+
+func (s *ExecutorTestSuite) TestBuildProviderMetadata_NilInitiatorRequest() {
+	ctx := &providers.NodeContext{
+		RuntimeData: map[string]string{"provider_ext_k": "v"},
+	}
+
+	metadata := BuildProviderMetadata(ctx)
+
+	s.Equal([]string{"v"}, metadata.RuntimeMetadata["provider_ext_k"])
+}
+
+func (s *ExecutorTestSuite) TestBuildGetAttributesMetadata_WithLocale() {
+	ctx := &providers.NodeContext{
+		RuntimeData: map[string]string{
+			"required_locales": "en-US",
+		},
+	}
+
+	metadata := BuildGetAttributesMetadata(ctx)
+
+	s.NotNil(metadata)
+	s.Equal("en-US", metadata.Locale)
+}
+
+func (s *ExecutorTestSuite) TestBuildGetAttributesMetadata_WithoutLocale() {
+	ctx := &providers.NodeContext{
+		RuntimeData: map[string]string{},
+	}
+
+	metadata := BuildGetAttributesMetadata(ctx)
+
+	s.NotNil(metadata)
+	s.Empty(metadata.Locale)
+	s.Empty(metadata.RuntimeMetadata)
+}
+
+func (s *ExecutorTestSuite) TestBuildGetAttributesMetadata_ProviderExtAndInitiator() {
+	ctx := &providers.NodeContext{
+		RuntimeData: map[string]string{
+			"provider_ext_hint": "hint-value",
+			"required_locales":  "en-GB",
+			"ignored":           "yes",
+		},
+	}
+	ctx.SetInitiatorRequest(&providers.InitiatorRequest{
+		QueryParams: map[string][]string{
+			"scope": {"openid"},
+		},
+	})
+
+	metadata := BuildGetAttributesMetadata(ctx)
+
+	s.Equal("en-GB", metadata.Locale)
+	s.Equal([]string{"hint-value"}, metadata.RuntimeMetadata["provider_ext_hint"])
+	s.Equal([]string{"openid"}, metadata.RuntimeMetadata["initiator_query_scope"])
+	s.NotContains(metadata.RuntimeMetadata, "ignored")
+	s.NotContains(metadata.RuntimeMetadata, "required_locales")
 }

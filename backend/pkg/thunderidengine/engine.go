@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/thunder-id/thunderid/internal/attestation"
 	"github.com/thunder-id/thunderid/internal/attributecache"
 	"github.com/thunder-id/thunderid/internal/authn/assert"
 	flowconfig "github.com/thunder-id/thunderid/internal/flow/config"
@@ -81,13 +82,21 @@ func New(mux *http.ServeMux, opts ...Option) *Engine {
 	if err != nil {
 		logger.Fatal(ctx, "Failed to initialize key manager provider", log.Error(err))
 	}
+
+	// Initialize JOSE services for JWT and JWE handling.
 	engineCtx.jwtService, engineCtx.jweService, err = jose.Initialize(
 		engineCtx.runtimeCryptoSvc, engineCtx.joseConfig())
 	if err != nil {
 		logger.Fatal(ctx, "Failed to initialize JOSE services", log.Error(err))
 	}
 
-	attributeCacheService := attributecache.Initialize()
+	runtimeStoreProvider, transactioner, err := runtimestore.Initialize(engineCtx.runtimeTransientDBType,
+		engineCtx.serverConfig.Identifier)
+	if err != nil {
+		logger.Fatal(ctx, "Failed to initialize runtime store", log.Error(err))
+	}
+
+	attributeCacheService := attributecache.Initialize(runtimeStoreProvider)
 	engineCtx.authAssertGen = assert.Initialize()
 
 	// Initialize flow metadata service
@@ -130,30 +139,33 @@ func New(mux *http.ServeMux, opts ...Option) *Engine {
 	engineCtx.graphBuilder = graphbuilder.Initialize(engineCtx.flowFactory, engineCtx.execRegistry,
 		engineCtx.interceptorRegistry, graphCache)
 
-	runtimeStoreProvider, transactioner, err := runtimestore.Initialize(engineCtx.runtimeDBType,
-		engineCtx.serverConfig.Identifier)
+	attestationProvider, err := attestation.Initialize(engineCtx.runtimeCryptoSvc)
 	if err != nil {
-		logger.Fatal(ctx, "Failed to initialize runtime store", log.Error(err))
+		logger.Fatal(ctx, "Failed to initialize attestation provider", log.Error(err))
 	}
 	flowExecService, err := flowexec.Initialize(mux, engineCtx.flowProvider, engineCtx.actorProvider,
 		engineCtx.execRegistry, engineCtx.interceptorRegistry, engineCtx.observabilitySvc,
-		engineCtx.runtimeCryptoSvc, engineCtx.graphBuilder, runtimeStoreProvider, transactioner, flowConfig)
+		engineCtx.runtimeCryptoSvc, attestationProvider, engineCtx.graphBuilder, runtimeStoreProvider,
+		transactioner, flowConfig)
 	if err != nil {
 		logger.Fatal(ctx, "Failed to initialize flow execution service", log.Error(err))
 	}
 
 	oauthConfig := oauthconfig.Config{
-		DeploymentID:  engineCtx.serverConfig.Identifier,
-		RuntimeDBType: engineCtx.runtimeDBType,
-		BaseURL:       config.GetServerURL(&engineCtx.serverConfig),
-		JWT:           engineCtx.jwtConfig,
-		OAuth:         engineCtx.oauthConfig,
-		GateClient:    engineCtx.gateClientConfig,
+		DeploymentID:           engineCtx.serverConfig.Identifier,
+		RuntimeTransientDBType: engineCtx.runtimeTransientDBType,
+		BaseURL:                config.GetServerURL(&engineCtx.serverConfig),
+		JWT:                    engineCtx.jwtConfig,
+		OAuth:                  engineCtx.oauthConfig,
+		GateClient:             engineCtx.gateClientConfig,
 	}
+	// The embedded engine has no server-config store, so no default resource server is available.
+	// Implicit no-resource requests that carry permission scopes are rejected; OIDC-only or
+	// scopeless requests do not need resource-server binding.
 	err = oauth.Initialize(mux, engineCtx.actorProvider, engineCtx.authnProvider, engineCtx.jwtService,
 		engineCtx.jweService, flowExecService, engineCtx.observabilitySvc, engineCtx.runtimeCryptoSvc,
 		engineCtx.ouProvider, attributeCacheService, engineCtx.authzProvider, engineCtx.resourceProvider,
-		engineCtx.i18nProvider, engineCtx.idpProvider, nil, oauthConfig)
+		nil, engineCtx.i18nProvider, engineCtx.idpProvider, nil, runtimeStoreProvider, transactioner, oauthConfig)
 	if err != nil {
 		logger.Fatal(ctx, "Failed to initialize OAuth services", log.Error(err))
 	}
@@ -218,15 +230,15 @@ type engineContext struct {
 	graphBuilder        graphbuilder.GraphBuilderInterface
 	authAssertGen       assert.AuthAssertGeneratorInterface
 
-	serverHome          string
-	runtimeDBType       string
-	oauthConfig         engineconfig.OAuthConfig
-	jwtConfig           engineconfig.JWTConfig
-	flowConfig          engineconfig.FlowConfig
-	serverConfig        engineconfig.ServerConfig
-	cacheConfig         engineconfig.CacheConfig
-	observabilityConfig engineconfig.ObservabilityConfig
-	gateClientConfig    engineconfig.GateClientConfig
+	serverHome             string
+	runtimeTransientDBType string
+	oauthConfig            engineconfig.OAuthConfig
+	jwtConfig              engineconfig.JWTConfig
+	flowConfig             engineconfig.FlowConfig
+	serverConfig           engineconfig.ServerConfig
+	cacheConfig            engineconfig.CacheConfig
+	observabilityConfig    engineconfig.ObservabilityConfig
+	gateClientConfig       engineconfig.GateClientConfig
 
 	actorProvider         providers.ActorProvider
 	authnProvider         providers.AuthnProviderManager

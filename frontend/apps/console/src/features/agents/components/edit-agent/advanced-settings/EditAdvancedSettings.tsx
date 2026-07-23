@@ -17,9 +17,12 @@
  */
 
 import {Stack} from '@wso2/oxygen-ui';
-import CertificateSection from './CertificateSection';
-import OAuth2ConfigSection from './OAuth2ConfigSection';
-import RedirectURIsSection from './RedirectURIsSection';
+import AllowedUserTypesSection from './AllowedUserTypesSection';
+import OperationModesSection from './OperationModesSection';
+import OwnerSection from './OwnerSection';
+import SecuritySection from './SecuritySection';
+import TokenEndpointAuthMethodSection from './TokenEndpointAuthMethodSection';
+import AudienceSection from '../../../../applications/components/edit-application/advanced-settings/AudienceSection';
 import type {OAuth2Config} from '../../../../applications/models/oauth';
 import type {Agent, AgentInboundAuthConfig, OAuthAgentConfig} from '../../../models/agent';
 
@@ -28,10 +31,6 @@ interface EditAdvancedSettingsProps {
   editedAgent: Partial<Agent>;
   oauth2Config?: OAuthAgentConfig;
   onFieldChange: (field: keyof Agent, value: unknown) => void;
-  /**
-   * Bubbled up from the redirect-URI section to the page-level Save guard.
-   */
-  onValidationChange?: (hasErrors: boolean) => void;
 }
 
 export default function EditAdvancedSettings({
@@ -39,7 +38,6 @@ export default function EditAdvancedSettings({
   editedAgent,
   oauth2Config = undefined,
   onFieldChange,
-  onValidationChange = undefined,
 }: EditAdvancedSettingsProps) {
   const handleOAuth2ConfigChange = (updates: Partial<OAuth2Config>) => {
     const currentInboundAuth: AgentInboundAuthConfig[] = editedAgent.inboundAuthConfig ?? agent.inboundAuthConfig ?? [];
@@ -49,25 +47,47 @@ export default function EditAdvancedSettings({
     onFieldChange('inboundAuthConfig', updatedInboundAuth);
   };
 
+  const handleDefaultAudienceChange = (audience: string) => {
+    handleOAuth2ConfigChange({
+      token: {
+        ...oauth2Config?.token,
+        accessToken: {...oauth2Config?.token?.accessToken, defaultAudience: audience},
+      } as OAuth2Config['token'],
+    });
+  };
+
   return (
     <Stack spacing={3}>
-      <OAuth2ConfigSection
+      <OwnerSection agent={agent} editedAgent={editedAgent} onFieldChange={onFieldChange} />
+      <AllowedUserTypesSection
+        agent={agent}
+        editedAgent={editedAgent}
+        oauth2Config={oauth2Config}
+        onFieldChange={onFieldChange}
+      />
+      <OperationModesSection
         oauth2Config={oauth2Config}
         onOAuth2ConfigChange={handleOAuth2ConfigChange}
         disabled={agent.isReadOnly}
       />
-      <RedirectURIsSection
+      <TokenEndpointAuthMethodSection
         oauth2Config={oauth2Config}
         onOAuth2ConfigChange={handleOAuth2ConfigChange}
-        onValidationChange={onValidationChange}
         disabled={agent.isReadOnly}
       />
-      <CertificateSection
-        certificate={oauth2Config?.certificate}
-        onCertificateChange={(cert) => handleOAuth2ConfigChange({certificate: cert})}
-        required={oauth2Config?.tokenEndpointAuthMethod === 'private_key_jwt'}
+      <SecuritySection
+        oauth2Config={oauth2Config}
+        onOAuth2ConfigChange={handleOAuth2ConfigChange}
         disabled={agent.isReadOnly}
       />
+      {oauth2Config && (
+        <AudienceSection
+          audience={oauth2Config.token?.accessToken?.defaultAudience ?? ''}
+          onAudienceChange={handleDefaultAudienceChange}
+          entityLabel="agent"
+          disabled={agent.isReadOnly}
+        />
+      )}
     </Stack>
   );
 }

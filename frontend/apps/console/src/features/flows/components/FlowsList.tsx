@@ -24,6 +24,7 @@ import {useMemo, useCallback, useState, type JSX} from 'react';
 import {useTranslation} from 'react-i18next';
 import {useNavigate} from 'react-router';
 import FlowDeleteDialog from './FlowDeleteDialog';
+import RouteConfig from '../../../configs/RouteConfig';
 import useGetFlows from '../api/useGetFlows';
 import type {BasicFlowDefinition} from '../models/responses';
 
@@ -50,7 +51,7 @@ export default function FlowsList(): JSX.Element {
   const handleEditClick = useCallback(
     (flow: BasicFlowDefinition): void => {
       (async (): Promise<void> => {
-        await navigate(`/flows/signin/${flow.id}`);
+        await navigate(RouteConfig.flows.detail('signin', flow.id));
       })().catch((_error: unknown) => {
         logger.error('Failed to navigate to flow builder', {error: _error, flowId: flow.id});
       });
@@ -77,22 +78,6 @@ export default function FlowsList(): JSX.Element {
             color="primary"
             variant="outlined"
             sx={{
-              fontSize: '0.7rem',
-            }}
-          />
-        ),
-      },
-      {
-        field: 'activeVersion',
-        headerName: t('flows:listing.columns.version'),
-        width: 100,
-        renderCell: (params: DataGrid.GridRenderCellParams<BasicFlowDefinition>): JSX.Element => (
-          <Chip
-            label={`v${params.row.activeVersion}`}
-            size="small"
-            variant="outlined"
-            sx={{
-              fontFamily: 'monospace',
               fontSize: '0.7rem',
             }}
           />
@@ -187,6 +172,9 @@ export default function FlowsList(): JSX.Element {
             rows={data?.flows ?? []}
             columns={columns}
             getRowId={(row): string => (row as BasicFlowDefinition).id}
+            getRowClassName={(params) =>
+              (params.row as BasicFlowDefinition).isReadOnly ? 'row-not-clickable' : 'row-clickable'
+            }
             onRowClick={(params) => {
               if (!(params.row as BasicFlowDefinition).isReadOnly) {
                 handleEditClick(params.row as BasicFlowDefinition);

@@ -194,7 +194,7 @@ func (ts *tokenService) ProcessTokenRequest(
 	}
 
 	// Issue refresh token if applicable.
-	if (grantType == providers.GrantTypeAuthorizationCode || grantType == providers.GrantTypeCIBA) &&
+	if grantType.IssuesRefreshToken() &&
 		oauthApp.IsAllowedGrantType(providers.GrantTypeRefreshToken) {
 		logger.Debug(ctx, "Issuing refresh token for the token request",
 			log.String("client_id", clientID), log.String("grant_type", grantTypeStr))
@@ -256,9 +256,12 @@ func (ts *tokenService) ProcessTokenRequest(
 	// For token exchange, determine the issued_token_type from the request.
 	if grantType == providers.GrantTypeTokenExchange {
 		requestedTokenType := tokenRequest.RequestedTokenType
-		if requestedTokenType == "" || requestedTokenType == string(constants.TokenTypeIdentifierAccessToken) {
+		switch {
+		case requestedTokenType == string(constants.TokenTypeIdentifierIDJAG):
+			tokenResponse.IssuedTokenType = string(constants.TokenTypeIdentifierIDJAG)
+		case requestedTokenType == "" || requestedTokenType == string(constants.TokenTypeIdentifierAccessToken):
 			tokenResponse.IssuedTokenType = string(constants.TokenTypeIdentifierAccessToken)
-		} else {
+		default:
 			tokenResponse.IssuedTokenType = string(constants.TokenTypeIdentifierJWT)
 		}
 	}

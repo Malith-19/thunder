@@ -66,6 +66,12 @@ func (o *OAuthClient) ValidateRedirectURI(ctx context.Context, redirectURI strin
 	return ValidateRedirectURI(ctx, o.RedirectURIs, redirectURI)
 }
 
+// ValidatePostLogoutRedirectURI validates the given post-logout redirect URI against this client's
+// registered post-logout redirect URIs.
+func (o *OAuthClient) ValidatePostLogoutRedirectURI(ctx context.Context, postLogoutRedirectURI string) error {
+	return ValidatePostLogoutRedirectURI(ctx, o.PostLogoutRedirectURIs, postLogoutRedirectURI)
+}
+
 // RequiresPKCE reports whether PKCE is required for this client.
 func (o *OAuthClient) RequiresPKCE() bool {
 	return o.PKCERequired || o.PublicClient
@@ -101,6 +107,17 @@ func (o *OAuthClient) ClientAccessTokenConfig() *AccessTokenSubConfig {
 	return o.Token.AccessToken.ClientConfig
 }
 
+// ResolveDefaultAudience returns the aud claim for an access token that is not bound to a
+// resource server (an OIDC-only or scopeless request). It returns the application's configured
+// default audience when set; otherwise it falls back to the given client_id.
+func (o *OAuthClient) ResolveDefaultAudience(clientID string) string {
+	if o != nil && o.Token != nil && o.Token.AccessToken != nil &&
+		o.Token.AccessToken.DefaultAudience != "" {
+		return o.Token.AccessToken.DefaultAudience
+	}
+	return clientID
+}
+
 // ValidateRedirectURI validates the provided redirect URI against the registered list.
 func ValidateRedirectURI(ctx context.Context, redirectURIs []string, redirectURI string) error {
 	logger := log.GetLogger()
@@ -132,6 +149,24 @@ func ValidateRedirectURI(ctx context.Context, redirectURIs []string, redirectURI
 		return fmt.Errorf("redirect URI must not contain a fragment component")
 	}
 
+	return nil
+}
+
+// ValidatePostLogoutRedirectURI validates a post-logout redirect URI against the registered list.
+// An empty URI is allowed (the logout endpoint then lands the user on a default page); a supplied
+// URI must match one of the registered post-logout redirect URIs.
+func ValidatePostLogoutRedirectURI(ctx context.Context, postLogoutRedirectURIs []string,
+	postLogoutRedirectURI string) error {
+	if postLogoutRedirectURI == "" {
+		return nil
+	}
+	if !matchAnyRedirectURIPattern(postLogoutRedirectURIs, postLogoutRedirectURI) {
+		return fmt.Errorf("post_logout_redirect_uri does not match any registered post-logout redirect URI")
+	}
+	if _, err := utils.ParseURL(postLogoutRedirectURI); err != nil {
+		log.GetLogger().Error(ctx, "Failed to parse post-logout redirect URI", log.Error(err))
+		return fmt.Errorf("invalid post_logout_redirect_uri: %s", err.Error())
+	}
 	return nil
 }
 

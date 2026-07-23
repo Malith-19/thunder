@@ -17,13 +17,13 @@
  */
 
 import userEvent from '@testing-library/user-event';
+import {AuthenticatorTypes} from '@thunderid/configure-connections';
 import {render, screen} from '@thunderid/test-utils';
 import {describe, expect, it, vi, beforeEach} from 'vitest';
 import {ApplicationCreateFlowSignInApproach, ApplicationCreateFlowStep} from '../../../models/application-create-flow';
 import {TechnologyApplicationTemplate, PlatformApplicationTemplate} from '../../../models/application-templates';
 import ApplicationCreateProvider from '../ApplicationCreateProvider';
 import useApplicationCreate from '../useApplicationCreate';
-import {AuthenticatorTypes} from '@/features/connections/models/authenticators';
 
 // Mock useGetApplications
 const mockUseGetApplications = vi.fn();
@@ -138,7 +138,7 @@ describe('ApplicationCreateProvider', () => {
       </ApplicationCreateProvider>,
     );
 
-    expect(screen.getByTestId('current-step')).toHaveTextContent(ApplicationCreateFlowStep.STACK);
+    expect(screen.getByTestId('current-step')).toHaveTextContent(ApplicationCreateFlowStep.NAME);
     expect(screen.getByTestId('app-name')).toHaveTextContent('');
     expect(screen.getByTestId('selected-theme')).toHaveTextContent('null');
     expect(screen.getByTestId('app-logo')).toHaveTextContent('null');
@@ -395,7 +395,7 @@ describe('ApplicationCreateProvider', () => {
     await user.click(screen.getByText('Reset'));
 
     // Verify back to initial state
-    expect(screen.getByTestId('current-step')).toHaveTextContent(ApplicationCreateFlowStep.STACK);
+    expect(screen.getByTestId('current-step')).toHaveTextContent(ApplicationCreateFlowStep.NAME);
     expect(screen.getByTestId('app-name')).toHaveTextContent('');
     expect(screen.getByTestId('error')).toHaveTextContent('null');
     expect(screen.getByTestId('selected-theme')).toHaveTextContent('null');

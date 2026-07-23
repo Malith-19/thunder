@@ -71,7 +71,11 @@ func newOUExecutor(
 		log.String(log.LoggerKeyExecutorName, ExecutorNameOUCreation))
 
 	base := flowFactory.CreateExecutor(ExecutorNameOUCreation, providers.ExecutorTypeRegistration,
-		defaultInputs, []providers.Input{})
+		defaultInputs, []providers.Input{}, &providers.ExecutorMeta{
+			SupportedProperties: []providers.ExecutorSupportedProperties{
+				{Property: "parentOuId"},
+			},
+		})
 
 	return &ouExecutor{
 		Executor:          base,
@@ -113,7 +117,7 @@ func (o *ouExecutor) Execute(ctx *providers.NodeContext) (*providers.ExecutorRes
 			}
 			logger.Debug(ctx.Context, "User not found or ambiguous, proceeding with OU creation")
 		}
-		ctx.AuthUser = authUser
+		execResp.AuthUser = authUser
 		if entityRef != nil {
 			logger.Debug(ctx.Context, "User already has an entity reference, skipping OU creation")
 			execResp.Status = providers.ExecComplete

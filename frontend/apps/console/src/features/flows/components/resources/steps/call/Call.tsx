@@ -34,8 +34,10 @@ import {Handle, Position, useNodeId, useReactFlow} from '@xyflow/react';
 import {memo, useMemo, useState, type ReactElement} from 'react';
 import {useTranslation} from 'react-i18next';
 import {useNavigate} from 'react-router';
+import RouteConfig from '../../../../../../configs/RouteConfig';
 import ValidationErrorBoundary from '../../../validation-panel/ValidationErrorBoundary';
 import type {CommonStepFactoryPropsInterface} from '../CommonStepFactory';
+import StepTitle from '../StepTitle';
 import useGetFlows from '@/features/flows/api/useGetFlows';
 import VisualFlowConstants from '@/features/flows/constants/VisualFlowConstants';
 import useInteractionState from '@/features/flows/hooks/useInteractionState';
@@ -52,6 +54,8 @@ type CallStepData = StepData & {flow?: {ref?: string}};
 
 const CALL_NODE_WIDTH = 260;
 
+// Sign-out flows are intentionally absent: they cannot be selected as call targets, so a Call node
+// never references one and there is nothing to open.
 const FLOW_TYPE_TO_ROUTE_SEGMENT: Record<string, string> = {
   [FlowType.AUTHENTICATION]: 'signin',
   [FlowType.REGISTRATION]: 'registration',
@@ -77,7 +81,7 @@ function Call({resources, data}: CallPropsInterface): ReactElement {
   const callData: CallStepData = (data as CallStepData) ?? {};
   const flowRef: string = callData.flow?.ref ?? '';
   const paletteEntry: Step | undefined = resources?.[0];
-  const displayLabel: string = paletteEntry?.display?.label ?? t('flows:core.call.unconfiguredLabel', 'Call flow');
+  const displayLabel: string = paletteEntry?.display?.label ?? t('flows:core.call.unconfiguredLabel', 'Flow');
 
   const referencedFlow: BasicFlowDefinition | undefined = useMemo<BasicFlowDefinition | undefined>(
     () => (flowsData?.flows ?? []).find((f: BasicFlowDefinition) => f.id === flowRef),
@@ -143,7 +147,7 @@ function Call({resources, data}: CallPropsInterface): ReactElement {
       return;
     }
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    navigate(`/flows/${segment}/${referencedFlow.id}`);
+    navigate(RouteConfig.flows.detail(segment, referencedFlow.id));
   };
 
   const bodyLabel: string = referencedFlow
@@ -162,11 +166,9 @@ function Call({resources, data}: CallPropsInterface): ReactElement {
           justifyContent="space-between"
           alignItems="center"
           className="execution-minimal-step-action-panel"
-          sx={{backgroundColor: 'secondary.main', height: 44, px: 2, py: 1.25}}
+          sx={{backgroundColor: '#151515', height: 44, px: 2, py: 1.25, gap: 1.5}}
         >
-          <Typography variant="body2" sx={{color: 'common.white', fontWeight: 500}}>
-            {displayLabel}
-          </Typography>
+          <StepTitle label={displayLabel} />
           <Box display="flex" alignItems="center" gap={0.5}>
             <Tooltip title={t('flows:core.call.tooltip.configure', 'Configure')}>
               <IconButton size="small" onClick={handleConfigClick} sx={{color: 'common.white'}}>

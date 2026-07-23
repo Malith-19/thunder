@@ -69,7 +69,7 @@ const paletteResource: Step = {
   type: 'CALL',
   category: 'WORKFLOW',
   resourceType: 'STEP',
-  display: {label: 'Call Flow'},
+  display: {label: 'Flow'},
 } as unknown as Step;
 
 const renderCall = (data?: Record<string, unknown>) => {
@@ -95,6 +95,7 @@ describe('Call', () => {
 
   describe('Rendering', () => {
     it('falls back to the default "Call flow" label when no palette resource is provided', () => {
+      mockUseNodeId.mockReturnValue(null);
       const props = {
         resources: [],
         data: {} as never,
@@ -106,7 +107,7 @@ describe('Call', () => {
         isConnectable: true,
       } as unknown as Parameters<typeof Call>[0];
       render(<Call {...props} />);
-      expect(screen.getAllByText(/call flow/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/^flow$/i).length).toBeGreaterThan(0);
     });
 
     it('records the last interacted resource when the card body is clicked', () => {
@@ -133,9 +134,15 @@ describe('Call', () => {
       expect(screen.getByTestId('call-node-flow-ref')).toHaveTextContent(/select a flow/i);
     });
 
-    it('shows the palette label in the header', () => {
+    it('shows the step id in the header', () => {
       renderCall({});
-      expect(screen.getAllByText('Call Flow').length).toBeGreaterThan(0);
+      expect(screen.getByText('call-node-id')).toBeInTheDocument();
+    });
+
+    it('shows the palette label in the header without a node context', () => {
+      mockUseNodeId.mockReturnValue(null);
+      renderCall({});
+      expect(screen.getAllByText('Flow').length).toBeGreaterThan(0);
     });
   });
 
@@ -237,6 +244,17 @@ describe('Call', () => {
       fireEvent.click(screen.getByTestId('call-open-referenced-flow'));
       fireEvent.click(screen.getByRole('button', {name: /continue/i}));
       expect(mockNavigate).toHaveBeenCalledWith('/flows/recovery/flow-rec');
+    });
+
+    it('does not offer opening a referenced SIGNOUT flow', () => {
+      // Sign-out flows cannot be call targets, so there is no route to open one.
+      mockUseGetFlows.mockReturnValue({
+        data: {flows: [{id: 'flow-so', name: 'Sign Out', flowType: 'SIGNOUT'}]},
+        isLoading: false,
+        error: null,
+      });
+      renderCall({flow: {ref: 'flow-so'}});
+      expect(screen.getByTestId('call-open-referenced-flow')).toBeDisabled();
     });
 
     it('does not navigate when the user cancels the confirmation dialog', () => {

@@ -16,6 +16,8 @@
  * under the License.
  */
 
+import * as componentsModule from '@thunderid/components';
+import * as thunderIdReactModule from '@thunderid/react';
 import {renderWithProviders, screen, fireEvent, waitFor} from '@thunderid/test-utils';
 import type {ReactNode} from 'react';
 import {describe, it, expect, vi, beforeEach} from 'vitest';
@@ -47,9 +49,10 @@ vi.mock('react-router', async () => {
   };
 });
 
-vi.mock('@thunderid/react', () => ({
-  useThunderID: () => ({http: {request: vi.fn()}}),
-}));
+vi.mock('@thunderid/react', {spy: true});
+
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- vi.mock({spy:true}) type inference doesn't resolve for this package's conditional exports
+vi.mocked(thunderIdReactModule.useThunderID).mockImplementation(() => ({http: {request: vi.fn()}}) as never);
 
 vi.mock('@thunderid/contexts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@thunderid/contexts')>();
@@ -64,32 +67,30 @@ vi.mock('@thunderid/logger/react', () => ({
   useLogger: () => ({error: vi.fn(), info: vi.fn(), debug: vi.fn()}),
 }));
 
-vi.mock('@thunderid/components', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@thunderid/components')>();
-  return {
-    ...actual,
-    PageLoadingAnimation: vi.fn(() => <div role="progressbar" />),
-    SettingsCard: vi.fn(({children, title}: {children: ReactNode; title?: string}) => (
-      <div data-testid="settings-card">
-        {title && <span>{title}</span>}
-        {children}
-      </div>
-    )),
-    UnsavedChangesBar: vi.fn(
-      ({message, onReset, onSave}: {message: string; onReset: () => void; onSave: () => void}) => (
-        <div data-testid="unsaved-changes-bar">
-          <span>{message}</span>
-          <button type="button" onClick={onReset}>
-            Discard
-          </button>
-          <button type="button" onClick={onSave}>
-            Save
-          </button>
-        </div>
-      ),
-    ),
-  };
-});
+vi.mock('@thunderid/components', {spy: true});
+
+vi.mocked(componentsModule.PageLoadingAnimation).mockImplementation(() => <div role="progressbar" />);
+vi.mocked(componentsModule.SettingsCard).mockImplementation(
+  ({children, title}: {children: ReactNode; title?: string}) => (
+    <div data-testid="settings-card">
+      {title && <span>{title}</span>}
+      {children}
+    </div>
+  ),
+);
+vi.mocked(componentsModule.UnsavedChangesBar).mockImplementation(
+  ({message, onReset, onSave}: {message: string; onReset: () => void; onSave: () => void}) => (
+    <div data-testid="unsaved-changes-bar">
+      <span>{message}</span>
+      <button type="button" onClick={onReset}>
+        Discard
+      </button>
+      <button type="button" onClick={onSave}>
+        Save
+      </button>
+    </div>
+  ),
+);
 
 const mockUseGetResourceServer = vi.fn();
 const mockUpdateMutate = vi.fn();
@@ -106,6 +107,16 @@ vi.mock('../../api/useGetResourceServer', () => ({
 
 vi.mock('../../api/useUpdateResourceServer', () => ({
   default: () => ({mutate: mockUpdateMutate, isPending: false}),
+}));
+
+const mockUseGetDefaultResourceServer = vi.fn();
+
+vi.mock('../../api/useGetDefaultResourceServer', () => ({
+  default: () => mockUseGetDefaultResourceServer() as {data: unknown},
+}));
+
+vi.mock('../../components/SetDefaultResourceServerDialog', () => ({
+  default: () => null,
 }));
 
 vi.mock('../../api/useGetResources', () => ({
@@ -135,7 +146,6 @@ vi.mock('../../components/resource-server-detail/AdvancedTab', () => ({
 const mockResourceServer: ResourceServer = {
   id: 'rs-1',
   name: 'Dark Dodos Smash',
-  handle: 'dark-dodos',
   identifier: 'https://api.example.com',
   ouId: 'ou-1',
   delimiter: '/',
@@ -160,6 +170,9 @@ describe('ResourceServerEditPage', () => {
       isLoading: false,
       error: null,
       refetch: mockRefetch,
+    });
+    mockUseGetDefaultResourceServer.mockReturnValue({
+      data: {readOnly: {}, writable: {}, merged: {}},
     });
   });
 
@@ -195,10 +208,10 @@ describe('ResourceServerEditPage', () => {
     expect(screen.getByText('Dark Dodos Smash')).toBeInTheDocument();
   });
 
-  it('renders the handle chip after successful load', () => {
+  it('does not render a resource server handle chip', () => {
     renderWithProviders(<ResourceServerEditPage />);
 
-    expect(screen.getByText('dark-dodos')).toBeInTheDocument();
+    expect(screen.queryByText('dark-dodos')).not.toBeInTheDocument();
   });
 
   it('renders the Resources tab as active by default', () => {
@@ -308,6 +321,26 @@ describe('ResourceServerEditPage', () => {
     );
   });
 
+  it('does not save when the identifier is cleared', async () => {
+    renderWithProviders(<ResourceServerEditPage />);
+
+    fireEvent.click(screen.getByRole('tab', {name: 'Advanced Settings'}));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('advanced-tab')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText('Identifier'), {target: {value: '   '}});
+
+    await waitFor(() => {
+      expect(screen.getByTestId('unsaved-changes-bar')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(mockUpdateMutate).not.toHaveBeenCalled();
+  });
+
   it('renders the MCP-specific Danger Zone title for an MCP server', () => {
     mockUseGetResourceServer.mockReturnValue({
       data: mockMcpResourceServer,
@@ -347,6 +380,55 @@ describe('ResourceServerEditPage', () => {
     renderWithProviders(<ResourceServerEditPage />);
 
     expect(screen.getByRole('button', {name: 'Delete MCP server'})).toBeInTheDocument();
+  });
+
+  it('shows the Set as default button when the server is not the default', () => {
+    renderWithProviders(<ResourceServerEditPage />);
+
+    expect(screen.getByRole('button', {name: 'Set as default'})).toBeInTheDocument();
+    expect(screen.queryByText('Default resource server')).not.toBeInTheDocument();
+  });
+
+  it('shows the Default resource server badge when the server is the default', () => {
+    mockUseGetDefaultResourceServer.mockReturnValue({
+      data: {readOnly: {}, writable: {}, merged: {resourceServerId: 'rs-1'}},
+    });
+
+    renderWithProviders(<ResourceServerEditPage />);
+
+    expect(screen.getByText('Default resource server')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Set as default'})).not.toBeInTheDocument();
+  });
+
+  it('renders neither the badge nor the action while the default config is loading', () => {
+    mockUseGetDefaultResourceServer.mockReturnValue({data: undefined, isLoading: true, error: null});
+
+    renderWithProviders(<ResourceServerEditPage />);
+
+    expect(screen.queryByRole('button', {name: 'Set as default'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Default resource server')).not.toBeInTheDocument();
+  });
+
+  it('does not offer Set as default when the default is locked by declarative config', () => {
+    mockUseGetDefaultResourceServer.mockReturnValue({
+      data: {readOnly: {resourceServerId: 'rs-9'}, writable: {}, merged: {resourceServerId: 'rs-9'}},
+    });
+
+    renderWithProviders(<ResourceServerEditPage />);
+
+    expect(screen.queryByRole('button', {name: 'Set as default'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Default resource server')).not.toBeInTheDocument();
+  });
+
+  it('shows the badge but no action for a locked default server', () => {
+    mockUseGetDefaultResourceServer.mockReturnValue({
+      data: {readOnly: {resourceServerId: 'rs-1'}, writable: {}, merged: {resourceServerId: 'rs-1'}},
+    });
+
+    renderWithProviders(<ResourceServerEditPage />);
+
+    expect(screen.getByText('Default resource server')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Set as default'})).not.toBeInTheDocument();
   });
 
   it('shows the name text field when the edit icon button is clicked', async () => {

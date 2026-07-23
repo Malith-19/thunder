@@ -25,9 +25,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/suite"
 	"github.com/thunder-id/thunderid/tests/integration/flow/common"
 	"github.com/thunder-id/thunderid/tests/integration/testutils"
-	"github.com/stretchr/testify/suite"
 )
 
 var (
@@ -337,26 +337,6 @@ func (ts *GoogleRegistrationFlowTestSuite) SetupSuite() {
 				Value:    "openid email profile",
 				IsSecret: false,
 			},
-			{
-				Name:     "authorization_endpoint",
-				Value:    ts.mockGoogleServer.GetURL() + "/o/oauth2/v2/auth",
-				IsSecret: false,
-			},
-			{
-				Name:     "token_endpoint",
-				Value:    ts.mockGoogleServer.GetURL() + "/token",
-				IsSecret: false,
-			},
-			{
-				Name:     "userinfo_endpoint",
-				Value:    ts.mockGoogleServer.GetURL() + "/v1/userinfo",
-				IsSecret: false,
-			},
-			{
-				Name:     "jwks_endpoint",
-				Value:    ts.mockGoogleServer.GetURL() + "/oauth2/v3/certs",
-				IsSecret: false,
-			},
 		},
 	}
 
@@ -383,6 +363,12 @@ func (ts *GoogleRegistrationFlowTestSuite) SetupSuite() {
 	flowIDWithExisting, err := testutils.CreateFlow(googleRegistrationFlowWithExistingUser)
 	ts.Require().NoError(err, "Failed to create Google registration flow with existing user")
 	ts.config.CreatedFlowIDs = append(ts.config.CreatedFlowIDs, flowIDWithExisting)
+
+	// Create isolated auth flow to avoid cross-type reference validation with default auth flow.
+	isolatedAuthID, err := testutils.CreateIsolatedAuthFlow("google-registration-isolated-auth")
+	ts.Require().NoError(err, "Failed to create isolated auth flow")
+	ts.config.CreatedFlowIDs = append(ts.config.CreatedFlowIDs, isolatedAuthID)
+	googleRegTestApp.AuthFlowID = isolatedAuthID
 
 	// Create test application with the first flow
 	googleRegTestApp.OUID = googleRegTestOUID

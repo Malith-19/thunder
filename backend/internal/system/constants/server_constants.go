@@ -25,6 +25,15 @@ const DefaultLogLevel = "info"
 // AuthorizationHeaderName is the name of the authorization header used in HTTP requests.
 const AuthorizationHeaderName = "Authorization"
 
+// CookieHeaderName is the name of the cookie header used in HTTP requests.
+const CookieHeaderName = "Cookie"
+
+// SetCookieHeaderName is the name of the set-cookie header used in HTTP responses.
+const SetCookieHeaderName = "Set-Cookie"
+
+// ProxyAuthorizationHeaderName is the name of the proxy-authorization header used in HTTP requests.
+const ProxyAuthorizationHeaderName = "Proxy-Authorization"
+
 // AcceptHeaderName is the name of the accept header used in HTTP requests.
 const AcceptHeaderName = "Accept"
 
@@ -38,6 +47,10 @@ const CorrelationIDHeaderName = "X-Correlation-ID"
 // FlowSecretHeaderName is the name of the header used to present a Flow Secret when initiating
 // a flow directly over HTTP.
 const FlowSecretHeaderName = "Flow-Secret"
+
+// AttestationTokenHeaderName is the name of the header used to present a platform attestation token
+// (e.g. a Google Play Integrity token) when a mobile application initiates a flow directly over HTTP.
+const AttestationTokenHeaderName = "Attestation-Token"
 
 // TokenTypeBearer is the token type used in bearer authentication.
 const TokenTypeBearer = "Bearer"

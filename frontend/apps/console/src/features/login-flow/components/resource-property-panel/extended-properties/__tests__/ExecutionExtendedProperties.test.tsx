@@ -18,9 +18,9 @@
 
 import {render, screen, fireEvent} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import {IdentityProviderTypes} from '@thunderid/configure-connections';
 import {describe, it, expect, vi, beforeEach} from 'vitest';
 import ExecutionExtendedProperties from '../ExecutionExtendedProperties';
-import {IdentityProviderTypes} from '@/features/connections/models/identity-provider';
 import type {Resource} from '@/features/flows/models/resources';
 import {ExecutionTypes, type StepData} from '@/features/flows/models/steps';
 
@@ -87,16 +87,13 @@ vi.mock('@/features/flows/hooks/useValidationStatus', () => ({
   }),
 }));
 
-// Mock useIdentityProviders
+// Mock useIdentityProviders + useSMSProviders
 const mockIdentityProviders = vi.fn<() => {data: unknown[]; isLoading: boolean}>();
-vi.mock('@/features/connections/api/useIdentityProviders', () => ({
-  default: () => mockIdentityProviders(),
-}));
-
-// Mock useNotificationSenders
-const mockNotificationSenders = vi.fn<() => {data: unknown[]; isLoading: boolean}>();
-vi.mock('@/features/notification-senders/api/useNotificationSenders', () => ({
-  default: () => mockNotificationSenders(),
+const mockSMSProviders = vi.fn<() => {data: unknown[]; isLoading: boolean}>();
+vi.mock('@thunderid/configure-connections', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@thunderid/configure-connections')>()),
+  useIdentityProviders: () => mockIdentityProviders(),
+  useSMSProviders: () => mockSMSProviders(),
 }));
 
 describe('ExecutionExtendedProperties', () => {
@@ -108,7 +105,7 @@ describe('ExecutionExtendedProperties', () => {
       data: [],
       isLoading: false,
     });
-    mockNotificationSenders.mockReturnValue({
+    mockSMSProviders.mockReturnValue({
       data: [],
       isLoading: false,
     });
@@ -138,9 +135,11 @@ describe('ExecutionExtendedProperties', () => {
       render(<ExecutionExtendedProperties resource={googleResource} onChange={mockOnChange} />);
 
       expect(screen.getByText('Connection')).toBeInTheDocument();
+      // The verbose intro paragraph was removed to declutter the panel; the
+      // label and placeholder carry the context.
       expect(
-        screen.getByText('Select a connection from the following list to link it with the login flow.'),
-      ).toBeInTheDocument();
+        screen.queryByText('Select a connection from the following list to link it with the login flow.'),
+      ).not.toBeInTheDocument();
     });
 
     it('should show available Google connections in dropdown', async () => {
@@ -745,7 +744,7 @@ describe('ExecutionExtendedProperties', () => {
     } as unknown as Resource;
 
     it('should render SMS template and sender configuration', () => {
-      mockNotificationSenders.mockReturnValue({
+      mockSMSProviders.mockReturnValue({
         data: [{id: 'sender-1', name: 'Twilio'}],
         isLoading: false,
       });
@@ -758,7 +757,7 @@ describe('ExecutionExtendedProperties', () => {
     });
 
     it('should call onChange with debounce when SMS template changes', () => {
-      mockNotificationSenders.mockReturnValue({
+      mockSMSProviders.mockReturnValue({
         data: [],
         isLoading: false,
       });
@@ -773,7 +772,7 @@ describe('ExecutionExtendedProperties', () => {
     });
 
     it('should show warning when no senders are available', () => {
-      mockNotificationSenders.mockReturnValue({
+      mockSMSProviders.mockReturnValue({
         data: [],
         isLoading: false,
       });
@@ -1034,7 +1033,7 @@ describe('ExecutionExtendedProperties', () => {
         data: {
           ...provisioningStepData,
           properties: {
-            ...(provisioningStepData.properties as Record<string, unknown>),
+            ...provisioningStepData.properties!,
             maxPerPrompt: 'invalid',
           },
         },
@@ -1051,7 +1050,7 @@ describe('ExecutionExtendedProperties', () => {
         data: {
           ...provisioningStepData,
           properties: {
-            ...(provisioningStepData.properties as Record<string, unknown>),
+            ...provisioningStepData.properties!,
             maxPerPrompt: 'Infinity',
           },
         },
@@ -1273,7 +1272,7 @@ describe('ExecutionExtendedProperties', () => {
         target: {value: '15'},
       });
 
-      expect(mockOnChange).toHaveBeenCalledWith('data.properties.timeout', 15, httpResource, true);
+      expect(mockOnChange).toHaveBeenCalledWith('data.properties.timeout', 15, httpResource);
     });
 
     it('should clamp timeout to max 20', () => {
@@ -1283,7 +1282,7 @@ describe('ExecutionExtendedProperties', () => {
         target: {value: '99'},
       });
 
-      expect(mockOnChange).toHaveBeenCalledWith('data.properties.timeout', 20, httpResource, true);
+      expect(mockOnChange).toHaveBeenCalledWith('data.properties.timeout', 20, httpResource);
     });
 
     it('should call onChange with debounce when body changes', () => {
@@ -1293,7 +1292,7 @@ describe('ExecutionExtendedProperties', () => {
         target: {value: 'raw body text'},
       });
 
-      expect(mockOnChange).toHaveBeenCalledWith('data.properties.body', 'raw body text', httpResource, true);
+      expect(mockOnChange).toHaveBeenCalledWith('data.properties.body', 'raw body text', httpResource);
     });
 
     it('should parse valid JSON body', () => {
@@ -1303,7 +1302,7 @@ describe('ExecutionExtendedProperties', () => {
         target: {value: '{"key":"value"}'},
       });
 
-      expect(mockOnChange).toHaveBeenCalledWith('data.properties.body', {key: 'value'}, httpResource, true);
+      expect(mockOnChange).toHaveBeenCalledWith('data.properties.body', {key: 'value'}, httpResource);
     });
 
     it('should call onChange with debounce when retryCount changes', () => {

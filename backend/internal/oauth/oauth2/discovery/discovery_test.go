@@ -119,8 +119,12 @@ func (suite *DiscoveryTestSuite) TestOAuth2AuthorizationServerMetadata() {
 	assert.NotEmpty(suite.T(), metadata.JWKSUri)
 	assert.NotEmpty(suite.T(), metadata.RegistrationEndpoint)
 	assert.NotEmpty(suite.T(), metadata.IntrospectionEndpoint)
-	assert.NotEmpty(suite.T(), metadata.UserInfoEndpoint)
 	assert.NotEmpty(suite.T(), metadata.RevocationEndpoint)
+
+	body, err := json.Marshal(metadata)
+	assert.NoError(suite.T(), err)
+	assert.NotContains(suite.T(), string(body), "userinfo_endpoint")
+	assert.NotContains(suite.T(), string(body), "scopes_supported")
 
 	// Verify only implemented grant types are present
 	assert.Contains(suite.T(), metadata.GrantTypesSupported, "authorization_code")
@@ -165,6 +169,9 @@ func (suite *DiscoveryTestSuite) TestOIDCDiscovery() {
 	assert.NotEmpty(suite.T(), metadata.SubjectTypesSupported)
 	assert.NotEmpty(suite.T(), metadata.ClaimsSupported)
 	assert.NotEmpty(suite.T(), metadata.IDTokenSigningAlgValuesSupported)
+	assert.NotEmpty(suite.T(), metadata.UserInfoEndpoint)
+	assert.NotEmpty(suite.T(), metadata.ScopesSupported)
+	assert.Contains(suite.T(), metadata.ScopesSupported, "openid")
 
 	// Verify OIDC-specific fields
 	assert.Contains(suite.T(), metadata.SubjectTypesSupported, constants.SubjectTypePublic)
@@ -274,12 +281,13 @@ func TestGetSupportedGrantTypes(t *testing.T) {
 	supported := constants.GetSupportedGrantTypes()
 
 	assert.NotNil(t, supported)
-	assert.Equal(t, 5, len(supported))
+	assert.Equal(t, 6, len(supported))
 	assert.Contains(t, supported, "authorization_code")
 	assert.Contains(t, supported, "client_credentials")
 	assert.Contains(t, supported, "refresh_token")
 	assert.Contains(t, supported, "urn:ietf:params:oauth:grant-type:token-exchange")
 	assert.Contains(t, supported, "urn:openid:params:grant-type:ciba")
+	assert.Contains(t, supported, "urn:ietf:params:oauth:grant-type:jwt-bearer")
 	assert.NotContains(t, supported, "password")
 	assert.NotContains(t, supported, "implicit")
 }

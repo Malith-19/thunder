@@ -37,7 +37,16 @@ var magicLinkRegistrationFlow = testutils.Flow{
 		{
 			"id":        "start",
 			"type":      "START",
-			"onSuccess": "prompt_email",
+			"onSuccess": "user_type_resolver",
+		},
+		{
+			"id":   "user_type_resolver",
+			"type": "TASK_EXECUTION",
+			"executor": map[string]interface{}{
+				"name": "UserTypeResolver",
+			},
+			"onSuccess":    "prompt_email",
+			"onIncomplete": "prompt_email",
 		},
 		{
 			"id":   "prompt_email",
@@ -242,6 +251,12 @@ func (ts *MagicLinkRegistrationTestSuite) SetupSuite() {
 	ts.config.CreatedFlowIDs = append(ts.config.CreatedFlowIDs, flowID)
 	magicLinkRegTestApp.RegistrationFlowID = flowID
 	magicLinkRegTestApp.OUID = ts.ouID
+
+	// Create isolated auth flow to avoid cross-type reference validation with default auth flow.
+	isolatedAuthID, err := testutils.CreateIsolatedAuthFlow("magic-link-registration-isolated-auth")
+	ts.Require().NoError(err, "Failed to create isolated auth flow")
+	ts.config.CreatedFlowIDs = append(ts.config.CreatedFlowIDs, isolatedAuthID)
+	magicLinkRegTestApp.AuthFlowID = isolatedAuthID
 
 	appID, err := testutils.CreateApplication(magicLinkRegTestApp)
 	ts.Require().NoError(err, "Failed to create test application")

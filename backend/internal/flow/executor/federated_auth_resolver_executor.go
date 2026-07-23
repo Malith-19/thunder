@@ -58,7 +58,7 @@ func newFederatedAuthResolverExecutor(
 		log.String(log.LoggerKeyExecutorName, ExecutorNameFederatedAuthResolver))
 
 	base := flowFactory.CreateExecutor(ExecutorNameFederatedAuthResolver,
-		providers.ExecutorTypeAuthentication, nil, nil)
+		providers.ExecutorTypeAuthentication, nil, nil, &providers.ExecutorMeta{})
 
 	return &federatedAuthResolverExecutor{
 		Executor:      base,
@@ -166,7 +166,7 @@ func (f *federatedAuthResolverExecutor) Execute(ctx *providers.NodeContext) (*pr
 	credentials := map[string]interface{}{
 		userAttributeSub: sub,
 	}
-	metadata := buildAuthnMetadata(ctx)
+	metadata := core.BuildProviderMetadata(ctx)
 	authUser, _, err := f.authnProvider.AuthenticateUser(
 		ctx.Context, identifiers, credentials, nil, metadata, execResp.AuthUser)
 	execResp.AuthUser = authUser

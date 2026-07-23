@@ -59,7 +59,7 @@ func (suite *AttributeCollectorTestSuite) SetupTest() {
 		providers.ExecutorTypeUtility, prerequisites)
 
 	suite.mockFlowFactory.On("CreateExecutor", ExecutorNameAttributeCollect, providers.ExecutorTypeUtility,
-		[]providers.Input{}, prerequisites).Return(mockExec)
+		[]providers.Input{}, prerequisites, mock.Anything).Return(mockExec)
 
 	suite.executor = newAttributeCollector(suite.mockFlowFactory, suite.mockEntityProvider,
 		suite.mockAuthnProvider)
@@ -68,7 +68,7 @@ func (suite *AttributeCollectorTestSuite) SetupTest() {
 // newAuthenticatedAuthUser creates an AuthUser that returns true for IsAuthenticated().
 func newAuthenticatedAuthUser() providers.AuthUser {
 	var authUser providers.AuthUser
-	_ = authUser.UnmarshalJSON([]byte(`{"entityReferenceToken":"tok","attributeToken":"tok"}`))
+	_ = authUser.UnmarshalJSON([]byte(`{"default":{"entityReferenceToken":"tok","attributeToken":"tok"}}`))
 	return authUser
 }
 

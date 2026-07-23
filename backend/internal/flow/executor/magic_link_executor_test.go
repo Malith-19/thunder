@@ -57,7 +57,7 @@ func toStringPtr(s string) *string { return &s }
 
 func newMagicLinkAuthenticatedUser() providers.AuthUser {
 	var authUser providers.AuthUser
-	_ = authUser.UnmarshalJSON([]byte(`{"entityReferenceToken":"tok","attributeToken":"tok"}`))
+	_ = authUser.UnmarshalJSON([]byte(`{"default":{"entityReferenceToken":"tok","attributeToken":"tok"}}`))
 	return authUser
 }
 
@@ -128,11 +128,11 @@ func (suite *MagicLinkExecutorTestSuite) SetupTest() {
 
 	identifyingMock := createMockIdentifyingExecutor(suite.T())
 	suite.mockFlowFactory.On("CreateExecutor", ExecutorNameIdentifying, providers.ExecutorTypeUtility,
-		mock.Anything, mock.Anything).Return(identifyingMock).Maybe()
+		mock.Anything, mock.Anything, mock.Anything).Return(identifyingMock).Maybe()
 
 	mockExec := createMockMagicLinkExecutor(suite.T())
 	suite.mockFlowFactory.On("CreateExecutor", ExecutorNameMagicLink, providers.ExecutorTypeAuthentication,
-		defaultInputs, prerequisites).Return(mockExec)
+		defaultInputs, prerequisites, mock.Anything).Return(mockExec)
 
 	suite.executor = newMagicLinkExecutor(
 		suite.mockFlowFactory,
