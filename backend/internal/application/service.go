@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -146,7 +146,7 @@ func (as *applicationService) CreateApplication(ctx context.Context, app *model.
 	// value for such apps is ignored. For eligible apps, an explicitly provided value (e.g.
 	// declarative resources) is preserved; otherwise one is generated.
 	flowSecret := ""
-	if isFlowSecretEligible(inboundAuthConfig) {
+	if isFlowSecretEligible(app.Type, inboundAuthConfig) {
 		flowSecret = app.FlowSecret
 		if flowSecret == "" {
 			generatedFlowSecret, secretErr := oauthutils.GenerateOAuth2ClientSecret()
@@ -235,6 +235,11 @@ func (as *applicationService) ValidateApplication(ctx context.Context, app *mode
 
 	if svcErr := as.validateApplicationFields(ctx, app); svcErr != nil {
 		return nil, nil, svcErr
+	}
+
+	// An application that does not declare a type is created with the default type.
+	if app.Type == "" {
+		app.Type = model.DefaultApplicationType
 	}
 
 	appID := app.ID
@@ -487,7 +492,7 @@ func (as *applicationService) updateEntityDataForApplicationUpdate(ctx context.C
 	// public nor redirect-based — may have one set; a value supplied for an ineligible app is
 	// ignored. Credential updates merge, so this preserves the stored client secret, and an empty
 	// value leaves the existing Flow Secret intact.
-	if app.FlowSecret != "" && isFlowSecretEligible(inboundAuthConfig) {
+	if app.FlowSecret != "" && isFlowSecretEligible(app.Type, inboundAuthConfig) {
 		flowSecretJSON, marshalErr := buildSystemCredentials("", app.FlowSecret)
 		if marshalErr != nil {
 			as.logger.Error(ctx, "Failed to build flow secret credentials for update", log.Error(marshalErr))
@@ -536,8 +541,13 @@ func (as *applicationService) updateEntityDataForApplicationUpdate(ctx context.C
 // isFlowSecretEligible reports whether an application may hold a Flow Secret. Eligible apps initiate
 // flows directly: embedded apps with no OAuth config, or confidential non-redirect apps. Public,
 // redirect (authorization_code), and machine-to-machine (client_credentials as the only grant) apps
-// are not eligible.
-func isFlowSecretEligible(inboundAuthConfig *providers.InboundAuthConfigWithSecret) bool {
+// are not eligible. Mobile apps authenticate to the Flow Execution API via client attestation rather
+// than a Flow Secret, so they are never issued one regardless of their OAuth config shape.
+func isFlowSecretEligible(appType model.ApplicationType,
+	inboundAuthConfig *providers.InboundAuthConfigWithSecret) bool {
+	if appType == model.ApplicationTypeMobile {
+		return false
+	}
 	if inboundAuthConfig == nil || inboundAuthConfig.OAuthConfig == nil {
 		return true
 	}
@@ -836,6 +846,9 @@ func toInboundClient(dto *model.ApplicationProcessedDTO) inboundmodel.InboundCli
 	if len(dto.Contacts) > 0 {
 		props[propContacts] = dto.Contacts
 	}
+	if dto.Type != "" {
+		props[propType] = string(dto.Type)
+	}
 	if dto.Template != "" {
 		props[propTemplate] = dto.Template
 	}
@@ -914,12 +927,21 @@ func toProcessedDTO(
 				}
 			}
 		}
+		if t, ok := dao.Properties[propType].(string); ok {
+			dto.Type = model.ApplicationType(t)
+		}
 		if template, ok := dao.Properties[propTemplate].(string); ok {
 			dto.Template = template
 		}
 		if metadata, ok := dao.Properties[propMetadata].(map[string]interface{}); ok {
 			dto.Metadata = metadata
 		}
+	}
+
+	// Applications created before the type attribute was introduced (or without a type) resolve
+	// to the default type.
+	if dto.Type == "" {
+		dto.Type = model.DefaultApplicationType
 	}
 
 	// Merge OAuth profile if present.
@@ -1105,6 +1127,13 @@ func (as *applicationService) validateApplicationForUpdate(
 		return nil, nil, svcErr
 	}
 
+	// The application type is immutable. Reject a request that attempts to change it; inherit the
+	// existing type when the request omits it.
+	if app.Type != "" && app.Type != existingApp.Type {
+		return nil, nil, &ErrorApplicationTypeImmutable
+	}
+	app.Type = existingApp.Type
+
 	inboundAuthConfig, svcErr := as.processInboundAuthConfig(ctx, app, existingApp)
 	if svcErr != nil {
 		return nil, nil, svcErr
@@ -1145,6 +1174,11 @@ func (as *applicationService) validateApplicationFields(
 	}
 	if app.LogoURL != "" && !sysutils.IsValidLogoURI(app.LogoURL) {
 		return &ErrorInvalidLogoURL
+	}
+	// Reject an unrecognized application type. Defaulting an unset type (create) and enforcing
+	// immutability (update) are handled by the respective callers.
+	if app.Type != "" && !model.IsValidApplicationType(app.Type) {
+		return &ErrorInvalidApplicationType
 	}
 	// Reject requests with more than one OAuth-typed inbound auth entry — at most one
 	// inbound auth config per protocol per application is allowed.
@@ -1791,6 +1825,7 @@ func buildApplicationResponse(dto *model.ApplicationProcessedDTO) *providers.App
 			LoginConsent:              dto.LoginConsent,
 			Attestation:               dto.Attestation,
 		},
+		Type:      string(dto.Type),
 		Template:  dto.Template,
 		URL:       dto.URL,
 		LogoURL:   dto.LogoURL,
@@ -1848,12 +1883,18 @@ func buildBasicApplicationResponse(
 		IsReadOnly:                cfg.IsReadOnly,
 	}
 	if cfg.Properties != nil {
+		if t, ok := cfg.Properties[propType].(string); ok {
+			resp.Type = model.ApplicationType(t)
+		}
 		if t, ok := cfg.Properties[propTemplate].(string); ok {
 			resp.Template = t
 		}
 		if logoURL, ok := cfg.Properties[propLogoURL].(string); ok {
 			resp.LogoURL = logoURL
 		}
+	}
+	if resp.Type == "" {
+		resp.Type = model.DefaultApplicationType
 	}
 	// Enrich from entity system attributes.
 	if e != nil {
@@ -1900,6 +1941,7 @@ func buildBaseApplicationProcessedDTO(appID string, app *model.ApplicationDTO,
 			LoginConsent:              app.LoginConsent,
 			Attestation:               app.Attestation,
 		},
+		Type:      app.Type,
 		Template:  app.Template,
 		URL:       app.URL,
 		LogoURL:   app.LogoURL,
@@ -1984,6 +2026,7 @@ func buildReturnApplicationDTO(
 			LoginConsent:              app.LoginConsent,
 			Attestation:               app.Attestation.WithoutCredentials(),
 		},
+		Type:      app.Type,
 		Template:  app.Template,
 		URL:       app.URL,
 		LogoURL:   app.LogoURL,

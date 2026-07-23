@@ -796,6 +796,11 @@ components:
           format: uuid
           description: The ID of the layout configuration associated with this application.
           example: "770e8400-e29b-41d4-a716-446655440002"
+        type:
+          type: string
+          enum: [browser, fullstack, mobile, m2m, custom]
+          description: The canonical application type (platform/client class). Set at creation and immutable. Defaults to custom when unset.
+          example: "browser"
         template:
           type: string
           description: The template type of the application.
@@ -918,6 +923,11 @@ components:
           format: uuid
           description: The ID of the layout configuration associated with this application.
           example: "660e8400-e29b-41d4-a716-446655440001"
+        type:
+          type: string
+          enum: [browser, fullstack, mobile, m2m, custom]
+          description: The canonical application type (platform/client class). Set at creation and immutable. Defaults to custom when unset.
+          example: "browser"
         template:
           type: string
           description: The template type of the application.
@@ -1040,6 +1050,11 @@ components:
           format: uuid
           description: The ID of the layout configuration associated with this application.
           example: "770e8400-e29b-41d4-a716-446655440002"
+        type:
+          type: string
+          enum: [browser, fullstack, mobile, m2m, custom]
+          description: The canonical application type (platform/client class). Set at creation and immutable. Defaults to custom when unset.
+          example: "browser"
         template:
           type: string
           description: The template type of the application.
@@ -1155,6 +1170,11 @@ components:
           format: uuid
           description: The ID of the layout configuration associated with this application.
           example: "770e8400-e29b-41d4-a716-446655440002"
+        type:
+          type: string
+          enum: [browser, fullstack, mobile, m2m, custom]
+          description: The canonical application type (platform/client class). Set at creation and immutable. Defaults to custom when unset.
+          example: "browser"
         template:
           type: string
           description: The template type of the application.

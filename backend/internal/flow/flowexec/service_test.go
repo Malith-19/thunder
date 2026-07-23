@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -2366,6 +2366,87 @@ func (s *ServiceTestSuite) TestSetApplicationToContext_BuildApplicationError() {
 
 	s.NotNil(svcErr)
 	s.Equal(tidcommon.InternalServerError.Code, svcErr.Code)
+}
+
+// --- resolveFlowInitiationMode (type-driven) ---
+
+// The flow-initiation mode is resolved from the application type. Machine-to-machine, browser, and
+// mobile (without attestation) apps may not initiate a flow directly and never consult the OAuth
+// profile. Full-stack and custom apps derive the mode from their profile.
+func (s *ServiceTestSuite) TestResolveFlowInitiationMode_ByType() {
+	const appID = "test-app"
+	tokenExchange := "urn:ietf:params:oauth:grant-type:token-exchange"
+
+	cases := []struct {
+		name        string
+		appType     providers.ApplicationType
+		attestation *providers.AttestationConfig
+		profile     *providers.OAuthProfile
+		profileErr  *tidcommon.ServiceError
+		expectMode  flowInitiationMode
+	}{
+		{name: "m2m not permitted", appType: providers.ApplicationTypeM2M, expectMode: flowInitiationNotPermitted},
+		{name: "browser not permitted", appType: providers.ApplicationTypeBrowser, expectMode: flowInitiationNotPermitted},
+		{
+			name: "mobile without attestation not permitted", appType: providers.ApplicationTypeMobile,
+			expectMode: flowInitiationNotPermitted,
+		},
+		{
+			name: "mobile with attestation uses attestation", appType: providers.ApplicationTypeMobile,
+			attestation: &providers.AttestationConfig{Apple: &providers.AppleAttestationConfig{}},
+			expectMode:  flowInitiationAttestation,
+		},
+		{
+			name: "fullstack redirect not permitted", appType: providers.ApplicationTypeFullStack,
+			profile:    &providers.OAuthProfile{GrantTypes: []string{"authorization_code"}},
+			expectMode: flowInitiationNotPermitted,
+		},
+		{
+			name: "fullstack embedded uses flow secret", appType: providers.ApplicationTypeFullStack,
+			profile:    &providers.OAuthProfile{GrantTypes: []string{"client_credentials", tokenExchange}},
+			expectMode: flowInitiationFlowSecret,
+		},
+		{
+			name: "fullstack without profile uses flow secret", appType: providers.ApplicationTypeFullStack,
+			profileErr: &actorprovider.ErrorActorNotFound, expectMode: flowInitiationFlowSecret,
+		},
+		{
+			name: "custom m2m-shaped not permitted", appType: providers.ApplicationTypeCustom,
+			profile:    &providers.OAuthProfile{GrantTypes: []string{"client_credentials"}},
+			expectMode: flowInitiationNotPermitted,
+		},
+	}
+
+	for _, tc := range cases {
+		s.Run(tc.name, func() {
+			t := s.T()
+			mockActorProvider := actorprovidermock.NewActorProviderMock(t)
+
+			client := &providers.InboundClient{ID: appID, Attestation: tc.attestation}
+			if tc.appType != "" {
+				client.Properties = map[string]interface{}{
+					providers.ApplicationTypePropertyKey: string(tc.appType),
+				}
+			}
+			mockActorProvider.EXPECT().GetInboundClientByID(mock.Anything, appID).Return(client, nil)
+
+			// The OAuth profile is consulted only for the profile-derived types.
+			if tc.attestation == nil &&
+				(tc.appType == providers.ApplicationTypeFullStack || tc.appType == providers.ApplicationTypeCustom) {
+				mockActorProvider.EXPECT().GetOAuthProfileByID(mock.Anything, appID).Return(tc.profile, tc.profileErr)
+			}
+
+			service := &flowExecService{actorProvider: mockActorProvider}
+
+			mode, attestation, svcErr := service.resolveFlowInitiationMode(context.Background(), appID)
+
+			s.Nil(svcErr)
+			s.Equal(tc.expectMode, mode)
+			if tc.expectMode == flowInitiationAttestation {
+				s.NotNil(attestation)
+			}
+		})
+	}
 }
 
 // --- checkDirectFlowInitiationAllowed ---

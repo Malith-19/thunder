@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,6 +18,8 @@
 
 package application
 
+import "github.com/thunder-id/thunderid/pkg/thunderidengine/providers"
+
 // Field keys for entity system attributes.
 const (
 	fieldName         = "name"
@@ -34,6 +36,7 @@ const (
 	propTosURI      = "tos_uri"
 	propPolicyURI   = "policy_uri"
 	propContacts    = "contacts"
+	propType        = providers.ApplicationTypePropertyKey
 	propTemplate    = "template"
 	propMetadata    = "metadata"
 	propOAuthConfig = "oauth_config"

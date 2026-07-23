@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -711,6 +711,55 @@ type InboundClient struct {
 	IsReadOnly  bool
 }
 
+// ApplicationType identifies the platform/client class of an application. It is the canonical
+// discriminator used to drive type-specific engine behavior (for example, flow-initiation
+// resolution) instead of inferring the class from the OAuth config shape.
+type ApplicationType string
+
+// Supported application types.
+const (
+	ApplicationTypeBrowser   ApplicationType = "browser"
+	ApplicationTypeFullStack ApplicationType = "fullstack"
+	ApplicationTypeMobile    ApplicationType = "mobile"
+	ApplicationTypeM2M       ApplicationType = "m2m"
+	ApplicationTypeCustom    ApplicationType = "custom"
+)
+
+// ApplicationTypePropertyKey is the InboundClient.Properties key under which the application type
+// is stored.
+const ApplicationTypePropertyKey = "type"
+
+// SupportedApplicationTypes lists every recognized application type.
+var SupportedApplicationTypes = []ApplicationType{
+	ApplicationTypeBrowser,
+	ApplicationTypeFullStack,
+	ApplicationTypeMobile,
+	ApplicationTypeM2M,
+	ApplicationTypeCustom,
+}
+
+// IsSupportedApplicationType reports whether t is a recognized application type.
+func IsSupportedApplicationType(t ApplicationType) bool {
+	return slices.Contains(SupportedApplicationTypes, t)
+}
+
+// ApplicationType returns the application type recorded on the inbound client properties. It
+// returns ApplicationTypeCustom when the type is absent or unrecognized, so callers treat legacy
+// and type-agnostic applications as unconstrained.
+func (c *InboundClient) ApplicationType() ApplicationType {
+	if c == nil || c.Properties == nil {
+		return ApplicationTypeCustom
+	}
+	raw, ok := c.Properties[ApplicationTypePropertyKey].(string)
+	if !ok {
+		return ApplicationTypeCustom
+	}
+	if t := ApplicationType(raw); IsSupportedApplicationType(t) {
+		return t
+	}
+	return ApplicationTypeCustom
+}
+
 // AssertionConfig is the entity-level assertion config; token configs fall back to it.
 type AssertionConfig struct {
 	ValidityPeriod int64    `json:"validityPeriod,omitempty" yaml:"validityPeriod,omitempty" jsonschema:"Assertion validity period in seconds."`
@@ -990,6 +1039,7 @@ type Application struct {
 	OUID        string `yaml:"ouId,omitempty" json:"ouId,omitempty" jsonschema:"Organization unit ID. The OU this application belongs to."`
 	Name        string `yaml:"name,omitempty" json:"name,omitempty" jsonschema:"Application name."`
 	Description string `yaml:"description,omitempty" json:"description,omitempty" jsonschema:"Optional description of the application's purpose."`
+	Type        string `yaml:"type,omitempty" json:"type,omitempty" jsonschema:"Application type (browser, fullstack, mobile, m2m, custom)."`
 	Template    string `yaml:"template,omitempty" json:"template,omitempty" jsonschema:"Template used to create the application."`
 
 	URL       string   `yaml:"url,omitempty" json:"url,omitempty" jsonschema:"Application home URL."`

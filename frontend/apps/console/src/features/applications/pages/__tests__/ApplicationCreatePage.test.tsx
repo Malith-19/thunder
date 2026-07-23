@@ -408,6 +408,7 @@ function TemplateSeeder(): JSX.Element {
         onClick={() =>
           seed(null, 'WALLET', {
             id: 'wallet',
+            type: 'mobile',
             creationFlow: {
               steps: ['NAME', 'ORGANIZATION_UNIT', 'CONFIGURE', 'DESIGN', 'OPTIONS', 'EXPERIENCE', 'COMPLETE'],
             },
@@ -431,6 +432,7 @@ function TemplateSeeder(): JSX.Element {
         onClick={() =>
           seed(null, 'BROWSER', {
             id: 'browser',
+            type: 'browser',
             defaults: {
               inboundAuthConfig: [
                 {

@@ -315,7 +315,26 @@ func (s *flowExecService) resolveFlowInitiationMode(
 		return flowInitiationAttestation, client.Attestation, nil
 	}
 
-	// No attestation configured: classify by protocol profile.
+	// Classify by the application type. A machine-to-machine app obtains tokens directly and does
+	// not run flows; a browser app is a public redirect client; a mobile app without attestation is
+	// a public redirect client (attestation is handled above). None of these may initiate a flow
+	// directly.
+	switch client.ApplicationType() {
+	case providers.ApplicationTypeM2M, providers.ApplicationTypeBrowser, providers.ApplicationTypeMobile:
+		return flowInitiationNotPermitted, nil, nil
+	default:
+		// Full-stack and custom (including legacy, type-agnostic) apps can be embedded or
+		// redirect-based. The type does not encode which, so derive it from the OAuth profile.
+		return s.resolveFlowInitiationModeFromProfile(ctx, appID)
+	}
+}
+
+// resolveFlowInitiationModeFromProfile derives the flow-initiation mode from the application's
+// OAuth profile, for application types whose sign-in approach (embedded vs redirect) is not encoded
+// in the type itself.
+func (s *flowExecService) resolveFlowInitiationModeFromProfile(
+	ctx context.Context, appID string,
+) (flowInitiationMode, *providers.AttestationConfig, *tidcommon.ServiceError) {
 	profile, svcErr := s.actorProvider.GetOAuthProfileByID(ctx, appID)
 	if svcErr != nil && svcErr.Code != actorprovider.ErrorActorNotFound.Code {
 		return 0, nil, svcErr
@@ -327,10 +346,10 @@ func (s *flowExecService) resolveFlowInitiationMode(
 		return flowInitiationFlowSecret, nil, nil
 	}
 
-	// A redirect-based (authorization_code) profile — public or confidential — must initiate flows
-	// through the protocol component, not via a direct HTTP call. A machine-to-machine app
-	// (client_credentials as its only grant) obtains tokens directly and does not run flows. Neither
-	// may initiate a flow directly.
+	// A redirect-based (authorization_code) profile must initiate flows through the protocol
+	// component, not via a direct HTTP call. A machine-to-machine profile (client_credentials as its
+	// only grant) obtains tokens directly and does not run flows. Neither may initiate a flow
+	// directly.
 	if slices.Contains(profile.GrantTypes, string(providers.GrantTypeAuthorizationCode)) ||
 		isClientCredentialsOnly(profile.GrantTypes) {
 		return flowInitiationNotPermitted, nil, nil

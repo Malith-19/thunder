@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2026, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -28,6 +28,7 @@ import {McpClientTypes} from '../../../models/mcp-client';
 import {TokenEndpointAuthMethods} from '../../../models/oauth';
 import type {OAuth2Config} from '../../../models/oauth';
 import deriveMcpClientType from '../../../utils/deriveMcpClientType';
+import {isM2MApplication} from '../../../utils/resolveApplicationType';
 import ApplicationDeleteDialog from '../../ApplicationDeleteDialog';
 import ClientSecretSuccessDialog from '../../ClientSecretSuccessDialog';
 import CopyableField from '../../common/CopyableField';
@@ -137,7 +138,7 @@ export default function McpConnectTab({
   // profile, or confidential non-redirect apps. Public, redirect (authorization_code), and
   // machine-to-machine (client_credentials as the only grant) apps get no Flow Secret.
   const grantTypes = oauth2Config?.grantTypes ?? [];
-  const isM2MClient = grantTypes.length === 1 && grantTypes[0] === 'client_credentials';
+  const isM2MClient = isM2MApplication(application.type, oauth2Config);
   const isFlowNativeClient =
     !oauth2Config || (!oauth2Config.publicClient && !grantTypes.includes('authorization_code') && !isM2MClient);
 
