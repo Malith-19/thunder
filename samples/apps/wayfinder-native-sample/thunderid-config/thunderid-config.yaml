@@ -1,0 +1,494 @@
+resource_type: user_type
+id: wayfinder-native-customer-type
+category: user
+name: Customer
+ouHandle: default
+allowSelfRegistration: true
+systemAttributes:
+  display: username
+schema: {
+    "username": {
+      "type": "string",
+      "displayName": "Username",
+      "required": true,
+      "unique": true
+    },
+    "password": {
+      "type": "string",
+      "displayName": "Password",
+      "required": false,
+      "credential": true
+    },
+    "email": {
+      "type": "string",
+      "displayName": "Email",
+      "required": true,
+      "unique": true,
+      "regex": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    },
+    "given_name": {
+      "type": "string",
+      "displayName": "First Name",
+      "required": false
+    },
+    "family_name": {
+      "type": "string",
+      "displayName": "Last Name",
+      "required": false
+    }
+  }
+
+---
+resource_type: resource_server
+id: wayfinder-native-booking-rs
+name: Wayfinder Native Booking
+description: Protects the Wayfinder Native booking domain. The BFF-issued access token carries these scopes.
+identifier: http://localhost:3000/api
+ouHandle: default
+delimiter: ":"
+resources:
+  - name: Booking
+    handle: booking
+    actions:
+      - name: Read
+        handle: read
+      - name: Create
+        handle: create
+      - name: Cancel
+        handle: cancel
+
+---
+resource_type: flow
+id: 0193b0a2-2001-7000-8000-000000000001
+name: Wayfinder Native Registration Flow
+handle: wayfinder-native-registration-flow
+flowType: REGISTRATION
+nodes:
+  - id: start
+    type: START
+    onSuccess: user_type_resolver
+  - id: user_type_resolver
+    type: TASK_EXECUTION
+    executor:
+      name: UserTypeResolver
+    onSuccess: prompt_credentials
+    onIncomplete: prompt_usertype
+  - id: prompt_usertype
+    type: PROMPT
+    meta:
+      components:
+        - align: center
+          type: TEXT
+          id: heading_usertype
+          label: Choose your account type
+          variant: HEADING_1
+        - type: BLOCK
+          id: block_usertype
+          components:
+            - type: SELECT
+              id: usertype_input
+              ref: userType
+              label: Account type
+              placeholder: Select an account type
+              required: true
+              options: []
+            - type: ACTION
+              id: action_usertype
+              label: Continue
+              variant: PRIMARY
+              eventType: SUBMIT
+    prompts:
+      - inputs:
+          - ref: usertype_input
+            identifier: userType
+            type: SELECT
+            required: true
+        action:
+          ref: action_usertype
+          nextNode: user_type_resolver
+  - id: prompt_credentials
+    type: PROMPT
+    meta:
+      components:
+        - align: center
+          type: TEXT
+          id: heading_credentials
+          label: Create your account
+          variant: HEADING_1
+        - type: BLOCK
+          id: block_credentials
+          components:
+            - type: TEXT_INPUT
+              id: input_username
+              ref: username
+              label: Username
+              placeholder: Pick a username
+              required: true
+            - type: PASSWORD_INPUT
+              id: input_password
+              ref: password
+              label: Password
+              placeholder: Choose a password
+              required: true
+            - type: ACTION
+              id: action_credentials
+              label: Continue
+              variant: PRIMARY
+              eventType: SUBMIT
+    prompts:
+      - inputs:
+          - ref: input_username
+            identifier: username
+            type: TEXT_INPUT
+            required: true
+          - ref: input_password
+            identifier: password
+            type: PASSWORD_INPUT
+            required: true
+        action:
+          ref: action_credentials
+          nextNode: basic_auth
+  - id: basic_auth
+    type: TASK_EXECUTION
+    executor:
+      name: CredentialsAuthExecutor
+    onSuccess: provisioning
+  - id: provisioning
+    type: TASK_EXECUTION
+    properties:
+      assignRole: wayfinder-native-traveler-role
+      includeOptional: true
+    executor:
+      name: ProvisioningExecutor
+      inputs:
+        - ref: input_username
+          identifier: username
+          type: TEXT_INPUT
+          required: true
+        - ref: input_password
+          identifier: password
+          type: PASSWORD_INPUT
+          required: true
+    onSuccess: authorize
+    onIncomplete: prompt_schema_attrs
+  - id: prompt_schema_attrs
+    type: PROMPT
+    meta:
+      components:
+        - align: center
+          type: TEXT
+          id: heading_schema_attrs
+          label: Tell us about you
+          variant: HEADING_1
+        - type: BLOCK
+          id: block_dynamic_user_inputs
+          components:
+            - type: DYNAMIC_INPUT_PLACEHOLDER
+              id: dynamic_inputs
+            - type: ACTION
+              id: action_schema_attrs
+              label: Continue
+              variant: PRIMARY
+              eventType: SUBMIT
+    prompts:
+      - inputs: []
+        action:
+          ref: action_schema_attrs
+          nextNode: provisioning
+  - id: authorize
+    type: TASK_EXECUTION
+    executor:
+      name: AuthorizationExecutor
+    onSuccess: auth_assert
+  - id: auth_assert
+    type: TASK_EXECUTION
+    executor:
+      name: AuthAssertExecutor
+    onSuccess: end
+  - id: end
+    type: END
+
+---
+resource_type: flow
+id: 0193b0a2-2001-7000-8000-000000000002
+name: Wayfinder Native Password Recovery Flow
+handle: wayfinder-native-recovery-flow
+flowType: RECOVERY
+nodes:
+  - id: start
+    type: START
+    onSuccess: prompt_username
+  - id: prompt_username
+    type: PROMPT
+    meta:
+      components:
+        - align: center
+          type: TEXT
+          id: text_header_username
+          label: Reset your password
+          variant: HEADING_1
+        - type: TEXT
+          id: text_subtitle_username
+          label: Enter your username and we'll email you a recovery link.
+          variant: HEADING_6
+        - type: BLOCK
+          id: block_username
+          components:
+            - id: input_username
+              ref: username
+              type: TEXT_INPUT
+              label: Username
+              required: true
+              placeholder: Your username
+            - type: ACTION
+              id: action_submit_username
+              label: Send recovery link
+              variant: PRIMARY
+              eventType: SUBMIT
+    prompts:
+      - inputs:
+          - ref: input_username
+            identifier: username
+            type: TEXT_INPUT
+            required: true
+        action:
+          ref: action_submit_username
+          nextNode: identify_user
+  - id: identify_user
+    type: TASK_EXECUTION
+    executor:
+      name: IdentifyingExecutor
+      mode: identify
+      inputs:
+        - ref: input_username
+          identifier: username
+          type: TEXT_INPUT
+          required: true
+    onSuccess: generate_recovery_token
+    onFailure: email_sent_status
+  - id: generate_recovery_token
+    type: TASK_EXECUTION
+    properties:
+      inviteBaseURL: "{{.WAYFINDER_NATIVE_RECOVERY_BASE_URL}}"
+    executor:
+      name: InviteExecutor
+      mode: generate
+    onSuccess: send_recovery_email
+  - id: send_recovery_email
+    type: TASK_EXECUTION
+    properties:
+      emailTemplate: PASSWORD_RECOVERY
+    executor:
+      name: EmailExecutor
+      mode: send
+    onSuccess: email_sent_status
+    onFailure: email_sent_status
+  - id: email_sent_status
+    type: PROMPT
+    meta:
+      components:
+        - align: center
+          type: TEXT
+          id: email_sent_icon
+          label: "✉️"
+          variant: HEADING_1
+        - align: center
+          type: TEXT
+          id: email_sent_heading
+          label: Check your email
+          variant: HEADING_1
+        - align: center
+          type: TEXT
+          id: email_sent_message
+          label: If an account matches, we've sent a recovery link.
+          variant: HEADING_6
+    message: Check Your Email
+    next: verify_recovery_token
+  - id: verify_recovery_token
+    type: TASK_EXECUTION
+    executor:
+      name: InviteExecutor
+      mode: verify
+      inputs:
+        - ref: input_recovery_token
+          identifier: inviteToken
+          type: HIDDEN
+          required: true
+    onSuccess: prompt_new_password
+  - id: prompt_new_password
+    type: PROMPT
+    meta:
+      components:
+        - align: center
+          type: TEXT
+          id: text_header_password
+          label: Set a new password
+          variant: HEADING_1
+        - type: BLOCK
+          id: block_password
+          components:
+            - id: input_new_password
+              ref: password
+              type: PASSWORD_INPUT
+              label: New password
+              required: true
+              placeholder: New password
+            - type: ACTION
+              id: action_submit_password
+              label: Update password
+              variant: PRIMARY
+              eventType: SUBMIT
+    prompts:
+      - inputs:
+          - ref: input_new_password
+            identifier: password
+            type: PASSWORD_INPUT
+            required: true
+        action:
+          ref: action_submit_password
+          nextNode: set_credential
+  - id: set_credential
+    type: TASK_EXECUTION
+    executor:
+      name: CredentialSetter
+    onSuccess: recovery_complete
+  - id: recovery_complete
+    type: PROMPT
+    meta:
+      components:
+        - align: center
+          type: TEXT
+          id: recovery_complete_icon
+          label: "✅"
+          variant: HEADING_1
+        - align: center
+          type: TEXT
+          id: recovery_complete_heading
+          label: Password updated
+          variant: HEADING_1
+        - align: center
+          type: TEXT
+          id: recovery_complete_message
+          label: Return to Wayfinder Native and sign in with your new password.
+          variant: HEADING_6
+    message: Password Reset Successful
+    next: end
+  - id: end
+    type: END
+
+---
+resource_type: application
+id: wayfinder-native-app
+name: Wayfinder Native
+description: Wayfinder Native sample application (Next.js BFF driving app-native flows)
+ouHandle: default
+url: http://localhost:3000
+logoUrl: "emoji:✈️"
+# Per-application Flow Secret. Issued to confidential, non-redirect apps and
+# presented in the `Flow-Secret` header when the BFF initiates a native flow.
+flowSecret: "{{.NATIVE_FLOW_SECRET}}"
+registrationFlowHandle: wayfinder-native-registration-flow
+recoveryFlowHandle: wayfinder-native-recovery-flow
+isRegistrationFlowEnabled: true
+isRecoveryFlowEnabled: true
+assertion:
+  validityPeriod: 3600
+  userAttributes:
+    - given_name
+    - family_name
+    - email
+    - groups
+    - username
+allowedUserTypes:
+  - Customer
+inboundAuthConfig:
+  - type: oauth2
+    config:
+      clientId: "{{.NATIVE_CLIENT_ID}}"
+      clientSecret: "{{.NATIVE_CLIENT_SECRET}}"
+      # No authorization_code grant: this app never does a browser redirect. It
+      # drives the native flow with its Flow Secret and completes with the
+      # RFC 8693 token-exchange grant. This grant set (plus publicClient: false)
+      # is what makes the app eligible for a Flow Secret.
+      grantTypes:
+        - urn:ietf:params:oauth:grant-type:token-exchange
+      tokenEndpointAuthMethod: client_secret_basic
+      pkceRequired: false
+      publicClient: false
+      token:
+        accessToken:
+          userConfig:
+            validityPeriod: 3600
+            attributes:
+              - given_name
+              - family_name
+              - email
+              - groups
+        idToken:
+          validityPeriod: 3600
+          userAttributes:
+            - given_name
+            - family_name
+            - email
+            - groups
+      scopeClaims:
+        email:
+          - email
+        profile:
+          - username
+          - given_name
+          - family_name
+        group:
+          - groups
+
+---
+resource_type: role
+id: wayfinder-native-traveler-role
+name: Traveler
+description: Consumer role with booking permissions
+ouHandle: default
+permissions:
+  - resourceServerId: wayfinder-native-booking-rs
+    permissions:
+      - booking:read
+      - booking:create
+      - booking:cancel
+assignments:
+  - id: wayfinder-native-john-doe
+    type: user
+  - id: wayfinder-native-jane-smith
+    type: user
+
+---
+resource_type: user
+id: wayfinder-native-john-doe
+type: Customer
+ouHandle: default
+attributes:
+  username: john.doe
+  given_name: John
+  family_name: Doe
+  email: john.doe@example.com
+credentials:
+  password: "{{.JOHN_DOE_PASSWORD}}"
+
+---
+resource_type: user
+id: wayfinder-native-jane-smith
+type: Customer
+ouHandle: default
+attributes:
+  username: jane.smith
+  given_name: Jane
+  family_name: Smith
+  email: jane.smith@example.com
+credentials:
+  password: "{{.JANE_SMITH_PASSWORD}}"
+
+---
+resource_type: server_config
+# Binds the BFF's no-resource token-exchange to the booking resource server so
+# the issued access token carries the booking:* scopes.
+name: defaultResourceServer
+value:
+  resourceServerId: wayfinder-native-booking-rs
