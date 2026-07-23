@@ -27,6 +27,7 @@ import QuickCopySection from './QuickCopySection';
 import type {Application} from '../../../models/application';
 import {TokenEndpointAuthMethods} from '../../../models/oauth';
 import type {OAuth2Config} from '../../../models/oauth';
+import resolveApplicationType, {isM2MApplication} from '../../../utils/resolveApplicationType';
 import ApplicationDeleteDialog from '../../ApplicationDeleteDialog';
 import ClientSecretSuccessDialog from '../../ClientSecretSuccessDialog';
 import RegenerateFlowSecretDialog from '../../RegenerateFlowSecretDialog';
@@ -113,11 +114,15 @@ export default function EditGeneralSettings({
 
   // Only flow-native apps are issued a Flow Secret and can rotate it: embedded apps with no OAuth
   // profile, or confidential non-redirect apps. Public, redirect (authorization_code), and
-  // machine-to-machine (client_credentials as the only grant) apps get no Flow Secret.
+  // machine-to-machine (client_credentials as the only grant) apps get no Flow Secret. Mobile apps
+  // authenticate to the Flow Execution API via platform attestation, so they get no Flow Secret
+  // either, regardless of their OAuth config shape.
   const grantTypes = oauth2Config?.grantTypes ?? [];
-  const isM2MClient = grantTypes.length === 1 && grantTypes[0] === 'client_credentials';
+  const isM2MClient = isM2MApplication(application.type, oauth2Config);
+  const isMobileClient = resolveApplicationType(application.type, oauth2Config) === 'mobile';
   const isFlowNativeClient =
-    !oauth2Config || (!oauth2Config.publicClient && !grantTypes.includes('authorization_code') && !isM2MClient);
+    !isMobileClient &&
+    (!oauth2Config || (!oauth2Config.publicClient && !grantTypes.includes('authorization_code') && !isM2MClient));
 
   const handleRegenerateClick = useCallback((): void => {
     setRegenerateDialogOpen(true);

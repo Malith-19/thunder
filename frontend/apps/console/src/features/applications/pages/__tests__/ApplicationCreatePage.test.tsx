@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -408,6 +408,7 @@ function TemplateSeeder(): JSX.Element {
         onClick={() =>
           seed(null, 'WALLET', {
             id: 'wallet',
+            type: 'mobile',
             creationFlow: {
               steps: ['NAME', 'ORGANIZATION_UNIT', 'CONFIGURE', 'DESIGN', 'OPTIONS', 'EXPERIENCE', 'COMPLETE'],
             },
@@ -431,6 +432,7 @@ function TemplateSeeder(): JSX.Element {
         onClick={() =>
           seed(null, 'BROWSER', {
             id: 'browser',
+            type: 'browser',
             defaults: {
               inboundAuthConfig: [
                 {

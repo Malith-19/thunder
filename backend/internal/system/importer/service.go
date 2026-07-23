@@ -972,6 +972,7 @@ func applicationRequestToDTO(req *appmodel.ApplicationRequestWithID) *appmodel.A
 			LoginConsent:              req.LoginConsent,
 			AllowedUserTypes:          req.AllowedUserTypes,
 		},
+		Type:       req.Type,
 		Template:   req.Template,
 		FlowSecret: req.FlowSecret,
 		URL:        req.URL,

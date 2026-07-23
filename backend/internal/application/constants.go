@@ -18,6 +18,8 @@
 
 package application
 
+import "github.com/thunder-id/thunderid/pkg/thunderidengine/providers"
+
 // Field keys for entity system attributes.
 const (
 	fieldName         = "name"
@@ -34,6 +36,7 @@ const (
 	propTosURI      = "tos_uri"
 	propPolicyURI   = "policy_uri"
 	propContacts    = "contacts"
+	propType        = providers.ApplicationTypePropertyKey
 	propTemplate    = "template"
 	propMetadata    = "metadata"
 	propOAuthConfig = "oauth_config"

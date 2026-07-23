@@ -1128,6 +1128,7 @@ resource_type: application
 id: wayfinder-app
 name: Wayfinder
 description: Wayfinder Travel sample application
+type: custom
 ouHandle: default
 url: http://localhost:5173
 logoUrl: "emoji:✈️"
