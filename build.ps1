@@ -656,7 +656,7 @@ function Prepare-Backend-For-Packaging {
     Write-Host "Copying bootstrap scripts..."
     Copy-Item -Path (Join-Path $BACKEND_DIR "bootstrap") -Destination $package_folder -Recurse -Force
     # Never ship the dev-only CORS seed that Run stages into the source bootstrap dir.
-    Remove-Item -Path (Join-Path $package_folder "bootstrap/02-server-configurations.yaml") -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path (Join-Path $package_folder "bootstrap/03-dev-server-configurations.yaml") -Force -ErrorAction SilentlyContinue
 
     # Key material is not generated into the distribution; setup.ps1 generates it per deployment.
 }
@@ -1554,16 +1554,20 @@ function Run {
     # the backend without manual configuration. Regenerated on every run and picked up by
     # the bootstrap one-shot; it is git-ignored and never packaged (see Build).
     $devServerConfig = @"
-# resource_type: server_config
+resource_type: server_config
 name: cors
 value:
   allowedOrigins:
     - "https://localhost:$GATE_APP_DEFAULT_PORT"
     - "https://localhost:$CONSOLE_APP_DEFAULT_PORT"
 "@
-    Set-Content -Path (Join-Path $BACKEND_DIR "bootstrap/02-server-configurations.yaml") -Value $devServerConfig
+    Set-Content -Path (Join-Path $BACKEND_DIR "bootstrap/03-dev-server-configurations.yaml") -Value $devServerConfig
 
+    # Local dev only: default to admin/admin if not supplied. This path never produces a
+    # shared or distributed artifact, so a fixed default here is acceptable.
     $env:PUBLIC_URL = $PUBLIC_URL
+    $env:ADMIN_USERNAME = if ($env:ADMIN_USERNAME) { $env:ADMIN_USERNAME } else { "admin" }
+    $env:ADMIN_PASSWORD = if ($env:ADMIN_PASSWORD) { $env:ADMIN_PASSWORD } else { "admin" }
     Push-Location $BACKEND_DIR
     try {
         & go run . bootstrap --console-redirect-uris "https://localhost:${CONSOLE_APP_DEFAULT_PORT}/console"

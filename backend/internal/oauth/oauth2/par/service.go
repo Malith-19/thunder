@@ -37,6 +37,15 @@ import (
 // requestURIPrefix is the URN prefix used for PAR request URIs per RFC 9126.
 const requestURIPrefix = "urn:ietf:params:oauth:request_uri:"
 
+// sensitiveParParams is the deny-list of PAR body parameters that must not be persisted into
+// InitiatorRequest.QueryParams, since they carry client credentials and the PAR store is a
+// plaintext runtime cache.
+var sensitiveParParams = map[string]bool{
+	oauth2const.RequestParamClientSecret:        true,
+	oauth2const.RequestParamClientAssertion:     true,
+	oauth2const.RequestParamClientAssertionType: true,
+}
+
 // PARServiceInterface defines the interface for the PAR service.
 type PARServiceInterface interface {
 	HandlePushedAuthorizationRequest(
@@ -45,7 +54,7 @@ type PARServiceInterface interface {
 	) (*parResponse, string, string)
 	ResolvePushedAuthorizationRequest(
 		ctx context.Context, requestURI string, clientID string,
-	) (*oauth2model.OAuthParameters, error)
+	) (*oauth2model.OAuthParameters, *providers.InitiatorRequest, error)
 }
 
 // parService implements PARServiceInterface.
@@ -58,7 +67,8 @@ type parService struct {
 
 // newPARService creates a new PAR service instance.
 func newPARService(
-	store parStoreInterface, resourceService providers.ResourceServerProvider, cfg oauthconfig.Config,
+	store parStoreInterface, resourceService providers.ResourceServerProvider,
+	cfg oauthconfig.Config,
 ) PARServiceInterface {
 	return &parService{
 		store:           store,
@@ -119,12 +129,14 @@ func (s *parService) HandlePushedAuthorizationRequest(
 	oidcScopes, nonOidcScopes := oauth2utils.SeparateOIDCAndNonOIDCScopes(scope, oauthApp.ScopeClaims)
 	oidcScopes = oauth2utils.FilterOIDCScopesByAllowedScopes(oidcScopes, oauthApp.Scopes)
 
-	// Resolve resource identifiers to Resource Servers and downscope non-OIDC scopes against
-	// the union of permissions defined on those Resource Servers. Unknown identifiers cause
-	// invalid_target; scopes not defined on any RS are silently dropped.
-	_, nonOidcScopes, errResp := resourceindicators.ResolveAndDownscope(
-		ctx, s.resourceService, resources, nonOidcScopes)
-	if errResp != nil {
+	// Validate up front that the request can bind to a resource server: an explicit resource must
+	// resolve, or (with no resource) either the request is OIDC-only or a default resource server is
+	// configured; otherwise reject with invalid_target. This mirrors the redirect-URI validation done
+	// here at push time. The authoritative binding and per-resource-server downscoping still happen
+	// when the pushed request is redeemed at the authorization endpoint, so both standard and
+	// PAR-based requests bind identically.
+	if _, errResp := resourceindicators.ResolveAudienceBinding(
+		ctx, s.resourceService, resources, nonOidcScopes); errResp != nil {
 		return nil, errResp.Error, errResp.ErrorDescription
 	}
 
@@ -152,9 +164,23 @@ func (s *parService) HandlePushedAuthorizationRequest(
 		Prompt:              params[oauth2const.RequestParamPrompt],
 	}
 
+	initiatorQueryParams := make(map[string][]string, len(params)+1)
+	for k, v := range params {
+		if sensitiveParParams[k] {
+			continue
+		}
+		initiatorQueryParams[k] = []string{v}
+	}
+	if len(resources) > 0 {
+		initiatorQueryParams[oauth2const.RequestParamResource] = resources
+	}
+
 	parRequest := pushedAuthorizationRequest{
 		ClientID:        oauthApp.ClientID,
 		OAuthParameters: oauthParams,
+		InitiatorRequest: providers.InitiatorRequest{
+			QueryParams: initiatorQueryParams,
+		},
 	}
 
 	expiresIn := s.cfg.OAuth.PAR.ExpiresIn
@@ -184,19 +210,19 @@ func resolveDPoPJkt(paramJkt, headerJkt string) string {
 // Returns the stored OAuth parameters on success, or an error if the request_uri is invalid.
 func (s *parService) ResolvePushedAuthorizationRequest(
 	ctx context.Context, requestURI string, clientID string,
-) (*oauth2model.OAuthParameters, error) {
+) (*oauth2model.OAuthParameters, *providers.InitiatorRequest, error) {
 	if !strings.HasPrefix(requestURI, requestURIPrefix) {
-		return nil, errInvalidRequestURI
+		return nil, nil, errInvalidRequestURI
 	}
 	randomKey := strings.TrimPrefix(requestURI, requestURIPrefix)
 
 	parRequest, found, err := s.store.Consume(ctx, randomKey)
 	if err != nil {
 		s.logger.Error(ctx, "Failed to consume PAR request", log.Error(err))
-		return nil, ErrPARResolutionFailed
+		return nil, nil, ErrPARResolutionFailed
 	}
 	if !found {
-		return nil, errRequestURINotFound
+		return nil, nil, errRequestURINotFound
 	}
 
 	// Verify client_id binding: the client making the authorization request must match
@@ -205,8 +231,8 @@ func (s *parService) ResolvePushedAuthorizationRequest(
 		s.logger.Debug(ctx, "Client ID mismatch for PAR request",
 			log.String("expected", parRequest.ClientID),
 			log.String("actual", clientID))
-		return nil, errClientIDMismatch
+		return nil, nil, errClientIDMismatch
 	}
 
-	return &parRequest.OAuthParameters, nil
+	return &parRequest.OAuthParameters, &parRequest.InitiatorRequest, nil
 }

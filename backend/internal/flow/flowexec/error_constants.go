@@ -240,16 +240,17 @@ var ErrorAttestationInvalid = tidcommon.ServiceError{
 	},
 }
 
-// ErrorSignOutFlowDisabled defines the error response for sign-out flow disabled errors.
-var ErrorSignOutFlowDisabled = tidcommon.ServiceError{
+// ErrorAttestationNotConfigured defines the error when a mobile application initiates a flow but has
+// no platform attestation configured. Mobile apps must configure attestation to access the flow APIs.
+var ErrorAttestationNotConfigured = tidcommon.ServiceError{
 	Code: "FES-1016",
 	Type: tidcommon.ClientErrorType,
 	Error: tidcommon.I18nMessage{
-		Key:          "error.flowexecservice.signout_not_allowed",
-		DefaultValue: "Sign out not allowed",
+		Key:          "error.flowexecservice.attestation_not_configured",
+		DefaultValue: "Attestation not configured",
 	},
 	ErrorDescription: tidcommon.I18nMessage{
-		Key:          "error.flowexecservice.signout_not_allowed_description",
-		DefaultValue: "Sign out flow is disabled for the application",
+		Key:          "error.flowexecservice.attestation_not_configured_description",
+		DefaultValue: "Mobile applications must configure platform attestation to initiate a flow",
 	},
 }

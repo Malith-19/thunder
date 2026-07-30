@@ -22,7 +22,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"testing"
-	"time"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/stretchr/testify/suite"
@@ -38,19 +37,33 @@ func TestUtilsTestSuite(t *testing.T) {
 	suite.Run(t, new(UtilsTestSuite))
 }
 
-func (suite *UtilsTestSuite) TestGenerateDefaultCredentialName() {
-	name := generateDefaultCredentialName()
-
-	suite.NotEmpty(name)
-	suite.Contains(name, "Passkey")
-	suite.Contains(name, time.Now().Format("2006-01-02"))
-}
-
 func (suite *UtilsTestSuite) TestGetConfiguredOrigins() {
 	origins := getConfiguredOrigins()
 
 	suite.NotNil(origins)
 	suite.NotEmpty(origins)
+}
+
+func (suite *UtilsTestSuite) TestResolveOrigins_WithOverride() {
+	override := []string{"https://app.example.com", "https://mobile.example.com"}
+
+	result := resolveAllowedOrigins(override)
+
+	suite.Equal(override, result)
+}
+
+func (suite *UtilsTestSuite) TestResolveOrigins_FallbackToServerConfig() {
+	result := resolveAllowedOrigins(nil)
+
+	suite.NotNil(result)
+	suite.NotEmpty(result)
+}
+
+func (suite *UtilsTestSuite) TestResolveOrigins_EmptySliceFallsBack() {
+	result := resolveAllowedOrigins([]string{})
+
+	suite.NotNil(result)
+	suite.NotEmpty(result)
 }
 
 func (suite *UtilsTestSuite) TestParseUserAttributes_ValidJSON() {

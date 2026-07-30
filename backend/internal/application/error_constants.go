@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -518,6 +518,74 @@ var (
 			DefaultValue: "The {{param(sourceFlowType)}} flow references a different " +
 				"{{param(flowType)}} flow than the one configured on the application. " +
 				"Both must point to the same {{param(flowType)}} flow.",
+		},
+	}
+	// ErrorInvalidApplicationType is returned when an application is created or updated with an
+	// unrecognized type value.
+	ErrorInvalidApplicationType = tidcommon.ServiceError{
+		Type: tidcommon.ClientErrorType,
+		Code: "APP-1040",
+		Error: tidcommon.I18nMessage{
+			Key:          "error.applicationservice.invalid_application_type",
+			DefaultValue: "Invalid application type",
+		},
+		ErrorDescription: tidcommon.I18nMessage{
+			Key: "error.applicationservice.invalid_application_type_description",
+			DefaultValue: "The provided application type is not supported. It must be one of: " +
+				"browser, fullstack, mobile, m2m, custom.",
+		},
+	}
+	// ErrorApplicationTypeImmutable is returned when an update attempts to change the application type.
+	ErrorApplicationTypeImmutable = tidcommon.ServiceError{
+		Type: tidcommon.ClientErrorType,
+		Code: "APP-1041",
+		Error: tidcommon.I18nMessage{
+			Key:          "error.applicationservice.application_type_immutable",
+			DefaultValue: "Application type cannot be changed",
+		},
+		ErrorDescription: tidcommon.I18nMessage{
+			Key:          "error.applicationservice.application_type_immutable_description",
+			DefaultValue: "The application type is set at creation and cannot be modified.",
+		},
+	}
+	// ErrorApplicationTypeRequired is returned when an application is created without a type.
+	ErrorApplicationTypeRequired = tidcommon.ServiceError{
+		Type: tidcommon.ClientErrorType,
+		Code: "APP-1042",
+		Error: tidcommon.I18nMessage{
+			Key:          "error.applicationservice.application_type_required",
+			DefaultValue: "Application type is required",
+		},
+		ErrorDescription: tidcommon.I18nMessage{
+			Key: "error.applicationservice.application_type_required_description",
+			DefaultValue: "An application type must be provided. It must be one of: " +
+				"browser, fullstack, mobile, m2m, custom.",
+		},
+	}
+	// ErrorInvalidTosURI is the error returned when an invalid Terms of Service URI is provided.
+	ErrorInvalidTosURI = tidcommon.ServiceError{
+		Type: tidcommon.ClientErrorType,
+		Code: "APP-1043",
+		Error: tidcommon.I18nMessage{
+			Key:          "error.applicationservice.invalid_tos_uri",
+			DefaultValue: "Invalid Terms of Service URI",
+		},
+		ErrorDescription: tidcommon.I18nMessage{
+			Key:          "error.applicationservice.invalid_tos_uri_description",
+			DefaultValue: "The provided Terms of Service URI is not a valid URI",
+		},
+	}
+	// ErrorInvalidPolicyURI is the error returned when an invalid Privacy Policy URI is provided
+	ErrorInvalidPolicyURI = tidcommon.ServiceError{
+		Type: tidcommon.ClientErrorType,
+		Code: "APP-1044",
+		Error: tidcommon.I18nMessage{
+			Key:          "error.applicationservice.invalid_policy_uri",
+			DefaultValue: "Invalid Privacy Policy URI",
+		},
+		ErrorDescription: tidcommon.I18nMessage{
+			Key:          "error.applicationservice.invalid_policy_uri_description",
+			DefaultValue: "The provided Privacy Policy URI is not a valid URI",
 		},
 	}
 )

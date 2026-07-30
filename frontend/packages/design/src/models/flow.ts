@@ -90,6 +90,8 @@ export interface FlowFieldProps {
   resolve: (template: string | undefined) => string | undefined;
   /** Input change handler */
   onInputChange: (field: string, value: string) => void;
+  /** Blur handler for triggering validation when a field loses focus */
+  onBlur?: (field: string) => void;
 }
 
 /**
@@ -116,6 +118,8 @@ export interface FlowComponentRendererProps {
   resolve: (template: string | undefined) => string | undefined;
   /** Input change handler */
   onInputChange: (field: string, value: string) => void;
+  /** Blur handler for triggering validation when a field loses focus */
+  onBlur?: (field: string) => void;
   /**
    * Called whenever an ACTION fires (submit or trigger).
    * @param action - The action component that fired.
@@ -131,19 +135,4 @@ export interface FlowComponentRendererProps {
   maxImageSize?: number;
   /** Additional step data from the flow response */
   additionalData?: Record<string, unknown>;
-  /**
-   * Fallback sign-up URL used when the flow meta contains a sign-up URL template
-   * but `application.sign_up_url` is absent from the meta object.
-   */
-  signUpFallbackUrl?: string;
-  /**
-   * Fallback forgot-password URL used when the flow meta contains a forgot-password URL template
-   * but `application.forgot_password_url` is absent from the meta object.
-   */
-  forgotPasswordFallbackUrl?: string;
-  /**
-   * Fallback sign-in URL used when the flow meta contains a sign-in URL template
-   * but `application.sign_in_url` is absent from the meta object.
-   */
-  signInFallbackUrl?: string;
 }

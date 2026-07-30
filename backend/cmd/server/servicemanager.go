@@ -75,6 +75,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dcr"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dpop"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/jti"
+	"github.com/thunder-id/thunderid/internal/oauth/oauth2/revocation"
 	"github.com/thunder-id/thunderid/internal/openid4vci"
 	"github.com/thunder-id/thunderid/internal/ou"
 	"github.com/thunder-id/thunderid/internal/resource"
@@ -233,9 +234,6 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	fatalOnError(ctx, logger, err, "Failed to initialize connection declarative resources")
 	exporters = append(exporters, connectionExporter)
 
-	// Initialize passkey service
-	passkeyService := passkey.Initialize(entityService)
-
 	// Initialize magic link service
 	magicLinkService := magiclink.Initialize(jwtService)
 
@@ -259,6 +257,9 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		runtime.Config.Server.Identifier)
 	fatalOnError(ctx, logger, err, "Failed to initialize runtime store")
 
+	// Initialize passkey service
+	passkeyService := passkey.Initialize(entityService, runtimeStoreProvider)
+
 	// Shared DPoP verifier (and its JTI replay cache) so OAuth and OpenID4VCI
 	// share JTI replay protection.
 	oauthCfg := oauthconfig.FromServerRuntime()
@@ -271,12 +272,12 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	defaultProvider := defaultprovider.Initialize(entityService, passkeyService,
 		otpCoreService, magicLinkService, openid4vpSvc, federatedAuths)
 
-	customProviders := map[string]authnprovidermgr.AuthnProvider{}
+	customProviders := map[string]providers.CustomAuthnProvider{}
 	restCfg := runtime.Config.AuthnProvider.Rest
 	if restCfg.Enabled {
 		restProvider, err := restprovider.Initialize(restCfg)
 		fatalOnError(ctx, logger, err, "Failed to initialize REST authn provider")
-		customProviders[restprovider.Name] = authnprovidermgr.AuthnProvider{
+		customProviders[restprovider.Name] = providers.CustomAuthnProvider{
 			Instance: restProvider,
 			Creds:    restCfg.CredentialTypes,
 		}
@@ -291,7 +292,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	consentEnforcer := authnConsent.Initialize(jwtService)
 
 	_, directAuthGuard := authn.Initialize(mux, mcpServer, idpService, jwtService, authnProvider, authAssertGen,
-		passkeyService, otpCoreService, notifSenderSvc, templateService, magicLinkService, oauthAuthnService,
+		otpCoreService, notifSenderSvc, templateService, magicLinkService, oauthAuthnService,
 		oidcAuthnService, googleAuthnService, githubAuthnService,
 		runtime.Config.Server.SecurityConfig.DirectAuthSecret)
 
@@ -303,11 +304,17 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 
 	emailClient := initEmailClient(ctx, logger)
 
+	// Create the flow server-config handler early so it can be registered before serverconfig is
+	// initialized. The handle-existence validator is injected in a second phase after flowMgtService
+	// is available.
+	flowConfigHandler := flowmgt.NewFlowConfigHandler()
+
 	// Initialize server-wide configuration after its handler dependencies.
 	serverConfigHandlers := map[serverconfig.ConfigName]serverconfig.ServerConfigHandlerInterface{
 		serverconfig.ConfigNameCORS:                  cors.OriginHandler{},
 		serverconfig.ConfigNameDefaultResourceServer: resource.NewDefaultResourceServerConfigHandler(resourceService),
 		serverconfig.ConfigNameSession:               flowsession.ConfigHandler{},
+		serverconfig.ConfigNameFlow:                  flowConfigHandler,
 	}
 	serverConfigService, serverConfigExporter, err := serverconfig.Initialize(mux, cacheManager, serverConfigHandlers)
 	fatalOnError(ctx, logger, err, "Failed to initialize server config service")
@@ -316,8 +323,22 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	// CORS origins come from the server-config cors section.
 	cors.InitializeDynamicMatcher(serverConfigService)
 
+	// Decorate the resource provider so an empty identifier resolves the configured default resource
+	// server. Keeps the default-resource-server policy server-side: OAuth, CIBA, PAR, grant handlers,
+	// and the flow executor depend only on providers.ResourceServerProvider, not on serverConfigService.
+	// The base resourceService is still used for resource-management APIs and server-config validation.
+	resourceServerProvider := resource.NewDefaultAwareResourceServerProvider(resourceService, serverConfigService)
+
 	flowConfig := flowconfig.FromServerRuntime()
-	sessionService, sessionCfg := initSessionService(ctx, serverConfigService, runtime.Config.Server.Identifier, logger)
+	// The SSO session service revokes a session's token families on sign-out. The criteria revoker is
+	// built here (the OAuth engine's own revoker is created later, so it cannot be shared) and adapted
+	// to the session service's consumer interface with the sign-out reason fixed.
+	tokenFamilyRevocationTTL := time.Duration(runtime.Config.OAuth.RefreshToken.ValidityPeriod) * time.Second
+	sessionCriteriaRev := sessionCriteriaRevoker{
+		revoker: revocation.InitializeCriteriaRevoker(tokenFamilyRevocationTTL),
+	}
+	sessionService, sessionCfg := initSessionService(ctx, serverConfigService,
+		runtime.Config.Server.Identifier, sessionCriteriaRev, logger)
 	flowConfig.Session = sessionCfg
 	flowFactory, execRegistry, interceptorRegistry, graphBuilder := initializeFlowCoreAndExecutor(ctx, logger,
 		cacheManager, executor.ExecutorDependencies{
@@ -329,7 +350,6 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 			ConsentEnforcer:       consentEnforcer,
 			AuthnProvider:         authnProvider,
 			OTPService:            otpCoreService,
-			PasskeyService:        passkeyService,
 			MagicLinkService:      magicLinkService,
 			AuthZService:          authZService,
 			EntityTypeService:     entityTypeService,
@@ -346,14 +366,19 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 			GoogleSvc:             googleAuthnService,
 			OpenID4VPVerifierSvc:  openid4vpSvc,
 			SessionService:        sessionService,
+			ResourceService:       resourceServerProvider,
 		},
 		interceptor.InterceptorDependencies{},
 		flowConfig,
 	)
 
 	flowMgtService, flowMgtExporter, err := flowmgt.Initialize(
-		mux, mcpServer, cacheManager, flowFactory, execRegistry, interceptorRegistry, graphBuilder)
+		mux, mcpServer, cacheManager, flowFactory, execRegistry, interceptorRegistry, graphBuilder,
+		serverConfigService, ouService, flowConfigHandler)
 	fatalOnError(ctx, logger, err, "Failed to initialize FlowMgtService")
+
+	// Two-phase initialization: inject the flow resolver into the OU service.
+	ouService.SetOUFlowResolver(flowMgtService)
 
 	exporters = append(exporters, flowMgtExporter)
 	certservice, err := cert.Initialize(cacheManager, dbprovider.GetDBProvider())
@@ -381,7 +406,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	// TODO: Remove entityService dependency after finalizing declarative resource loading pattern
 	applicationService, applicationExporter, err := application.Initialize(
 		mux, mcpServer, entityProvider, entityService, inboundClientService, ouService, i18nService,
-		runtimeCryptoSvc)
+		runtimeCryptoSvc, serverConfigService)
 	fatalOnError(ctx, logger, err, "Failed to initialize ApplicationService")
 	exporters = append(exporters, applicationExporter)
 
@@ -411,7 +436,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	// Initialize design resolve service for theme and layout resolution
 	designResolveService := resolve.Initialize(mux, themeMgtService, layoutMgtService, applicationService)
 
-	actorProvider := actorprovider.Initialize(inboundClientService, entityProvider, authnProvider)
+	actorProvider := actorprovider.Initialize(inboundClientService, entityProvider, authnProvider, roleService)
 
 	// Initialize flow metadata service
 	_ = flowmeta.Initialize(mux, actorProvider, ouService, designResolveService, i18nService)
@@ -445,19 +470,21 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	attestationProvider := initAttestationProvider(ctx, logger, runtimeCryptoSvc)
 	flowExecService, err := flowexec.Initialize(mux, flowMgtService, actorProvider,
 		execRegistry, interceptorRegistry, observabilitySvc, runtimeCryptoSvc, attestationProvider,
-		graphBuilder, runtimeStoreProvider, transactioner, flowConfig)
+		graphBuilder, runtimeStoreProvider, transactioner, serverConfigService, flowConfig)
 	fatalOnError(ctx, logger, err, "Failed to initialize flow execution service")
 
 	// Initialize OAuth services.
 	err = oauth.Initialize(mux, actorProvider, authnProvider, jwtService, jweService,
 		flowExecService, observabilitySvc, runtimeCryptoSvc, ouService, attributeCacheService, authZService,
-		resourceService, serverConfigService, i18nService, idpService, dpopVerifier,
+		resourceServerProvider, i18nService, idpService, dpopVerifier,
 		runtimeStoreProvider, transactioner, oauthCfg)
 	fatalOnError(ctx, logger, err, "Failed to initialize OAuth services")
 
-	// Register OAuth2 DCR service.
-	err = dcr.Initialize(mux, applicationService, ouService, i18nService, oauthCfg)
-	fatalOnError(ctx, logger, err, "Failed to initialize OAuth2 DCR service")
+	if oauthCfg.OAuth.DCR.IsEnabled() {
+		// Register OAuth2 DCR service.
+		err = dcr.Initialize(mux, applicationService, ouService, i18nService, oauthCfg)
+		fatalOnError(ctx, logger, err, "Failed to initialize OAuth2 DCR service")
+	}
 
 	// Register the health service.
 	healthSvc := healthcheckservice.Initialize(dbprovider.GetDBProvider(), dbprovider.GetRedisProvider())
@@ -518,12 +545,23 @@ func unregisterServices() {
 // initSessionService reads the effective SSO session configuration from the server-config section and
 // builds the session service, returning both so the caller can thread the config into flowexec too.
 func initSessionService(ctx context.Context, svc serverconfig.ServerConfigService, deploymentID string,
-	logger *log.Logger) (flowsession.Service, flowsession.Config) {
+	criteriaRevoker flowsession.CriteriaRevoker, logger *log.Logger) (flowsession.Service, flowsession.Config) {
 	cfg := readSessionConfig(ctx, svc, logger)
 	sessionService, err := flowsession.Initialize(dbprovider.GetDBProvider(), deploymentID,
-		flowsession.NewTimeouts(cfg.IdleTimeoutSeconds, cfg.AbsoluteTimeoutSeconds))
+		flowsession.NewTimeouts(cfg.IdleTimeoutSeconds, cfg.AbsoluteTimeoutSeconds), criteriaRevoker)
 	fatalOnError(ctx, logger, err, "Failed to initialize SSO session service")
 	return sessionService, cfg
+}
+
+// sessionCriteriaRevoker adapts the OAuth criteria revoker to the SSO session service's consumer
+// interface, fixing the revocation reason to session sign-out.
+type sessionCriteriaRevoker struct {
+	revoker revocation.CriteriaRevokerInterface
+}
+
+// RevokeTokenFamily revokes the given token family with the session-logout reason.
+func (a sessionCriteriaRevoker) RevokeTokenFamily(ctx context.Context, tokenFamilyID string) error {
+	return a.revoker.RevokeTokenFamily(ctx, tokenFamilyID, revocation.RevocationReasonSessionLogout)
 }
 
 // readSessionConfig reads the effective SSO session lifetime configuration from the server-config

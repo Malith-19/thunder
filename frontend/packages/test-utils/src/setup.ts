@@ -40,11 +40,15 @@ beforeAll(async () => {
         social: enUS.social,
         consent: enUS.consent,
         errors: enUS.errors,
+        signin: enUS.signin,
+        signup: enUS.signup,
+        validations: enUS.validations,
       },
     },
     lng: 'en-US',
     fallbackLng: 'en-US',
     defaultNS: 'common',
+    keySeparator: false,
     interpolation: {
       escapeValue: false,
     },
@@ -161,6 +165,22 @@ vi.mock('@thunderid/react', async (importOriginal) => {
       isLoading: false,
     })),
     ThunderIDProvider: ({children}: {children: React.ReactNode}) => children,
+    InviteUser: ({children}: {children: (props: unknown) => React.ReactNode}) =>
+      children({
+        components: [],
+        values: {},
+        fieldErrors: {},
+        touched: {},
+        error: null,
+        isLoading: false,
+        handleInputChange: vi.fn(),
+        handleInputBlur: vi.fn(),
+        handleSubmit: vi.fn().mockResolvedValue(undefined),
+        resetFlow: vi.fn(),
+        isValid: false,
+        meta: null,
+        additionalData: undefined,
+      }),
   };
 });
 

@@ -20,11 +20,11 @@ import {Box, Stack, Tab, Tabs} from '@wso2/oxygen-ui';
 import {useEffect, useState, type JSX, type SyntheticEvent} from 'react';
 import {useTranslation} from 'react-i18next';
 import AgentAccessTokenSection from './AgentAccessTokenSection';
+import SettingsLockNotice from '../../../../applications/components/common/SettingsLockNotice';
 import EditTokenSettings from '../../../../applications/components/edit-application/token-settings/EditTokenSettings';
 import type {Application} from '../../../../applications/models/application';
 import {OAuth2GrantTypes} from '../../../../applications/models/oauth';
 import type {Agent, OAuthAgentConfig} from '../../../models/agent';
-import DelegationLockNotice from '../shared/DelegationLockNotice';
 
 interface EditTokensSettingsProps {
   agent: Agent;
@@ -64,16 +64,25 @@ export default function EditTokensSettings({
   return (
     <Box>
       <Tabs value={subTab} onChange={handleSubTabChange} aria-label="agent token settings sub-tabs">
-        <Tab label={t('agents:edit.tokens.tabs.user', 'User')} sx={{textTransform: 'none'}} />
         <Tab label={t('agents:edit.tokens.tabs.agent', 'Agent')} sx={{textTransform: 'none'}} />
+        <Tab label={t('agents:edit.tokens.tabs.user', 'User')} sx={{textTransform: 'none'}} />
       </Tabs>
       <Box sx={{pt: 3}}>
         {subTab === 0 && (
-          <DelegationLockNotice
+          <AgentAccessTokenSection
+            agent={agent}
+            editedAgent={editedAgent}
+            oauth2Config={oauth2Config}
+            onFieldChange={onFieldChange}
+            onValidationChange={setAgentTabHasError}
+          />
+        )}
+        {subTab === 1 && (
+          <SettingsLockNotice
             isUnlocked={isUnlocked}
             message={t(
               'agents:edit.tokens.delegationLock.message',
-              'These settings are frozen for this agent. Turn on Delegated mode in the Flows tab to unlock and start using them.',
+              'These settings are frozen for this agent. Turn on Delegated mode in the Advanced tab to unlock and start using them.',
             )}
           >
             <Stack spacing={3}>
@@ -85,18 +94,10 @@ export default function EditTokensSettings({
                 entityLabel="agent"
                 showUserInfoTab={false}
                 showActorClaim
+                actorSub={agent.id}
               />
             </Stack>
-          </DelegationLockNotice>
-        )}
-        {subTab === 1 && (
-          <AgentAccessTokenSection
-            agent={agent}
-            editedAgent={editedAgent}
-            oauth2Config={oauth2Config}
-            onFieldChange={onFieldChange}
-            onValidationChange={setAgentTabHasError}
-          />
+          </SettingsLockNotice>
         )}
       </Box>
     </Box>

@@ -33,6 +33,7 @@ type PasskeyRegistrationStartRequest struct {
 	RelyingPartyName       string
 	AuthenticatorSelection *AuthenticatorSelection
 	Attestation            string
+	AllowedOrigins         []string
 }
 
 // PasskeyRegistrationStartData represents the data returned when initiating passkey registration.
@@ -61,20 +62,14 @@ type PasskeyRegistrationFinishRequest struct {
 	ClientDataJSON    string
 	AttestationObject string
 	SessionToken      string
-	CredentialName    string
-}
-
-// PasskeyRegistrationFinishData represents the data returned after completing passkey registration.
-type PasskeyRegistrationFinishData struct {
-	CredentialID   string `json:"credentialId"`
-	CredentialName string `json:"credentialName"`
-	CreatedAt      string `json:"createdAt"`
+	AllowedOrigins    []string
 }
 
 // PasskeyAuthenticationStartRequest represents the request to start passkey authentication.
 type PasskeyAuthenticationStartRequest struct {
 	UserID         string
 	RelyingPartyID string
+	AllowedOrigins []string
 }
 
 // PasskeyAuthenticationStartData represents the data returned when initiating passkey authentication.
@@ -109,6 +104,7 @@ type PasskeyAuthenticationFinishRequest struct {
 	Signature         string
 	UserHandle        string
 	SessionToken      string
+	AllowedOrigins    []string
 }
 
 // PasskeyFinishRequest represents the request to complete passkey authentication.

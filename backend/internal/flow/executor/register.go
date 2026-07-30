@@ -34,7 +34,6 @@ import (
 	"github.com/thunder-id/thunderid/internal/authn/oidc"
 	"github.com/thunder-id/thunderid/internal/authn/openid4vp"
 	"github.com/thunder-id/thunderid/internal/authn/otp"
-	"github.com/thunder-id/thunderid/internal/authn/passkey"
 	"github.com/thunder-id/thunderid/internal/entityprovider"
 	"github.com/thunder-id/thunderid/internal/entitytype"
 	"github.com/thunder-id/thunderid/internal/flow/core"
@@ -138,7 +137,6 @@ type ExecutorDependencies struct {
 	ConsentEnforcer       providers.ConsentProvider
 	AuthnProvider         providers.AuthnProviderManager
 	OTPService            otp.OTPAuthnServiceInterface
-	PasskeyService        passkey.PasskeyServiceInterface
 	MagicLinkService      magiclink.MagicLinkAuthnServiceInterface
 	AuthZService          providers.AuthorizationProvider
 	EntityTypeService     entitytype.EntityTypeServiceInterface
@@ -155,6 +153,7 @@ type ExecutorDependencies struct {
 	GoogleSvc             google.GoogleOIDCAuthnServiceInterface
 	OpenID4VPVerifierSvc  openid4vp.OpenID4VPServiceInterface
 	SessionService        session.Service
+	ResourceService       providers.ResourceServerProvider
 }
 
 type builtInExecutorRegistrar func(ExecutorRegistryInterface, ExecutorDependencies)
@@ -168,7 +167,7 @@ func newBuiltInExecutorRegistrars() map[string]builtInExecutorRegistrar {
 		},
 		ExecutorNamePasskeyAuth: func(reg ExecutorRegistryInterface, deps ExecutorDependencies) {
 			reg.RegisterExecutor(ExecutorNamePasskeyAuth, newPasskeyAuthExecutor(
-				deps.FlowFactory, deps.PasskeyService, deps.AuthnProvider, deps.EntityProvider))
+				deps.FlowFactory, deps.AuthnProvider))
 		},
 		ExecutorNameMagicLink: func(reg ExecutorRegistryInterface, deps ExecutorDependencies) {
 			reg.RegisterExecutor(ExecutorNameMagicLink, newMagicLinkExecutor(
@@ -212,7 +211,8 @@ func newBuiltInExecutorRegistrars() map[string]builtInExecutorRegistrar {
 		},
 		ExecutorNameAuthorization: func(reg ExecutorRegistryInterface, deps ExecutorDependencies) {
 			reg.RegisterExecutor(ExecutorNameAuthorization, newAuthorizationExecutor(
-				deps.FlowFactory, deps.AuthZService, deps.EntityProvider, deps.AuthnProvider))
+				deps.FlowFactory, deps.AuthZService, deps.EntityProvider, deps.AuthnProvider,
+				deps.ResourceService))
 		},
 		ExecutorNameHTTPRequest: func(reg ExecutorRegistryInterface, deps ExecutorDependencies) {
 			reg.RegisterExecutor(ExecutorNameHTTPRequest, newHTTPRequestExecutor(deps.FlowFactory, deps.OUService,

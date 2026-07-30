@@ -179,7 +179,14 @@ type AuthorizationCodeConfig struct {
 
 // DCRConfig holds the Dynamic Client Registration configuration.
 type DCRConfig struct {
-	Insecure bool `yaml:"insecure" json:"insecure"`
+	Enabled  *bool `yaml:"enabled" json:"enabled"`
+	Insecure bool  `yaml:"insecure" json:"insecure"`
+}
+
+// IsEnabled returns whether DCR is enabled, defaulting to false if unset
+// (an explicit default lives in default.json).
+func (c DCRConfig) IsEnabled() bool {
+	return c.Enabled != nil && *c.Enabled
 }
 
 // PARConfig holds the Pushed Authorization Request (RFC 9126) configuration.
@@ -211,26 +218,74 @@ type OAuthConfig struct {
 	DPoP              DPoPConfig              `yaml:"dpop"                        json:"dpop"`
 	AuthClass         AuthClassConfig         `yaml:"auth_class"                  json:"auth_class"`
 	CIBA              CIBAConfig              `yaml:"ciba"                        json:"ciba"`
+	Revocation        RevocationConfig        `yaml:"revocation"                  json:"revocation"`
+	TokenExchange     TokenExchangeConfig     `yaml:"token_exchange"              json:"token_exchange"`
 	// AllowWildcardRedirectURI enables wildcard pattern matching for redirect URIs.
 	// When false (default), only exact redirect URI matching is performed.
 	AllowWildcardRedirectURI bool `yaml:"allow_wildcard_redirect_uri" json:"allow_wildcard_redirect_uri"`
+	// AllowedGrantTypes enables registering of only the configured grant types
+	AllowedGrantTypes []string `yaml:"allowed_grant_types" json:"allowed_grant_types"`
+	// AllowedResponseTypes enables registering of only the configured response types
+	AllowedResponseTypes []string `yaml:"allowed_response_types" json:"allowed_response_types"`
+	// AllowedAuthMethods lists allowed client token endpoint auth methods
+	AllowedAuthMethods []string `yaml:"allowed_auth_methods" json:"allowed_auth_methods"`
+
+	TokenRevocation OAuthTokenRevocationConfig `yaml:"token_revocation" json:"token_revocation"`
+	Logout          LogoutConfig               `yaml:"logout" json:"logout"`
+}
+
+// OAuthTokenRevocationConfig holds the configuration details for the token revocation feature
+type OAuthTokenRevocationConfig struct {
+	// Enabled controls whether the OAuth token revocation endpoint is active.
+	Enabled bool `yaml:"enabled" json:"enabled"`
+}
+
+// LogoutConfig holds the configuration details for the logout endpoint
+type LogoutConfig struct {
+	// Enabled controls whether the OAuth logout endpoint is active.
+	Enabled bool `yaml:"enabled" json:"enabled"`
+}
+
+// RevocationConfig holds grant-scoped (token family) revocation settings.
+type RevocationConfig struct {
+	TokenFamily TokenFamilyRevocationConfig `yaml:"token_family" json:"token_family"`
+}
+
+// TokenFamilyRevocationConfig toggles the triggers that revoke a whole token family (one authorization
+// grant). Each defaults to on (set in default.json), matching the fail-closed security posture.
+type TokenFamilyRevocationConfig struct {
+	// OnRefreshReplay revokes the family when a rotated (already-revoked) refresh token is replayed.
+	// It has no effect unless refresh-token rotation (renew_on_grant) is enabled, since a token is only
+	// revoked, and thus only replayable, once it has been rotated.
+	OnRefreshReplay bool `yaml:"on_refresh_replay"   json:"on_refresh_replay"`
+	// OnExplicitRevoke revokes the family when a token carrying a tfid is revoked via RFC 7009, so a
+	// login's access tokens drop with its refresh token.
+	OnExplicitRevoke bool `yaml:"on_explicit_revoke" json:"on_explicit_revoke"`
+	// OnCodeReplay revokes the family when an authorization code is redeemed twice (replay).
+	OnCodeReplay bool `yaml:"on_code_replay"     json:"on_code_replay"`
+}
+
+// TokenExchangeConfig holds RFC 8693 token-exchange settings.
+type TokenExchangeConfig struct {
+	// TokenFamily selects how an exchanged token relates to the subject token's token family:
+	// "none" (default) issues an independent token with no tfid; "inherit" copies the subject
+	// token's tfid so the exchanged token is revoked with that token family.
+	TokenFamily string `yaml:"token_family" json:"token_family"`
 }
 
 // FlowConfig holds the configuration details for the flow service.
 type FlowConfig struct {
-	DefaultAuthFlowHandle    string `yaml:"default_auth_flow_handle"    json:"default_auth_flow_handle"`
-	UserOnboardingFlowHandle string `yaml:"user_onboarding_flow_handle" json:"user_onboarding_flow_handle"`
-	MaxVersionHistory        int    `yaml:"max_version_history"         json:"max_version_history"`
-	AutoInferRegistration    bool   `yaml:"auto_infer_registration"     json:"auto_infer_registration"`
-	Store                    string `yaml:"store"                       json:"store"`
+	MaxVersionHistory     int    `yaml:"max_version_history" json:"max_version_history"`
+	AutoInferRegistration bool   `yaml:"auto_infer_registration" json:"auto_infer_registration"`
+	Store                 string `yaml:"store"               json:"store"`
 	// Executors lists built-in executor names to register (e.g. CredentialsAuthExecutor).
 	// When empty, all built-in executors are registered. When set, only listed executors
 	// are available; omit only executors you intentionally disable on this node.
-	Executors []string `yaml:"executors"                   json:"executors"`
+	Executors []string `yaml:"executors"    json:"executors"`
 	// Interceptors lists built-in interceptor names to register (e.g. CaptchaInterceptor).
 	// When empty, all built-in interceptors are registered. When set, only listed interceptors
 	// are available; omit only interceptors you intentionally disable on this node.
-	Interceptors []string `yaml:"interceptors"                json:"interceptors"`
+	Interceptors []string `yaml:"interceptors" json:"interceptors"`
 }
 
 // RequiredClaim defines a claim name and expected value that must be present in the token.
@@ -293,4 +348,13 @@ type ObservabilityOTelConfig struct {
 	Categories     []string `yaml:"categories"      json:"categories"`
 	// Insecure disables TLS for OTLP (not recommended for production)
 	Insecure bool `yaml:"insecure"        json:"insecure"`
+}
+
+// LogConfig configures the engine's internal logger.
+type LogConfig struct {
+	// Level is the minimum log level: "debug", "info", "warn", or "error".
+	// Empty keeps the engine's built-in default.
+	Level string `yaml:"level" json:"level"`
+	// Format selects the record format: "json" or "text" (default).
+	Format string `yaml:"format" json:"format"`
 }

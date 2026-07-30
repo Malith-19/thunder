@@ -486,7 +486,7 @@ function prepare_backend_for_packaging() {
     echo "Copying bootstrap scripts..."
     cp -r "$BACKEND_DIR/bootstrap" "$DIST_DIR/$PRODUCT_FOLDER/"
     # Never ship the dev-only CORS seed that `run` stages into the source bootstrap dir.
-    rm -f "$DIST_DIR/$PRODUCT_FOLDER/bootstrap/02-server-configurations.yaml"
+    rm -f "$DIST_DIR/$PRODUCT_FOLDER/bootstrap/03-dev-server-configurations.yaml"
 
     # Key material is not generated into the distribution; setup.sh generates it per deployment.
 }
@@ -690,7 +690,7 @@ function package_wayfinder_sample() {
     tar xzf "$tgz" -C "$DIST_DIR"
     mv "$DIST_DIR/package" "$DIST_DIR/$WAYFINDER_SAMPLE_APP_FOLDER"
 
-    for dir in frontend backend smtp-server ai-agent; do
+    for dir in frontend backend smtp-server ai-agent lounge; do
         if [ -f "$DIST_DIR/$WAYFINDER_SAMPLE_APP_FOLDER/$dir/.env.example" ]; then
             cp "$DIST_DIR/$WAYFINDER_SAMPLE_APP_FOLDER/$dir/.env.example" "$DIST_DIR/$WAYFINDER_SAMPLE_APP_FOLDER/$dir/.env"
         fi
@@ -1051,7 +1051,7 @@ function run() {
     # Dev-only: seed CORS allowed origins for the Gate and Console apps so they can call
     # the backend without manual configuration. Regenerated on every run and picked up by
     # the bootstrap one-shot; it is git-ignored and never packaged (see build()).
-    cat > "$BACKEND_DIR/bootstrap/02-server-configurations.yaml" <<EOF
+    cat > "$BACKEND_DIR/bootstrap/03-dev-server-configurations.yaml" <<EOF
 resource_type: server_config
 name: cors
 value:

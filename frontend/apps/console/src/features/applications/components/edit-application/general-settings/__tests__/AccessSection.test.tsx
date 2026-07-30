@@ -113,6 +113,28 @@ describe('AccessSection', () => {
       expect(screen.getByDisplayValue('https://example.com')).toBeInTheDocument();
     });
 
+    it('hides allowed user types and redirect URIs when user access config is disabled', () => {
+      vi.mocked(useGetUserTypes).mockReturnValue({
+        data: mockUserTypes,
+        isLoading: false,
+      } as unknown as MockedUseGetUserTypes);
+
+      render(
+        <AccessSection
+          application={mockApplication}
+          editedApp={{}}
+          oauth2Config={mockOAuth2Config}
+          onFieldChange={mockOnFieldChange}
+          showUserAccessConfig={false}
+        />,
+      );
+
+      expect(screen.queryByLabelText('Allowed User Types')).not.toBeInTheDocument();
+      expect(screen.queryByText('Authorized redirect URIs')).not.toBeInTheDocument();
+      // The generic application URL field stays visible for every client type.
+      expect(screen.getByLabelText('Application URL')).toBeInTheDocument();
+    });
+
     it('should render redirect URIs section when OAuth2 config is provided', () => {
       vi.mocked(useGetUserTypes).mockReturnValue({
         data: mockUserTypes,
@@ -495,6 +517,126 @@ describe('AccessSection', () => {
       // Since URI is valid and non-empty, it should call updateRedirectUris
       await waitFor(() => {
         expect(mockOnFieldChange).toHaveBeenCalledWith('inboundAuthConfig', expect.any(Array));
+      });
+    });
+  });
+
+  describe('Validation Change Callback', () => {
+    it('should notify parent with no errors for a valid URL', async () => {
+      const mockOnValidationChange = vi.fn();
+      vi.mocked(useGetUserTypes).mockReturnValue({
+        data: mockUserTypes,
+        isLoading: false,
+      } as unknown as MockedUseGetUserTypes);
+
+      render(
+        <AccessSection
+          application={mockApplication}
+          editedApp={{}}
+          onFieldChange={mockOnFieldChange}
+          onValidationChange={mockOnValidationChange}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(mockOnValidationChange).toHaveBeenCalledWith(false);
+      });
+    });
+
+    it('should notify parent with errors when the URL becomes invalid', async () => {
+      const user = userEvent.setup();
+      const mockOnValidationChange = vi.fn();
+      vi.mocked(useGetUserTypes).mockReturnValue({
+        data: mockUserTypes,
+        isLoading: false,
+      } as unknown as MockedUseGetUserTypes);
+
+      render(
+        <AccessSection
+          application={mockApplication}
+          editedApp={{}}
+          onFieldChange={mockOnFieldChange}
+          onValidationChange={mockOnValidationChange}
+        />,
+      );
+
+      const urlInput = screen.getByLabelText('Application URL');
+      await user.clear(urlInput);
+      await user.type(urlInput, 'invalid-url');
+
+      await waitFor(() => {
+        expect(mockOnValidationChange).toHaveBeenCalledWith(true);
+      });
+    });
+
+    it('should notify parent with errors when a redirect URI is invalid', async () => {
+      const user = userEvent.setup();
+      const mockOnValidationChange = vi.fn();
+      vi.mocked(useGetUserTypes).mockReturnValue({
+        data: mockUserTypes,
+        isLoading: false,
+      } as unknown as MockedUseGetUserTypes);
+
+      render(
+        <AccessSection
+          application={mockApplication}
+          editedApp={{}}
+          oauth2Config={mockOAuth2Config}
+          onFieldChange={mockOnFieldChange}
+          onValidationChange={mockOnValidationChange}
+        />,
+      );
+
+      const uriInput = screen.getByDisplayValue('https://example.com/callback');
+      await user.clear(uriInput);
+      await user.type(uriInput, 'not-a-valid-url');
+      await user.tab();
+
+      await waitFor(() => {
+        expect(mockOnValidationChange).toHaveBeenCalledWith(true);
+      });
+    });
+
+    it('stops reporting redirect URI errors once user access config is hidden', async () => {
+      const user = userEvent.setup();
+      const mockOnValidationChange = vi.fn();
+      vi.mocked(useGetUserTypes).mockReturnValue({
+        data: mockUserTypes,
+        isLoading: false,
+      } as unknown as MockedUseGetUserTypes);
+
+      const {rerender} = render(
+        <AccessSection
+          application={mockApplication}
+          editedApp={{}}
+          oauth2Config={mockOAuth2Config}
+          onFieldChange={mockOnFieldChange}
+          onValidationChange={mockOnValidationChange}
+        />,
+      );
+
+      const uriInput = screen.getByDisplayValue('https://example.com/callback');
+      await user.clear(uriInput);
+      await user.type(uriInput, 'not-a-valid-url');
+      await user.tab();
+      await waitFor(() => {
+        expect(mockOnValidationChange).toHaveBeenLastCalledWith(true);
+      });
+
+      // Removing the user-facing grant hides these fields; their stale error must no longer block save.
+      rerender(
+        <AccessSection
+          application={mockApplication}
+          editedApp={{}}
+          oauth2Config={mockOAuth2Config}
+          onFieldChange={mockOnFieldChange}
+          onValidationChange={mockOnValidationChange}
+          showUserAccessConfig={false}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(mockOnValidationChange).toHaveBeenLastCalledWith(false);
       });
     });
   });

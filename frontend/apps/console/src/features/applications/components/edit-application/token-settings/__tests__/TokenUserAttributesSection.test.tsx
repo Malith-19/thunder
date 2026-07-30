@@ -419,6 +419,21 @@ describe('TokenUserAttributesSection', () => {
       expect(payload).toContain('agent-id');
     });
 
+    it('does not include an iss field inside the act claim (matches the agent OBO token)', () => {
+      render(<TokenUserAttributesSection {...oauthProps} activeTab="access" showActorClaim />);
+
+      const payload = screen.getByTestId('jwt-preview-payload').textContent ?? '';
+      expect(payload).toContain('"act"');
+      expect(payload).not.toContain('issuer');
+    });
+
+    it('renders the provided actorSub as the act.sub value', () => {
+      render(<TokenUserAttributesSection {...oauthProps} activeTab="access" showActorClaim actorSub="my-agent-123" />);
+
+      const payload = screen.getByTestId('jwt-preview-payload').textContent ?? '';
+      expect(payload).toContain('my-agent-123');
+    });
+
     it('does not include the act claim in the ID token preview even when showActorClaim is true', () => {
       render(<TokenUserAttributesSection {...oauthProps} activeTab="id" showActorClaim />);
 
@@ -583,6 +598,56 @@ describe('TokenUserAttributesSection', () => {
       // 'ouHandle' is in the mocked ADDITIONAL_USER_ATTRIBUTES and not a default attr
       // It should appear alongside userAttributes when userAttributes.length > 0
       expect(screen.getByText('ouHandle')).toBeInTheDocument();
+    });
+  });
+
+  describe('Selected attributes missing from the schema', () => {
+    it('renders a selected attribute that is no longer in userAttributes', () => {
+      render(
+        <TokenUserAttributesSection {...baseProps} userAttributes={['email']} sharedAttributes={['deletedAttr']} />,
+      );
+
+      const chip = screen.getByText('deletedAttr').closest('.MuiChip-root');
+      expect(chip).toHaveClass('MuiChip-filled');
+    });
+
+    it('allows deselecting an attribute that is no longer in userAttributes', async () => {
+      const onAttributeClick = vi.fn();
+      render(
+        <TokenUserAttributesSection
+          {...baseProps}
+          onAttributeClick={onAttributeClick}
+          userAttributes={['email']}
+          sharedAttributes={['deletedAttr']}
+        />,
+      );
+
+      await userEvent.click(screen.getByText('deletedAttr'));
+
+      expect(onAttributeClick).toHaveBeenCalledWith('deletedAttr', 'shared');
+    });
+
+    it('renders stale selections even when userAttributes is empty', () => {
+      render(<TokenUserAttributesSection {...baseProps} sharedAttributes={['deletedAttr']} />);
+
+      expect(screen.getByText('deletedAttr')).toBeInTheDocument();
+    });
+
+    it('renders a stale access token attribute in OAuth mode', () => {
+      render(
+        <TokenUserAttributesSection
+          {...baseProps}
+          userAttributes={['email']}
+          accessTokenAttributes={['deletedAttr']}
+          idTokenAttributes={[]}
+          userInfoAttributes={[]}
+          activeTab="access"
+          onTabChange={vi.fn()}
+        />,
+      );
+
+      const chip = screen.getByText('deletedAttr').closest('.MuiChip-root');
+      expect(chip).toHaveClass('MuiChip-filled');
     });
   });
 });

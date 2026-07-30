@@ -22,6 +22,7 @@ package constants
 import (
 	"errors"
 
+	oauthconfig "github.com/thunder-id/thunderid/internal/oauth/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine/providers"
 )
@@ -267,10 +268,13 @@ const (
 
 // Custom JWT claim names.
 const (
-	ClaimUserType               string = "userType"
-	ClaimOUID                   string = "ouId"
-	ClaimOUName                 string = "ouName"
-	ClaimOUHandle               string = "ouHandle"
+	ClaimUserType string = "userType"
+	ClaimOUID     string = "ouId"
+	ClaimOUName   string = "ouName"
+	ClaimOUHandle string = "ouHandle"
+	// ClaimName and ClaimOwner carry an agent's system-attribute name/owner on its client token.
+	ClaimName                   string = "name"
+	ClaimOwner                  string = "owner"
 	ClaimClaimsRequest          string = "claims_req"
 	ClaimClaimsLocales          string = "claims_locales"
 	ClaimCompletedAuthClass     string = "completed_auth_class"
@@ -282,11 +286,32 @@ const (
 	// jwt-bearer-grant (ID-JAG) access token, so downstream consumers can distinguish a federated
 	// principal from a local one.
 	ClaimIDP string = "idp"
+	// ClaimTokenFamilyID identifies the token family (one authorization grant) a token belongs to.
+	// A single tfid is minted per grant during the login flow and rides every access and refresh
+	// token of that grant, unchanged across refresh rotation, so revocation can target a whole
+	// family at once. Revocation-only and not a client-managed identifier: it rides the token JWTs
+	// but is not part of any client-facing API.
+	ClaimTokenFamilyID string = "tfid"
 )
+
+// SurfaceableClientSystemClaims is the fixed set of entity system-attribute keys that may be
+// surfaced as client-token claims.
+var SurfaceableClientSystemClaims = map[string]bool{
+	ClaimName:  true,
+	ClaimOwner: true,
+}
 
 // OIDC subject types.
 const (
 	SubjectTypePublic string = "public"
+)
+
+// Token-exchange token family modes (oauth.token_exchange.token_family).
+const (
+	// TokenExchangeTokenFamilyNone issues an exchanged token with no token family id (independent).
+	TokenExchangeTokenFamilyNone string = "none"
+	// TokenExchangeTokenFamilyInherit copies the subject token's token family id onto the exchanged token.
+	TokenExchangeTokenFamilyInherit string = "inherit"
 )
 
 // User attribute constants.
@@ -325,7 +350,11 @@ const (
 )
 
 // GetSupportedResponseTypes returns all supported OAuth2 response types.
-func GetSupportedResponseTypes() []string {
+func GetSupportedResponseTypes(oauthConfig oauthconfig.Config) []string {
+	allowedResponseTypes := oauthConfig.OAuth.AllowedResponseTypes
+	if len(allowedResponseTypes) > 0 {
+		return allowedResponseTypes
+	}
 	result := make([]string, len(providers.SupportedResponseTypes))
 	for i, rt := range providers.SupportedResponseTypes {
 		result[i] = string(rt)
@@ -334,7 +363,11 @@ func GetSupportedResponseTypes() []string {
 }
 
 // GetSupportedGrantTypes returns all supported OAuth2 grant types.
-func GetSupportedGrantTypes() []string {
+func GetSupportedGrantTypes(oauthConfig oauthconfig.Config) []string {
+	allowedGrantTypes := oauthConfig.OAuth.AllowedGrantTypes
+	if len(allowedGrantTypes) > 0 {
+		return allowedGrantTypes
+	}
 	result := make([]string, len(providers.SupportedGrantTypes))
 	for i, gt := range providers.SupportedGrantTypes {
 		result[i] = string(gt)
@@ -343,7 +376,11 @@ func GetSupportedGrantTypes() []string {
 }
 
 // GetSupportedTokenEndpointAuthMethods returns all supported token endpoint authentication methods.
-func GetSupportedTokenEndpointAuthMethods() []string {
+func GetSupportedTokenEndpointAuthMethods(oauthConfig oauthconfig.Config) []string {
+	allowedAuthMethods := oauthConfig.OAuth.AllowedAuthMethods
+	if len(allowedAuthMethods) > 0 {
+		return allowedAuthMethods
+	}
 	result := make([]string, len(providers.SupportedTokenEndpointAuthMethods))
 	for i, tam := range providers.SupportedTokenEndpointAuthMethods {
 		result[i] = string(tam)

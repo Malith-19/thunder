@@ -60,7 +60,6 @@ export * from './models/users';
 export {default as UserAddPage} from './pages/UserAddPage';
 export {default as UserCreatePage} from './pages/UserCreatePage';
 export {default as UserEditPage} from './pages/UserEditPage';
-export {default as UserInvitePage} from './pages/UserInvitePage';
 export {default as UsersListPage} from './pages/UsersListPage';
 
 // Routes
@@ -69,3 +68,4 @@ export {defaultUserRoutePaths, default as useUserRoutes} from './hooks/useUserRo
 
 // Utils
 export {default as renderSchemaField} from './utils/renderSchemaField';
+export * from './utils/dropNonConformingAttributes';

@@ -21,9 +21,7 @@ package passkey
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"strings"
-	"time"
 
 	tidcommon "github.com/thunder-id/thunderid/pkg/thunderidengine/common"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine/providers"
@@ -32,17 +30,17 @@ import (
 )
 
 const (
-	// defaultCredentialNameFormat is the format for auto-generated credential names.
-	defaultCredentialNameFormat = "Passkey %s"
-	// defaultCredentialDateFormat is the date format for credential names.
-	defaultCredentialDateFormat = "2006-01-02" // nolint:gosec // This is a date format, not a credential
 	// defaultOriginHTTP is the default HTTP origin for local development.
 	defaultOriginHTTP = "https://localhost:8090"
 )
 
-// generateDefaultCredentialName generates a default credential name with the current date.
-func generateDefaultCredentialName() string {
-	return fmt.Sprintf(defaultCredentialNameFormat, time.Now().Format(defaultCredentialDateFormat))
+// resolveAllowedOrigins returns overrideOrigins when non-empty; otherwise falls back to
+// the server-level configured origins from deployment configuration.
+func resolveAllowedOrigins(overrideOrigins []string) []string {
+	if len(overrideOrigins) > 0 {
+		return overrideOrigins
+	}
+	return getConfiguredOrigins()
 }
 
 // getConfiguredOrigins retrieves the allowed origins from runtime configuration.

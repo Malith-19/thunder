@@ -66,7 +66,6 @@ const TranslationsListPage = lazy(() =>
 const UserAddPage = lazy(() => import('@thunderid/configure-users').then((m) => ({default: m.UserAddPage})));
 const UserCreatePage = lazy(() => import('@thunderid/configure-users').then((m) => ({default: m.UserCreatePage})));
 const UserEditPage = lazy(() => import('@thunderid/configure-users').then((m) => ({default: m.UserEditPage})));
-const UserInvitePage = lazy(() => import('@thunderid/configure-users').then((m) => ({default: m.UserInvitePage})));
 const UsersListPage = lazy(() => import('@thunderid/configure-users').then((m) => ({default: m.UsersListPage})));
 const ResourceServersListPage = lazy(() =>
   import('@thunderid/configure-resource-servers').then((m) => ({default: m.ResourceServersListPage})),
@@ -121,13 +120,17 @@ const ConnectionDetailPage = lazy(() =>
 const ConnectionConfigureWizardPage = lazy(() =>
   import('@thunderid/configure-connections').then((m) => ({default: m.ConnectionConfigureWizardPage})),
 );
-const ConnectionCreateWizardRoute = lazy(() => import('./features/connections/pages/ConnectionCreateWizardRoute'));
-const LoginFlowBuilderPage = lazy(() => import('./features/login-flow/pages/LoginFlowPage'));
+const ConnectionCreateWizardPage = lazy(() =>
+  import('@thunderid/configure-connections').then((m) => ({default: m.ConnectionCreateWizardPage})),
+);
+const FlowBuilderPage = lazy(() => import('./features/flows/pages/FlowBuilderPage'));
 const CreateRolePage = lazy(() => import('./features/roles/pages/CreateRolePage'));
 const RoleEditPage = lazy(() => import('./features/roles/pages/RoleEditPage'));
 const RolesListPage = lazy(() => import('./features/roles/pages/RolesListPage'));
 const SettingsPage = lazy(() => import('./features/settings/pages/SettingsPage'));
-const TrustedIssuerDetailPage = lazy(() => import('./features/trusted-issuers/pages/TrustedIssuerDetailPage'));
+const TrustedIssuerDetailPage = lazy(() =>
+  import('@thunderid/configure-connections').then((m) => ({default: m.TrustedIssuerDetailPage})),
+);
 const VerifiablePresentationsListPage = lazy(
   () => import('./features/verifiable-presentations/pages/VerifiablePresentationsListPage'),
 );
@@ -279,16 +282,6 @@ export default function App(): JSX.Element {
                 <Route index element={<UserCreatePage />} />
               </Route>
               <Route
-                path={RouteConfig.users.addInvite()}
-                element={
-                  <ProtectedRoute>
-                    <FullScreenLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<UserInvitePage />} />
-              </Route>
-              <Route
                 path={RouteConfig.userTypes.create()}
                 element={
                   <ProtectedRoute>
@@ -376,7 +369,7 @@ export default function App(): JSX.Element {
                   </ProtectedRoute>
                 }
               >
-                <Route index element={<ConnectionCreateWizardRoute />} />
+                <Route index element={<ConnectionCreateWizardPage />} />
               </Route>
               <Route
                 path={`/${ROUTE_SEGMENTS.connections}/:type/configure`}
@@ -389,64 +382,14 @@ export default function App(): JSX.Element {
                 <Route index element={<ConnectionConfigureWizardPage />} />
               </Route>
               <Route
-                path={RouteConfig.flows.byType('signin')}
+                path={RouteConfig.flows.detail(':flowId')}
                 element={
                   <ProtectedRoute>
                     <DashboardLayout collapseSidebar />
                   </ProtectedRoute>
                 }
               >
-                <Route index element={<LoginFlowBuilderPage />} />
-              </Route>
-              <Route
-                path={`${RouteConfig.flows.byType('signin')}/:flowId`}
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout collapseSidebar />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<LoginFlowBuilderPage />} />
-              </Route>
-              <Route
-                path={RouteConfig.flows.byType('registration')}
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout collapseSidebar />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<LoginFlowBuilderPage />} />
-              </Route>
-              <Route
-                path={`${RouteConfig.flows.byType('registration')}/:flowId`}
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout collapseSidebar />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<LoginFlowBuilderPage />} />
-              </Route>
-              <Route
-                path={RouteConfig.flows.byType('recovery')}
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout collapseSidebar />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<LoginFlowBuilderPage />} />
-              </Route>
-              <Route
-                path={`${RouteConfig.flows.byType('recovery')}/:flowId`}
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout collapseSidebar />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<LoginFlowBuilderPage />} />
+                <Route index element={<FlowBuilderPage />} />
               </Route>
               <Route
                 path={RouteConfig.importExport.list()}
@@ -457,26 +400,6 @@ export default function App(): JSX.Element {
                 }
               >
                 <Route index element={<ImportExportPage />} />
-              </Route>
-              <Route
-                path={RouteConfig.flows.byType('signout')}
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<LoginFlowBuilderPage />} />
-              </Route>
-              <Route
-                path={`${RouteConfig.flows.byType('signout')}/:flowId`}
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<LoginFlowBuilderPage />} />
               </Route>
               <Route
                 path={RouteConfig.export.page()}

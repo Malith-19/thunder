@@ -22,6 +22,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	tidcommon "github.com/thunder-id/thunderid/pkg/thunderidengine/common"
@@ -758,7 +759,7 @@ func TestNewAuthnProviderManager_NilDefaultProvider(t *testing.T) {
 
 func TestNewAuthnProviderManager_NilProvider(t *testing.T) {
 	defaultMock := providermock.NewAuthnProviderInterfaceMock(t)
-	_, err := Initialize(defaultMock, map[string]AuthnProvider{
+	_, err := Initialize(defaultMock, map[string]providers.CustomAuthnProvider{
 		"acme": {Instance: nil, Creds: []string{"password"}},
 	})
 	if err == nil {
@@ -769,7 +770,7 @@ func TestNewAuthnProviderManager_NilProvider(t *testing.T) {
 func TestNewAuthnProviderManager_ReservedDefaultName(t *testing.T) {
 	defaultMock := providermock.NewAuthnProviderInterfaceMock(t)
 	acmeMock := providermock.NewAuthnProviderInterfaceMock(t)
-	_, err := Initialize(defaultMock, map[string]AuthnProvider{
+	_, err := Initialize(defaultMock, map[string]providers.CustomAuthnProvider{
 		defaultProviderName: {Instance: acmeMock, Creds: []string{"password"}},
 	})
 	if err == nil {
@@ -782,7 +783,7 @@ func TestNewAuthnProviderManager_DuplicateCredentialClaim(t *testing.T) {
 	defaultMock := providermock.NewAuthnProviderInterfaceMock(t)
 	acmeMock := providermock.NewAuthnProviderInterfaceMock(t)
 	betaMock := providermock.NewAuthnProviderInterfaceMock(t)
-	_, err := Initialize(defaultMock, map[string]AuthnProvider{
+	_, err := Initialize(defaultMock, map[string]providers.CustomAuthnProvider{
 		"acme": {Instance: acmeMock, Creds: []string{"password"}},
 		"beta": {Instance: betaMock, Creds: []string{"password"}},
 	})
@@ -806,7 +807,7 @@ func TestNewAuthnProviderManager_NamedProviderHandlesClaimedCredential(t *testin
 			AttributeToken:       map[string]interface{}{"token": "tok"},
 		}, (*tidcommon.ServiceError)(nil))
 
-	mgr, err := Initialize(defaultMock, map[string]AuthnProvider{
+	mgr, err := Initialize(defaultMock, map[string]providers.CustomAuthnProvider{
 		"acme": {Instance: acmeMock, Creds: []string{"password"}},
 	})
 	if err != nil {
@@ -824,20 +825,209 @@ func TestNewAuthnProviderManager_NamedProviderHandlesClaimedCredential(t *testin
 	defaultMock.AssertNotCalled(t, "Authenticate")
 }
 
-func (s *ManagerTestSuite) TestAuthenticateUser_MultipleCredentialKeys() {
+func (s *ManagerTestSuite) TestAuthenticateUser_MultipleCredentialKeysSameProvider() {
 	identifiers := map[string]interface{}{"username": "alice"}
-	// Multiple credential keys make the request ambiguous and must be rejected
-	// rather than routed to an arbitrarily chosen provider.
+	// Multiple credential keys that all resolve to the same provider (here the default, since no
+	// custom provider claims them) are routed to that provider.
 	credentials := map[string]interface{}{"password": "secret", "otp": "123456"}
 	meta := &providers.AuthnMetadata{}
+
+	s.mockProvider.On("Authenticate", context.Background(), identifiers, credentials, meta).
+		Return(&providers.AuthnResult{
+			EntityReferenceToken: map[string]interface{}{"userID": "user-1"},
+			AttributeToken:       "tok",
+		}, (*tidcommon.ServiceError)(nil))
 
 	authUser, _, svcErr := s.mgr.AuthenticateUser(context.Background(), identifiers, credentials,
 		nil, meta, providers.AuthUser{})
 
+	s.Nil(svcErr)
+	s.True(authUser.IsAuthenticated())
+	_, ok := authUser.StateFor(defaultProviderName)
+	s.True(ok)
+}
+
+func TestAuthenticateUser_MultipleCredentialKeysDifferentProviders(t *testing.T) {
+	identifiers := map[string]interface{}{"username": "alice"}
+	// "password" falls through to the default provider while "otp" is claimed by acme, so the keys
+	// fan out to different providers. That is ambiguous and treated as an internal fault.
+	credentials := map[string]interface{}{"password": "secret", "otp": "123456"}
+	meta := &providers.AuthnMetadata{}
+
+	defaultMock := providermock.NewAuthnProviderInterfaceMock(t)
+	acmeMock := providermock.NewAuthnProviderInterfaceMock(t)
+	mgr, err := Initialize(defaultMock, map[string]providers.CustomAuthnProvider{
+		"acme": {Instance: acmeMock, Creds: []string{"otp"}},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	authUser, _, svcErr := mgr.AuthenticateUser(context.Background(), identifiers, credentials,
+		nil, meta, providers.AuthUser{})
+
+	if svcErr == nil || svcErr.Code != tidcommon.InternalServerError.Code {
+		t.Fatalf("expected InternalServerError for keys mapping to different providers, got %v", svcErr)
+	}
+	if authUser.IsAuthenticated() {
+		t.Fatalf("expected authUser to remain unauthenticated")
+	}
+	defaultMock.AssertNotCalled(t, "Authenticate")
+	acmeMock.AssertNotCalled(t, "Authenticate")
+}
+
+func (s *ManagerTestSuite) TestInitiateAuthentication_RoutesToDefaultProvider() {
+	initData := map[string]interface{}{"relyingPartyId": "example.com"}
+	meta := &providers.AuthnMetadata{}
+	expected := map[string]interface{}{"challenge": "abc"}
+
+	s.mockProvider.On("InitiateAuthentication", context.Background(), "passkey", initData, meta).
+		Return(expected, (*tidcommon.ServiceError)(nil))
+
+	result, svcErr := s.mgr.InitiateAuthentication(context.Background(), "passkey", initData, meta)
+
+	s.Nil(svcErr)
+	s.Equal(expected, result)
+}
+
+func (s *ManagerTestSuite) TestInitiateAuthentication_ProviderError() {
+	provErr := &tidcommon.ServiceError{Type: tidcommon.ClientErrorType, Code: "X"}
+	s.mockProvider.On("InitiateAuthentication", context.Background(), "passkey", mock.Anything, mock.Anything).
+		Return(nil, provErr)
+
+	result, svcErr := s.mgr.InitiateAuthentication(context.Background(), "passkey", nil, nil)
+
+	s.Nil(result)
+	s.Equal(provErr, svcErr)
+}
+
+func (s *ManagerTestSuite) TestInitiateEnrollment_RoutesToDefaultProvider() {
+	initData := map[string]interface{}{"userId": "user-1"}
+	expected := map[string]interface{}{"creationOptions": "xyz"}
+
+	s.mockProvider.On("InitiateEnrollment", context.Background(), "passkey", initData, mock.Anything).
+		Return(expected, (*tidcommon.ServiceError)(nil))
+
+	result, svcErr := s.mgr.InitiateEnrollment(context.Background(), "passkey", initData, nil)
+
+	s.Nil(svcErr)
+	s.Equal(expected, result)
+}
+
+func (s *ManagerTestSuite) TestEnroll_Success() {
+	credentials := map[string]interface{}{"passkey": "cred"}
+	meta := &providers.AuthnMetadata{}
+	entityRefToken := map[string]interface{}{"userID": "user-1"}
+	claims := providers.AuthenticatedClaims{"userID": "user-1"}
+
+	s.mockProvider.On("Enroll", context.Background(), map[string]interface{}(nil), credentials, meta).
+		Return(&providers.AuthnResult{
+			EntityReferenceToken: entityRefToken,
+			AttributeToken:       entityRefToken,
+			AuthenticatedClaims:  claims,
+		}, (*tidcommon.ServiceError)(nil))
+
+	authUser, rtClaims, svcErr := s.mgr.Enroll(context.Background(), nil, credentials, nil, meta, providers.AuthUser{})
+
+	s.Nil(svcErr)
+	s.Equal(claims, rtClaims)
+	s.True(authUser.IsAuthenticated())
+	st, ok := authUser.StateFor(defaultProviderName)
+	s.True(ok)
+	s.Equal(entityRefToken, st.EntityReferenceToken)
+}
+
+func (s *ManagerTestSuite) TestEnroll_ServerError() {
+	credentials := map[string]interface{}{"passkey": "cred"}
+	s.mockProvider.On("Enroll", context.Background(), mock.Anything, credentials, mock.Anything).
+		Return(nil, &tidcommon.ServiceError{Type: tidcommon.ServerErrorType, Code: "boom"})
+
+	authUser, _, svcErr := s.mgr.Enroll(context.Background(), nil, credentials, nil, nil, providers.AuthUser{})
+
 	s.NotNil(svcErr)
-	s.Equal(ErrorInvalidRequest.Code, svcErr.Code)
+	s.Equal(tidcommon.InternalServerError.Code, svcErr.Code)
 	s.False(authUser.IsAuthenticated())
-	s.mockProvider.AssertNotCalled(s.T(), "Authenticate")
+}
+
+func (s *ManagerTestSuite) TestEnroll_ClientErrorMapping() {
+	cases := []struct {
+		providerCode string
+		expectedCode string
+	}{
+		{authnprovidercm.ErrorCodeUserNotFound, ErrorUserNotFound.Code},
+		{authnprovidercm.ErrorCodeInvalidRequest, ErrorInvalidRequest.Code},
+		{authnprovidercm.ErrorCodeEnrollmentFailed, ErrorEnrollmentFailed.Code},
+		{"SOMETHING_ELSE", ErrorEnrollmentFailed.Code},
+	}
+	for _, tc := range cases {
+		s.SetupTest()
+		credentials := map[string]interface{}{"passkey": "cred"}
+		s.mockProvider.On("Enroll", context.Background(), mock.Anything, credentials, mock.Anything).
+			Return(nil, &tidcommon.ServiceError{Type: tidcommon.ClientErrorType, Code: tc.providerCode})
+
+		_, _, svcErr := s.mgr.Enroll(context.Background(), nil, credentials, nil, nil, providers.AuthUser{})
+
+		s.NotNil(svcErr)
+		s.Equal(tc.expectedCode, svcErr.Code, "provider code %s", tc.providerCode)
+	}
+}
+
+func (s *ManagerTestSuite) TestEnroll_EmptyCredentials() {
+	// Empty credentials must not panic (selectProvider guards len == 0) and is a server error.
+	authUser, _, svcErr := s.mgr.Enroll(context.Background(), nil, map[string]interface{}{},
+		nil, nil, providers.AuthUser{})
+
+	s.NotNil(svcErr)
+	s.Equal(tidcommon.InternalServerError.Code, svcErr.Code)
+	s.False(authUser.IsAuthenticated())
+	s.mockProvider.AssertNotCalled(s.T(), "Enroll")
+}
+
+func (s *ManagerTestSuite) TestEnroll_MultipleCredentialKeysSameProvider() {
+	// Multiple credential keys that all resolve to the same provider (here the default) are routed
+	// to that provider.
+	credentials := map[string]interface{}{"passkey": "cred", "otp": "123456"}
+	meta := &providers.AuthnMetadata{}
+	entityRefToken := map[string]interface{}{"userID": "user-1"}
+
+	s.mockProvider.On("Enroll", context.Background(), map[string]interface{}(nil), credentials, meta).
+		Return(&providers.AuthnResult{
+			EntityReferenceToken: entityRefToken,
+			AttributeToken:       entityRefToken,
+		}, (*tidcommon.ServiceError)(nil))
+
+	authUser, _, svcErr := s.mgr.Enroll(context.Background(), nil, credentials, nil, meta, providers.AuthUser{})
+
+	s.Nil(svcErr)
+	s.True(authUser.IsAuthenticated())
+	_, ok := authUser.StateFor(defaultProviderName)
+	s.True(ok)
+}
+
+func TestEnroll_MultipleCredentialKeysDifferentProviders(t *testing.T) {
+	// "passkey" falls through to the default provider while "otp" is claimed by acme, so the keys
+	// fan out to different providers. That is ambiguous and treated as an internal fault.
+	credentials := map[string]interface{}{"passkey": "cred", "otp": "123456"}
+
+	defaultMock := providermock.NewAuthnProviderInterfaceMock(t)
+	acmeMock := providermock.NewAuthnProviderInterfaceMock(t)
+	mgr, err := Initialize(defaultMock, map[string]providers.CustomAuthnProvider{
+		"acme": {Instance: acmeMock, Creds: []string{"otp"}},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	authUser, _, svcErr := mgr.Enroll(context.Background(), nil, credentials, nil, nil, providers.AuthUser{})
+
+	if svcErr == nil || svcErr.Code != tidcommon.InternalServerError.Code {
+		t.Fatalf("expected InternalServerError for keys mapping to different providers, got %v", svcErr)
+	}
+	if authUser.IsAuthenticated() {
+		t.Fatalf("expected authUser to remain unauthenticated")
+	}
+	defaultMock.AssertNotCalled(t, "Enroll")
+	acmeMock.AssertNotCalled(t, "Enroll")
 }
 
 func (s *ManagerTestSuite) TestAuthenticateUser_Disambiguation_NoDefaultProviderState() {
@@ -893,7 +1083,7 @@ func TestGetEntityReference_MultipleProvidersMismatch(t *testing.T) {
 		Return(&providers.EntityReference{EntityID: "user-2", EntityType: "default", OUID: "ou-1"},
 			(*tidcommon.ServiceError)(nil))
 
-	mgr, err := Initialize(defaultMock, map[string]AuthnProvider{
+	mgr, err := Initialize(defaultMock, map[string]providers.CustomAuthnProvider{
 		"acme": {Instance: acmeMock, Creds: nil},
 	})
 	if err != nil {

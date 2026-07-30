@@ -5,15 +5,21 @@
 
 name: 👷🛠️ PR Builder
 
+# TEMPORARY WORKAROUND for runner saturation (see #4268): on pull requests, the
+# builder only runs once the `trigger-pr-builder` label is present. Early pushes
+# iterate against the review bots without consuming runners, and the label
+# (added when the PR is ready) turns CI on for that push and every subsequent
+# one. Merge queue runs are always on. Remove this gate (restore unconditional
+# pull_request runs) once queue pressure is resolved.
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, labeled]
   merge_group:
   workflow_dispatch:
 
-# Avoid running multiple PR builders for the same PR on subsequent pushes.
+# Avoid running multiple PR builders for the same PR on subsequent pushes. GitHub Actions'
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -21,17 +27,51 @@ env:
   PRODUCT_NAME: "ThunderID"
   PRODUCT_NAME_LOWER: "thunderid"
   NODE_VERSION: "lts/*"
-  PNPM_VERSION: "latest"
 
 jobs:
-  security-audit:
-    name: 🔒 Security Audit
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+  # Single job for the fast gate checks (security audit, dependency review, and
+  # change detection for docs/PowerShell) so they occupy one runner slot instead
+  # of four. Runner concurrency is shared across all PRs, so fewer jobs per run
+  # directly reduces queue time on busy periods.
+  #
+  # This is also the root of the job graph: every other job depends on it, so a
+  # run requests one runner up front instead of eight competing for slots, and
+  # nothing expensive starts until these ~20s of checks pass.
+  preflight:
+    name: 🛡️ Preflight Checks
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'trigger-pr-builder') && (github.event.action != 'labeled' || github.event.label.name == 'trigger-pr-builder')) || github.event_name == 'merge_group' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      docs-changed: ${{ steps.filter.outputs.docs }}
+      powershell-changed: ${{ steps.filter.outputs.powershell }}
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      # Diff-based steps need a base/head pair from the pull_request or
+      # merge_group payload, which a manual dispatch does not carry.
+      - name: 🔍 Detect Docs and PowerShell Changes
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
+        id: filter
+        with:
+          base: ${{ github.event_name == 'merge_group' && github.event.merge_group.base_sha || github.event.pull_request.base.sha }}
+          ref: ${{ github.event_name == 'merge_group' && github.sha || github.event.pull_request.head.sha }}
+          filters: |
+            docs:
+              - 'docs/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+            powershell:
+              - '**.ps1'
+              - '.github/workflows/windows-powershell-validation.yml'
 
       - name: ⚙️ Set up Node.js and pnpm
         uses: ./.github/actions/setup-pnpm
@@ -45,19 +85,8 @@ jobs:
           # Remove `--ignore-registry-errors` once pnpm 11 is generally available. Tracker: https://github.com/pnpm/pnpm/issues/11265
           pnpm audit --ignore-registry-errors --audit-level=high
 
-  dependency-review:
-    name: 🔎 Dependency Review
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - name: 📥 Checkout Code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
       - name: 🔎 Dependency Review
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4
         with:
           fail-on-severity: high
@@ -91,7 +120,8 @@ jobs:
 
   verify-mocks:
     name: 🔍 Verify Mock Files
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+    needs: [preflight]
+    if: ${{ (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'trigger-pr-builder') && (github.event.action != 'labeled' || github.event.label.name == 'trigger-pr-builder')) || github.event_name == 'merge_group' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -127,7 +157,8 @@ jobs:
 
   lint:
     name: 🧹 Lint Code
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+    needs: [preflight]
+    if: ${{ (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'trigger-pr-builder') && (github.event.action != 'labeled' || github.event.label.name == 'trigger-pr-builder')) || github.event_name == 'merge_group' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -154,6 +185,12 @@ jobs:
       - name: 🔍 Run Backend Linter
         run: make lint_backend
 
+      # The frontend build is needed because linting is type-aware: apps resolve
+      # @thunderid/* package types from their built dist output. The Turbo cache
+      # makes it a near no-op when nothing relevant changed.
+      - name: 🗂️ Set up Turbo Cache
+        uses: ./.github/actions/setup-turbo-cache
+
       - name: 🧩 Install Dependencies & Build Frontend
         run: |
           make build_frontend
@@ -170,8 +207,8 @@ jobs:
 
   build:
     name: 🛠️ Build Product
-    needs: [detect-code-changes]
-    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || github.event_name == 'merge_group') && (needs.detect-code-changes.result == 'skipped' || needs.detect-code-changes.outputs.should-run == 'true') }}
+    needs: [preflight]
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'trigger-pr-builder') && (github.event.action != 'labeled' || github.event.label.name == 'trigger-pr-builder')) || github.event_name == 'merge_group' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -227,11 +264,11 @@ jobs:
         run: |
           make build_frontend
 
-      - name: 🔨 Build Product with Coverage
+      - name: 🔨 Build Backend with Coverage Instrumentation
         run: |
           set -e
           export LOG_LEVEL=debug
-          make build_with_coverage_only OS=$(go env GOOS) ARCH=$(go env GOARCH)
+          ENABLE_COVERAGE=true ./build.sh build_backend $(go env GOOS) $(go env GOARCH)
 
           # Find the built distribution
           DIST_PATH=$(find target/dist -name "$PRODUCT_NAME_LOWER-*.zip" | head -1)
@@ -243,6 +280,44 @@ jobs:
           name: product-distribution
           path: target/dist/*.zip
           if-no-files-found: error
+
+  test-backend-unit:
+    name: 🧪 Backend Unit Tests
+    needs: [preflight]
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'trigger-pr-builder') && (github.event.action != 'labeled' || github.event.label.name == 'trigger-pr-builder')) || github.event_name == 'merge_group' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: ⚙️ Set up Go Environment
+        uses: ./.github/actions/setup-go
+
+      - name: 🗄️ Cache Go Modules
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-modules-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-modules-
+
+      - name: 📦 Install Backend Dependencies
+        run: |
+          cd backend
+          go mod download
+
+      - name: 🧪 Run Backend Unit Tests
+        run: |
+          set -e
+          ./build.sh test_unit $(go env GOOS) $(go env GOARCH)
 
       - name: 📊 Upload Unit Test Coverage Report to Codecov
         # Skipped on merge queue commits: Codecov cannot process them, and the
@@ -266,55 +341,51 @@ jobs:
           path: backend/coverage_unit.out
           if-no-files-found: error
 
-  detect-code-changes:
-    name: 🔍 Detect Code Changes
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      should-run: ${{ steps.filter.outputs.code }}
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - name: 🔍 Detect non-docs file changes
-        id: filter
-        # TODO: Temporarily always treat as code changes to unblock docs-only PRs hanging on the
-        # codecov/patch status check. Revisit once the workflow_run-based fix is in place.
-        # env:
-        #   BASE_SHA: ${{ github.event_name == 'merge_group' && github.event.merge_group.base_sha || github.event.pull_request.base.sha }}
-        run: |
-          # git fetch --depth=1 origin "$BASE_SHA"
-          # CHANGED=$(git diff --name-only "$BASE_SHA" HEAD)
-          # echo "Changed files:"
-          # echo "$CHANGED"
-          # NON_DOCS=$(echo "$CHANGED" | grep -v '^docs/' | grep -v -i 'readme\.md' | grep -c . || true)
-          # echo "Non-docs changed file count: $NON_DOCS"
-          # if [ "$NON_DOCS" -gt 0 ]; then
-          #   echo "code=true" >> $GITHUB_OUTPUT
-          # else
-          #   echo "code=false" >> $GITHUB_OUTPUT
-          # fi
-          echo "code=true" >> $GITHUB_OUTPUT
-      # - name: ✅ Code changes detected
-      #   if: steps.filter.outputs.code == 'true'
-      #   run: echo "Non-documentation files changed - frontend and E2E tests will run"
-      # - name: ⏭️ Docs-only changes
-      #   if: steps.filter.outputs.code != 'true'
-      #   run: echo "Only documentation changes detected - skipping frontend and E2E tests"
-
   test-frontend-packages:
     name: 🧪 Frontend Packages Tests
-    needs: [detect-code-changes]
-    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || github.event_name == 'merge_group') && (needs.detect-code-changes.result == 'skipped' || needs.detect-code-changes.outputs.should-run == 'true') }}
+    needs: [preflight]
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'trigger-pr-builder') && (github.event.action != 'labeled' || github.event.label.name == 'trigger-pr-builder')) || github.event_name == 'merge_group' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble
+      options: --user root
+    # PLAYWRIGHT_BROWSERS_PATH: the Playwright image installs browsers under /ms-playwright but
+    # some tooling (e.g. @vitest/browser-playwright) resolves off HOME/.cache/ms-playwright
+    # when the image's ENV is masked by the runner. Pinning at job level guarantees resolution.
+    #
+    # HOME=/root: GitHub Actions overrides HOME=/github/home for container jobs, but that
+    # directory is owned by uid 1001 (the default runner user); since we run as root, Firefox
+    # refuses to launch ("$HOME folder isn't owned by the current user"). Chromium and WebKit
+    # tolerate it; Firefox does not. Setting HOME=/root aligns ownership with the running user.
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+      HOME: /root
+    # GitHub Actions defaults container jobs to POSIX `sh`; force bash so brace expansion,
+    # arrays, and `[[ ... ]]` used elsewhere in this workflow behave the same as on runners.
+    defaults:
+      run:
+        shell: bash
+    timeout-minutes: 30
     steps:
+      - name: 🔧 Install Native-Build Toolchain
+        # Some transitive workspace deps (better-sqlite3) don't ship prebuilt binaries for the
+        # Node version in this image and fall back to `node-gyp rebuild`, which needs make + g++.
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential
+
       - name: 📥 Checkout Code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - name: ⚙️ Set up Node.js and pnpm
-        uses: ./.github/actions/setup-pnpm
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          persist-credentials: false
+
+      - name: 📦 Enable pnpm via corepack
+        # The Playwright image ships Node with corepack; use it instead of setup-node/setup-pnpm,
+        # both of which are noisy inside containers and add ~15-20s.
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.13.1 --activate
+          pnpm --version
 
       - name: 📦 Install Frontend Dependencies
         run: |
@@ -322,12 +393,6 @@ jobs:
 
       - name: 🗂️ Set up Turbo Cache
         uses: ./.github/actions/setup-turbo-cache
-
-      - name: 🎭 Set up Playwright Browsers
-        uses: ./.github/actions/setup-playwright
-        with:
-          working-directory: frontend
-          scope: packages
 
       - name: 🔨 Build Frontend Packages
         working-directory: frontend
@@ -341,8 +406,8 @@ jobs:
 
   test-frontend-gate-app:
     name: 🧪 Gate App Tests with Coverage
-    needs: [detect-code-changes]
-    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || github.event_name == 'merge_group') && (needs.detect-code-changes.result == 'skipped' || needs.detect-code-changes.outputs.should-run == 'true') }}
+    needs: [preflight]
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'trigger-pr-builder') && (github.event.action != 'labeled' || github.event.label.name == 'trigger-pr-builder')) || github.event_name == 'merge_group' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -388,12 +453,26 @@ jobs:
           path: frontend/apps/gate/coverage/lcov.info
           if-no-files-found: error
 
-  test-frontend-console-app:
-    name: 🧪 Console App Tests with Coverage
-    needs: [detect-code-changes]
-    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || github.event_name == 'merge_group') && (needs.detect-code-changes.result == 'skipped' || needs.detect-code-changes.outputs.should-run == 'true') }}
+  # The console suite is the longest job in the pipeline (~12 min of vitest in a
+  # single run), so it is split across shards that execute concurrently. Each
+  # shard reports coverage for the whole app with only its own tests counted;
+  # test-frontend-console-app below merges the partial reports back into one
+  # LCOV file, so coverage consumers still see a single console-coverage
+  # artifact.
+  test-frontend-console-app-shards:
+    name: 🧪 Console App Tests (shard ${{ matrix.shard }})
+    needs: [preflight]
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'trigger-pr-builder') && (github.event.action != 'labeled' || github.event.label.name == 'trigger-pr-builder')) || github.event_name == 'merge_group' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      # Report every failing shard, not just the first one, so a single run
+      # surfaces all breakages.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    env:
+      SHARD_COUNT: 3
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -415,9 +494,9 @@ jobs:
           pnpm build:frontend
 
       - name: 🧪 Run Console Tests with Coverage
+        working-directory: frontend/apps/console
         run: |
-          cd frontend/apps/console
-          pnpm test:coverage
+          pnpm exec vitest run --coverage --shard=${{ matrix.shard }}/${{ env.SHARD_COUNT }}
 
       # Strip branch data (BRDA/BRF/BRH) from frontend LCOV reports before uploading.
       # React Compiler (babel-plugin-react-compiler) generates phantom branch points in compiled
@@ -429,6 +508,53 @@ jobs:
           if [ -f "frontend/apps/console/coverage/lcov.info" ]; then
             sed -i '/^BRDA:/d;/^BRF:/d;/^BRH:/d' "frontend/apps/console/coverage/lcov.info"
           fi
+
+      # Named without "coverage" so the patch coverage gate, which downloads
+      # every "*coverage*" artifact, only ever sees the merged report.
+      - name: 📦 Upload console shard LCOV report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: console-lcov-shard-${{ matrix.shard }}
+          path: frontend/apps/console/coverage/lcov.info
+          if-no-files-found: error
+
+  # Keeps the console suite reporting as one check and one coverage artifact
+  # regardless of how many shards run. Uses always() with an explicit result
+  # check so a failing shard fails this job too: a skipped required check counts
+  # as passing for branch protection, which would let a red shard through.
+  test-frontend-console-app:
+    name: 🧪 Console App Tests with Coverage
+    needs: [test-frontend-console-app-shards]
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'trigger-pr-builder') && (github.event.action != 'labeled' || github.event.label.name == 'trigger-pr-builder')) || github.event_name == 'merge_group') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: ✅ Check shard results
+        env:
+          SHARDS_RESULT: ${{ needs.test-frontend-console-app-shards.result }}
+        run: |
+          if [ "$SHARDS_RESULT" != "success" ]; then
+            echo "❌ Console test shards did not pass (result: $SHARDS_RESULT)"
+            exit 1
+          fi
+          echo "✅ All console test shards passed"
+
+      - name: 📥 Checkout Code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: 📥 Download console shard LCOV reports
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: console-lcov-shard-*
+          path: console-shards
+
+      - name: 🧩 Merge console shard LCOV reports
+        uses: ./.github/actions/merge-lcov
+        with:
+          reports-dir: console-shards
+          output-file: frontend/apps/console/coverage/lcov.info
 
       - name: 📦 Upload console coverage artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -492,15 +618,18 @@ jobs:
     name: 🛡️ Patch Coverage Gate
     # Deterministic patch coverage check that always reports, unlike the external
     # codecov/patch status which can hang at "Expected" (fork PRs, merge queue
-    # commits, Codecov processing stalls). Mirrors coverage.status.patch.default
-    # in codecov.yml (target 80%, threshold 1%). The enforcement logic lives in
+    # commits, Codecov processing stalls). The threshold and the ignored paths are
+    # read from codecov.yml, so this enforces the same rules as codecov/patch
+    # without a second copy of them here. The enforcement logic lives in
     # .github/actions/patch-coverage-gate.
-    needs: [build, test-integration, test-frontend-console-app, test-frontend-gate-app, upload-frontend-coverage]
-    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') && needs.build.result == 'success' && needs.test-integration.result == 'success' && needs.test-frontend-console-app.result == 'success' && needs.test-frontend-gate-app.result == 'success' && needs.upload-frontend-coverage.result == 'success' }}
+    needs: [build, test-backend-unit, test-integration, test-frontend-console-app, test-frontend-gate-app, upload-frontend-coverage]
+    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') && needs.build.result == 'success' && needs.test-backend-unit.result == 'success' && needs.test-integration.result == 'success' && needs.test-frontend-console-app.result == 'success' && needs.test-frontend-gate-app.result == 'success' && needs.upload-frontend-coverage.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
+      pull-requests: read
+      checks: read
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -508,18 +637,59 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Codecov never processes merge queue commits, so a queue entry is compared
+      # through the pull request it was created from: the queue commit carries
+      # that same diff rebased onto main. The pull request number is embedded in
+      # the queue ref, and its head commit already has a fully processed Codecov
+      # report from the pull request run. Leaving the outputs empty makes the gate
+      # compute patch coverage locally, which is what queue runs did before.
+      # On merge queue runs the commit under test is not the commit Codecov
+      # reported on, so the codecov/patch check run is read from the head of the
+      # pull request the queue entry was created from. The queue commit carries
+      # that same diff rebased onto main, which is the premise the
+      # codecov-merge-queue-status job already relies on.
+      - name: 🔢 Resolve the commit whose codecov/patch verdict applies
+        id: codecov-target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # refs/heads/gh-readonly-queue/<base>/pr-<number>-<base sha>
+          QUEUE_REF: ${{ github.event.merge_group.head_ref }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            echo "pr-number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "head-sha=$PR_HEAD_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          PR=$(printf '%s' "$QUEUE_REF" | sed -nE 's|.*/pr-([0-9]+)-[0-9a-f]+$|\1|p')
+          if [ -z "$PR" ]; then
+            echo "⚠️ No pull request number in '$QUEUE_REF'; computing patch coverage locally."
+            exit 0
+          fi
+          SHA=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}" --jq '.head.sha' 2>/dev/null || true)
+          if [ -z "$SHA" ]; then
+            echo "⚠️ Could not resolve the head commit of PR #${PR}; computing patch coverage locally."
+            exit 0
+          fi
+          echo "Comparing through PR #${PR} (head ${SHA})"
+          echo "pr-number=$PR" >> "$GITHUB_OUTPUT"
+          echo "head-sha=$SHA" >> "$GITHUB_OUTPUT"
+
       - name: 🛡️ Enforce Patch Coverage
         uses: ./.github/actions/patch-coverage-gate
         with:
-          fail-under: "79"
-          pr-number: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || '' }}
-          head-sha: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          github-token: ${{ github.token }}
+          pr-number: ${{ steps.codecov-target.outputs.pr-number }}
+          head-sha: ${{ steps.codecov-target.outputs.head-sha || github.sha }}
           base-ref: ${{ github.event_name == 'merge_group' && github.event.merge_group.base_sha || format('origin/{0}', github.base_ref) }}
 
   build_samples:
     name: 🛠️ Build Sample Apps
-    needs: [detect-code-changes]
-    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || github.event_name == 'merge_group') && (needs.detect-code-changes.result == 'skipped' || needs.detect-code-changes.outputs.should-run == 'true') }}
+    needs: [preflight]
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'trigger-pr-builder') && (github.event.action != 'labeled' || github.event.label.name == 'trigger-pr-builder')) || github.event_name == 'merge_group' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -546,7 +716,7 @@ jobs:
 
   test-integration:
     name: 🧪 Integration Tests (${{ matrix.database }})
-    needs: [build, build_samples, detect-code-changes]
+    needs: [build, build_samples]
     if: ${{ always() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -586,12 +756,6 @@ jobs:
 
       - name: ⚙️ Set up Go Environment
         uses: ./.github/actions/setup-go
-
-      - name: 📥 Download Unit Coverage Report
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: unit-coverage-report
-          path: backend/
 
       - name: 🗄️ Cache Go Modules
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -660,7 +824,7 @@ jobs:
   test-integration-status:
     name: ✅ Integration Tests Status
     needs: [test-integration]
-    if: always()
+    if: ${{ always() && (github.event_name != 'pull_request' || (contains(github.event.pull_request.labels.*.name, 'trigger-pr-builder') && (github.event.action != 'labeled' || github.event.label.name == 'trigger-pr-builder'))) }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -674,25 +838,45 @@ jobs:
 
   test-e2e:
     name: 🎭 Playwright E2E Tests
-    needs: [build, build_samples, detect-code-changes]
-    if: ${{ always() && (needs.build.result == 'success' && needs.build_samples.result == 'success' && (needs.detect-code-changes.result == 'skipped' || needs.detect-code-changes.outputs.should-run == 'true')) }}
+    needs: [build, build_samples]
+    if: ${{ always() && needs.build.result == 'success' && needs.build_samples.result == 'success' }}
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble
+      options: --user root
+    # HOME=/root: GitHub Actions overrides HOME=/github/home for container jobs, but that
+    # directory is owned by uid 1001 (the default runner user). Since we run as root, Firefox
+    # refuses to launch ("$HOME folder isn't owned by the current user"). Chromium and WebKit
+    # tolerate it; Firefox does not. Setting HOME=/root aligns ownership with the running user.
+    env:
+      HOME: /root
+    # GitHub Actions defaults container jobs to POSIX `sh`; force bash so brace expansion
+    # (e.g. `for i in {1..60}`), arrays, and `[[ ... ]]` behave the same as on runners.
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 30
     steps:
+      - name: 🔧 Install Required OS Utilities
+        # jq/lsof/unzip are used by the bash setup steps below. No toolchain is
+        # needed: the install below is scoped to @thunderid/e2e, so it never
+        # reaches the better-sqlite3 postinstall that would want node-gyp.
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends jq lsof unzip
+
       - name: 📥 Checkout Code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - name: ⚙️ Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 'lts/*'
+          persist-credentials: false
 
-      - name: 📦 Install pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
-        with:
-          run_install: false
-          cache_dependency_path: pnpm-lock.yaml
-          version: ${{ env.PNPM_VERSION }}
+      - name: 📦 Enable pnpm via corepack
+        # The Playwright image ships Node with corepack; use it instead of setup-node/setup-pnpm,
+        # both of which are noisy inside containers and add ~15-20s.
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.13.1 --activate
+          pnpm --version
 
       - name: 📥 Download Built Distribution
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -728,9 +912,13 @@ jobs:
         run: |
           cd tests/e2e/server
           ./setup.sh
-          ./start.sh &
+          # In container jobs, GitHub Actions reaps a step's descendant processes when the step's
+          # shell exits. `setsid` runs start.sh in a new session detached from the shell so it
+          # survives the step boundary and remains up when the Playwright test step runs later.
+          setsid ./start.sh > "$GITHUB_WORKSPACE/server.log" 2>&1 < /dev/null &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          disown $SERVER_PID 2>/dev/null || true
           # Wait for server to be ready
           echo "Waiting for server to be ready on https://localhost:8090..."
           for i in {1..60}; do
@@ -938,9 +1126,11 @@ jobs:
           sleep 3
 
           echo "Starting the server with security enabled..."
-          ./start.sh &
+          # See "Start the Server" step for why setsid is needed inside container jobs.
+          setsid ./start.sh > "$GITHUB_WORKSPACE/server.log" 2>&1 < /dev/null &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          disown $SERVER_PID 2>/dev/null || true
           
           # Wait for server to be ready
           echo "Waiting for server to be ready on https://localhost:8090..."
@@ -999,7 +1189,10 @@ jobs:
               > /dev/null 2>&1
 
           echo "Starting Sample App..."
-          npm run dev &
+          # See "Start the Server" step for why setsid is needed inside container jobs.
+          SAMPLE_PID=$(setsid bash -c 'npm run dev > "$GITHUB_WORKSPACE/sample-app.log" 2>&1 < /dev/null & echo $!' | tail -1)
+          echo "SAMPLE_APP_PID=$SAMPLE_PID" >> $GITHUB_ENV
+          disown $SAMPLE_PID 2>/dev/null || true
           
           # Wait for sample app to be ready
           echo "Waiting for sample app to be ready on https://localhost:3000..."
@@ -1020,15 +1213,11 @@ jobs:
           
           echo "Sample App started successfully!"
 
+      # Scoped to the E2E package: it has no workspace dependencies, so installing
+      # the whole monorepo here only added time and dragged in native builds from
+      # unrelated sample apps.
       - name: 📦 Install E2E Dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 🎭 Set up Playwright Browsers
-        uses: ./.github/actions/setup-playwright
-        with:
-          working-directory: tests/e2e
-          scope: e2e
-        timeout-minutes: 5
+        run: pnpm install --frozen-lockfile --filter @thunderid/e2e
 
       - name: 🎭 Run Playwright E2E Tests
         run: pnpm test
@@ -1040,7 +1229,7 @@ jobs:
           ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD || 'admin' }}
           TEST_USER_USERNAME: ${{ secrets.PLAYWRIGHT_TEST_USER_USERNAME || 'testuser' }}
           TEST_USER_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_USER_PASSWORD || 'admin' }}
-          PLAYWRIGHT_WORKERS: ${{ vars.PLAYWRIGHT_WORKERS || 1 }}
+          PLAYWRIGHT_WORKERS: ${{ vars.PLAYWRIGHT_WORKERS || 6 }}
           DEBUG_AUTH: ${{ vars.PLAYWRIGHT_DEBUG_AUTH || 'false' }}
           # MFA Test Configuration
           SAMPLE_APP_ID: ${{ steps.extract-app-id.outputs.sample_app_id }}
@@ -1059,62 +1248,10 @@ jobs:
           retention-days: 30
 
 
-  detect-powershell-changes:
-    name: 🔍 Detect PowerShell Changes
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    outputs:
-      should-run: ${{ steps.filter.outputs.powershell }}
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
-        id: filter
-        with:
-          base: ${{ github.event_name == 'merge_group' && github.event.merge_group.base_sha || github.event.pull_request.base.sha }}
-          ref: ${{ github.event_name == 'merge_group' && github.sha || github.event.pull_request.head.sha }}
-          filters: |
-            powershell:
-              - '**.ps1'
-              - '.github/workflows/windows-powershell-validation.yml'
-      - name: ✅ PowerShell files detected
-        if: steps.filter.outputs.powershell == 'true'
-        run: echo "PowerShell files changed - validation will run"
-      - name: ⏭️ No PowerShell changes
-        if: steps.filter.outputs.powershell != 'true'
-        run: echo "No PowerShell changes - skipping validation"
-
-  detect-docs-changes:
-    name: 🔍 Detect Documentation Changes
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      should-run: ${{ steps.filter.outputs.docs }}
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
-        id: filter
-        with:
-          base: ${{ github.event_name == 'merge_group' && github.event.merge_group.base_sha || github.event.pull_request.base.sha }}
-          ref: ${{ github.event_name == 'merge_group' && github.sha || github.event.pull_request.head.sha }}
-          filters: |
-            docs:
-              - 'docs/**'
-              - 'package.json'
-              - 'pnpm-lock.yaml'
-              - 'pnpm-workspace.yaml'
-      - name: ✅ Documentation changes detected
-        if: steps.filter.outputs.docs == 'true'
-        run: echo "Documentation files changed - docs build will run"
-      - name: ⏭️ No documentation changes
-        if: steps.filter.outputs.docs != 'true'
-        run: echo "No documentation changes - skipping docs build"
-
   build-docs:
     name: 📚 Build Documentation
-    needs: [detect-docs-changes]
-    if: ${{ always() && needs.detect-docs-changes.outputs.should-run == 'true' }}
+    needs: [preflight]
+    if: ${{ needs.preflight.outputs.docs-changed == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -1131,15 +1268,15 @@ jobs:
 
   validate-windows:
     name: 🪟 Validate Windows PowerShell
-    needs: detect-powershell-changes
-    if: needs.detect-powershell-changes.outputs.should-run == 'true'
+    needs: preflight
+    if: needs.preflight.outputs.powershell-changed == 'true'
     uses: ./.github/workflows/windows-powershell-validation.yml
 
   cleanup-turbo-cache:
     name: 🗑️ Cleanup Stale Turbo Cache
     runs-on: ubuntu-latest
     # Skip on fork PRs — GITHUB_TOKEN is always read-only there regardless of permissions declared here.
-    if: always() && github.event.pull_request.head.repo.full_name == github.repository
+    if: always() && github.event.pull_request.head.repo.full_name == github.repository && contains(github.event.pull_request.labels.*.name, 'trigger-pr-builder') && (github.event.action != 'labeled' || github.event.label.name == 'trigger-pr-builder')
     needs:
       - build
       - test-frontend-packages

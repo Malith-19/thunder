@@ -36,7 +36,6 @@ import (
 	"github.com/thunder-id/thunderid/internal/ou"
 	i18nmgt "github.com/thunder-id/thunderid/internal/system/i18n/mgt"
 	"github.com/thunder-id/thunderid/internal/system/log"
-	"github.com/thunder-id/thunderid/internal/system/transaction"
 	sysutils "github.com/thunder-id/thunderid/internal/system/utils"
 )
 
@@ -52,7 +51,7 @@ type dcrService struct {
 	appService    application.ApplicationServiceInterface
 	ouService     ou.OrganizationUnitServiceInterface
 	i18nService   i18nmgt.I18nServiceInterface
-	transactioner transaction.Transactioner
+	transactioner providers.Transactioner
 }
 
 // newDCRService creates a new instance of dcrService.
@@ -60,7 +59,7 @@ func newDCRService(
 	appService application.ApplicationServiceInterface,
 	ouService ou.OrganizationUnitServiceInterface,
 	i18nService i18nmgt.I18nServiceInterface,
-	transactioner transaction.Transactioner,
+	transactioner providers.Transactioner,
 ) DCRServiceInterface {
 	return &dcrService{
 		appService:    appService,
@@ -265,9 +264,12 @@ func (ds *dcrService) convertDCRToApplication(request *DCRRegistrationRequest) (
 	}
 
 	appDTO := &model.ApplicationDTO{
-		ID:                appID,
-		OUID:              request.OUID,
-		Name:              appName,
+		ID:   appID,
+		OUID: request.OUID,
+		Name: appName,
+		// Dynamic Client Registration (RFC 7591) has no concept of ThunderID's application type, and
+		// a DCR-registered client can take any shape, so it is always registered as custom.
+		Type:              model.ApplicationTypeCustom,
 		URL:               request.ClientURI,
 		LogoURL:           request.LogoURI,
 		InboundAuthConfig: inboundAuthConfig,

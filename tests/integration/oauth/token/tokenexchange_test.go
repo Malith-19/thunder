@@ -223,6 +223,7 @@ func (ts *TokenExchangeTestSuite) createTestApplication() string {
 		"name":                      tokenExchangeAppName,
 		"description":               "Application for token exchange integration tests",
 		"ouId":                      ts.oUID,
+		"type":                      "fullstack",
 		"isRegistrationFlowEnabled": false,
 		"allowedUserTypes":          []string{"token-test-person"},
 		"inboundAuthConfig": []map[string]interface{}{
@@ -703,6 +704,7 @@ func (ts *TokenExchangeTestSuite) TestTokenExchange_ApplicationNotRegisteredForG
 	app := map[string]interface{}{
 		"name":                      tokenExchangeAppName + "_no_te",
 		"description":               "Application without token exchange",
+		"type":                      "fullstack",
 		"isRegistrationFlowEnabled": false,
 		"allowedUserTypes":          []string{"token-test-person"},
 		"inboundAuthConfig": []map[string]interface{}{
@@ -881,5 +883,5 @@ func (ts *TokenExchangeTestSuite) TestTokenExchange_SubjectTokenUnsupportedIssue
 	ts.Require().NoError(err)
 	ts.Equal(http.StatusBadRequest, statusCode)
 	ts.Equal("invalid_request", resp.Error)
-	ts.Contains(resp.ErrorDescription, "Invalid subject_token")
+	ts.Contains(resp.ErrorDescription, "issuer is not registered as a trusted token exchange issuer")
 }

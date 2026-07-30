@@ -95,6 +95,7 @@ func (ts *TokenTestSuite) createTestApplication(authMethod string) string {
 		"name":                      appName,
 		"description":               "Application for token integration tests",
 		"ouId":                      ts.ouID,
+		"type":                      "fullstack",
 		"isRegistrationFlowEnabled": false,
 		"inboundAuthConfig": []map[string]interface{}{
 			{
@@ -109,6 +110,15 @@ func (ts *TokenTestSuite) createTestApplication(authMethod string) string {
 						"refresh_token",
 					},
 					"tokenEndpointAuthMethod": authMethod,
+					// OU claims are opt-in for client tokens; list them so the client_credentials
+					// token carries ouId/ouName/ouHandle.
+					"token": map[string]interface{}{
+						"accessToken": map[string]interface{}{
+							"clientConfig": map[string]interface{}{
+								"attributes": []string{"ouId", "ouName", "ouHandle"},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -325,7 +335,7 @@ func (ts *TokenTestSuite) TestClientCredentialsGrantWithHeaderCredentials() {
 		})
 	}
 
-	// Verify that client OU claims are included in the access token.
+	// Verify that the OU claims the client opted into are included in the access token.
 	ts.Run("WithClientOUClaims", func() {
 		reqBody := strings.NewReader(tokenTestClientCredentialsForm(""))
 		request, err := http.NewRequest("POST", testServerURL+"/oauth2/token", reqBody)
@@ -489,6 +499,7 @@ func (ts *TokenTestSuite) TestClientCredentialsGrantEntityIdentificationByClient
 		"name":                      "EntityIdTestApp",
 		"description":               "Application for entity identification test",
 		"ouId":                      ts.ouID,
+		"type":                      "fullstack",
 		"isRegistrationFlowEnabled": false,
 		"inboundAuthConfig": []map[string]interface{}{
 			{

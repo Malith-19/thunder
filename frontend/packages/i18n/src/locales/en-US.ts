@@ -91,6 +91,7 @@ const translations = {
     // Status messages
     'status.loading': 'Loading...',
     'status.saving': 'Saving...',
+    'status.sending': 'Sending...',
     'status.deleting': 'Deleting...',
     'status.success': 'Success',
     'status.error': 'Error',
@@ -671,9 +672,7 @@ const translations = {
     inviteLinkDescription: 'Share this link with the user to complete their registration.',
     inviteLink: 'Invite Link',
     addAnother: 'Add Another User',
-    inviteAnother: 'Invite Another User',
-    'invite.steps.userdetails': 'User Details',
-    'invite.steps.invitelink': 'Invite Link',
+    'invite.steps.complete': 'Complete',
     editUser: 'Edit User',
     deleteUser: 'Delete User',
     userDetails: 'User Details',
@@ -754,6 +753,11 @@ const translations = {
     'updateCredentials.hint': 'Fill in only the credentials you want to update. Empty fields will be skipped.',
     'updateCredentials.success': 'Credentials updated successfully.',
     'updateCredentials.error': 'Failed to update credentials. Please try again.',
+
+    // Backend error code translations (per user service error envelope).
+    'errors.USR-1014': 'A user with the same unique attribute value already exists.',
+    'errors.USR-1019':
+      "Some attributes no longer match this user type's schema. Review the user type or the user's attributes.",
   },
 
   // ============================================================================
@@ -831,6 +835,12 @@ const translations = {
     'edit.saveError': 'Failed to save user type',
     'edit.loadError': 'Failed to load user type information',
     'edit.notFound': 'User type not found',
+    'schemaChangeWarning.title': 'Confirm schema changes',
+    'schemaChangeWarning.description':
+      'Existing users may require updates if their attributes no longer match the revised schema. Applications that return removed attributes in tokens or userinfo must also be updated.',
+    'schemaChangeWarning.affected': 'Affected attributes:',
+    'schemaChangeWarning.areYouSure': 'Do you want to continue?',
+    'schemaChangeWarning.confirm': 'Continue',
     'edit.general.organizationUnit.title': 'Organization Unit',
     'edit.general.organizationUnit.description': 'The organization unit this user type belongs to.',
     'edit.general.selfRegistration.title': 'Self Registration',
@@ -947,6 +957,12 @@ const translations = {
     'edit.saveError': 'Failed to save agent type',
     'edit.loadError': 'Failed to load agent type information',
     'edit.notFound': 'Agent type not found',
+    'schemaChangeWarning.title': 'Confirm schema changes',
+    'schemaChangeWarning.description':
+      'Existing agents may require updates if their attributes no longer match the revised schema. Applications that return removed attributes in tokens or userinfo must also be updated.',
+    'schemaChangeWarning.affected': 'Affected attributes:',
+    'schemaChangeWarning.areYouSure': 'Do you want to continue?',
+    'schemaChangeWarning.confirm': 'Continue',
     'edit.general.organizationUnit.title': 'Organization Unit',
     'edit.general.organizationUnit.description': 'The organization unit this agent type belongs to.',
     'edit.general.displayAttribute.title': 'Display Attribute',
@@ -1172,11 +1188,11 @@ const translations = {
     'edit.flows.allowedUserTypes.placeholder': 'Select or add user types',
     'edit.flows.allowedUserTypes.hint': 'Only these user types can authenticate or register through this agent.',
     'edit.flows.allowedUserTypes.required': 'Select at least one user type that can sign in through this agent.',
-    'edit.flows.delegationToggle.label': 'Delegated mode',
     'edit.flows.delegationLock.message':
-      'These settings are frozen for this agent. Turn on Delegated mode above to unlock and start using them.',
+      'These settings are frozen for this agent. Turn on Delegated mode in the Advanced tab to unlock and start using them.',
 
     // Edit page - Advanced tab
+    'edit.advanced.delegationToggle.label': 'Delegated mode',
     'edit.advanced.redirectUris.title': 'Authorized redirect URIs',
     'edit.advanced.redirectUris.description': 'For use with requests from a web server',
     'edit.advanced.redirectUris.empty': 'No redirect URIs configured.',
@@ -1188,7 +1204,7 @@ const translations = {
     'edit.advanced.oauthAccess.description': 'The grants and redirect URIs this agent is authorized to use.',
     'edit.advanced.oauthAccess.grantTypes.label': 'Grant Types',
     'edit.advanced.oauthAccess.grantTypes.hint':
-      'The greyed-out grants unlock once you turn on Delegated mode in the Flows tab.',
+      'The greyed-out grants unlock once you turn on Delegated mode at the top of this tab.',
     'edit.advanced.security.title': 'Security',
     'edit.advanced.security.description':
       'Controls how this agent protects the authorization code exchange when a user signs in.',
@@ -1206,12 +1222,12 @@ const translations = {
     'edit.tokens.tabs.user': 'User',
     'edit.tokens.tabs.agent': 'Agent',
     'edit.tokens.delegationLock.message':
-      'These settings are frozen for this agent. Turn on Delegated mode in the Flows tab to unlock and start using them.',
+      'These settings are frozen for this agent. Turn on Delegated mode in the Advanced tab to unlock and start using them.',
     'edit.tokens.agent.attributes.title': 'Access Token Attributes',
     'edit.tokens.agent.attributes.description':
       'Attributes included in the access token this agent receives for its own requests (client_credentials grant).',
     'edit.tokens.agent.attributes.label': 'Add or Remove Attributes',
-    'edit.tokens.agent.attributes.hint': "Click on this agent's attributes to add them to its access token.",
+    'edit.tokens.agent.attributes.hint': 'Click on agent attributes to add them to its access token.',
     'edit.tokens.agent.attributes.empty':
       'No attributes available. Configure attributes for this agent in the Attributes tab.',
     'edit.tokens.agent.validity.title': 'Token Validity',
@@ -1708,7 +1724,7 @@ const translations = {
     'detail.saveBar.unsaved': 'You have unsaved changes',
     'detail.saveBar.save': 'Save changes',
     'detail.saveBar.saving': 'Saving...',
-    'detail.saveBar.discard': 'Discard',
+    'detail.saveBar.reset': 'Reset',
 
     // Per-vendor configure / edit form
     'form.chrome.configure': 'Configure connection',
@@ -1737,6 +1753,10 @@ const translations = {
     'form.fields.jwksEndpoint.label': 'JWKS endpoint',
     'form.fields.jwksEndpoint.hint': 'Endpoint that exposes signing keys for verifying identity tokens.',
     'form.fields.logoutEndpoint.label': 'Logout endpoint',
+    'form.fields.logoutEndpoint.hint': 'Endpoint the provider uses to end the user session on logout.',
+    'form.fields.prompt.label': 'Prompt',
+    'form.fields.prompt.hint':
+      "Optional prompt value forwarded to the provider's authorization request, e.g. select_account or consent.",
     'form.fields.issuer.label': 'Issuer',
     'form.fields.issuer.hint': 'Issuer identifier expected in tokens from this provider.',
     'form.fields.tokenExchangeEnabled.label': 'Enable token exchange',
@@ -1755,7 +1775,6 @@ const translations = {
     'form.fields.senderId.label': 'Sender ID',
     'form.fields.senderId.hint': 'Phone number or alphanumeric sender ID messages are sent from.',
     'form.sections.federation': 'Federation',
-    'form.optional': 'Optional',
     'form.secret.update': 'Update',
     'form.secret.keepHelp': 'Leave unchanged to keep the stored secret.',
     'form.copy': 'Copy',
@@ -1842,7 +1861,6 @@ const translations = {
     'create.subtitle':
       'Register an external identity provider whose identity assertions ThunderID can exchange for access tokens.',
     'create.duplicateName': 'A trusted issuer with this name already exists.',
-    'create.submit': 'Add trusted issuer',
     'create.form.name.label': 'Name',
     'create.form.issuer.label': 'Issuer URI',
     'create.form.issuer.hint': "The issuer URI from the external IdP's OpenID Connect discovery document.",
@@ -1874,21 +1892,14 @@ const translations = {
     'detail.dangerZone.delete.description':
       'Applications relying on assertions from this issuer will stop receiving tokens. This cannot be undone.',
     'detail.saveBar.unsaved': 'You have unsaved changes',
-    'detail.saveBar.discard': 'Discard',
+    'detail.saveBar.reset': 'Reset',
     'detail.saveBar.save': 'Save changes',
-
-    // Delete dialog
-    'delete.title': 'Delete trusted issuer',
-    'delete.message':
-      'Delete "{{name}}"? Applications relying on assertions from this issuer will stop receiving tokens. This cannot be undone.',
 
     // Toasts
     'create.success': 'Trusted issuer created successfully.',
     'create.error': 'Failed to create trusted issuer. Please try again.',
     'update.success': 'Trusted issuer updated successfully.',
     'update.error': 'Failed to update trusted issuer. Please try again.',
-    'delete.success': 'Trusted issuer deleted successfully.',
-    'delete.error': 'Failed to delete trusted issuer. Please try again.',
   },
 
   // ============================================================================
@@ -2155,6 +2166,8 @@ const translations = {
     'onboarding.configure.approach.native.title': 'Embedded sign-in/sign-up components in your app',
     'onboarding.configure.approach.native.description':
       'Users will sign in or sign up through your app using the UI components or APIs provided by {{product}}. You can customize and brand the flows using the designer or through code.',
+    'onboarding.configure.approach.native.attestationNotice':
+      'Mobile apps authenticate to the Flow Execution API using platform attestation instead of a flow secret. After creating this application, configure attestation under Advanced settings to access the flow APIs.',
     'onboarding.configure.stack.title': 'Choose a type',
     'onboarding.configure.stack.subtitle': 'Select the type that best matches your application.',
     'onboarding.templateSelect.subtitle':
@@ -2503,6 +2516,16 @@ const translations = {
     'edit.advanced.attestation.hint.bundleId': 'The iOS bundle identifier that must match the attested app.',
     'edit.advanced.attestation.error.appleIncomplete': 'Both Team ID and Bundle ID are required together.',
 
+    /* Passkeys section */
+    'edit.advanced.labels.passkeys': 'Passkey Allowed Origins',
+    'edit.advanced.passkeys.intro': 'Allowed origins for passkey operations initiated through this application.',
+    'edit.advanced.passkeys.serverFallbackHint':
+      'Origins listed here are automatically included in the server CORS allowed origins.',
+    'edit.advanced.passkeys.allowedOrigins.placeholder': 'https://app.example.com',
+    'edit.advanced.passkeys.allowedOrigins.addOrigin': 'Add Origin',
+    'edit.advanced.passkeys.allowedOrigins.error.empty': 'Origin cannot be empty',
+    'edit.advanced.passkeys.allowedOrigins.error.invalid': 'Enter a valid URL',
+
     /* -------------------- Edit page -------------------- */
     // Common
     'edit.page.error': 'Failed to load application information',
@@ -2518,9 +2541,13 @@ const translations = {
     'edit.page.tabs.token': 'Token',
     'edit.page.tabs.advanced': 'Advanced Settings',
     'edit.page.unsavedChanges': 'Unsaved changes',
+    'edit.page.validation.missingRedirectUri': 'A redirect URI is required.',
+    'edit.page.validation.missingCertificate': 'A certificate is required.',
     'edit.page.reset': 'Reset',
     'edit.page.save': 'Save',
     'edit.page.saving': 'Saving...',
+    'edit.userAccessLock.message':
+      'These settings apply only to user-facing flows. Enable a user-facing grant (e.g. authorization code) in the Advanced tab to configure them.',
 
     'edit.mcp.connect.sections.identity': 'Connection',
     'edit.mcp.connect.sections.identity.description': 'Client identity and credentials for connecting to MCP servers.',
@@ -2603,7 +2630,7 @@ const translations = {
     'edit.flows.recoveryFlow.alert':
       'To modify the selected flow, <0>open the flow builder</0>. To create a new flow, visit the <1>Flows page</1>.',
     'edit.flows.labels.signOutFlow': 'Sign Out Flow',
-    'edit.flows.labels.signOutFlow.description': 'Confirm and terminate the SSO session when people sign out.',
+    'edit.flows.labels.signOutFlow.description': 'Choose the flow that handles user sign-out and session termination.',
     'edit.flows.signOutFlow.placeholder': 'Select a sign-out flow',
     'edit.flows.signOutFlow.hint': 'Select the flow that runs when a user signs out of this {{entity}}.',
     'edit.flows.signOutFlow.alert':
@@ -2660,6 +2687,23 @@ const translations = {
     'edit.token.scopes.add_custom.error.duplicate': 'This scope is already added',
     'edit.token.scopes.add_custom.error.invalid': 'Scope name must not contain spaces',
     'edit.token.scopes.openid_required': 'The openid scope is required and cannot be removed',
+    'edit.token.tabs.application': 'Application',
+    'edit.token.tabs.user': 'User',
+    'edit.token.clientLock.message':
+      'These settings apply only when the client credentials grant is enabled. Add it in the Advanced tab to configure them.',
+    'edit.token.userLock.message':
+      'These settings apply only when a user-facing grant is enabled. Add one in the Advanced tab to configure them.',
+    'edit.token.client.attributes.title': 'Access Token Claims',
+    'edit.token.client.attributes.description':
+      'Optional claims to include in the access token this application receives for its own requests (client_credentials grant).',
+    'edit.token.client.attributes.label': 'Add or Remove Claims',
+    'edit.token.client.attributes.hint': "Click a claim to include it in this application's client access token.",
+    'edit.token.client.attributes.empty': 'No optional claims available.',
+    'edit.token.client.validity.title': 'Token Validity',
+    'edit.token.client.validity.description': 'How long this client access token remains valid before expiration.',
+    'edit.token.client.validity.label': 'Token Validity',
+    'edit.token.client.validity.hint': 'Token validity period in seconds (e.g., 3600 for 1 hour).',
+    'edit.token.client.validity.error': 'Enter a validity period of at least 1 second.',
     'edit.advanced.audience.title': 'Default Audience',
     'edit.advanced.audience.description':
       "The default aud for access tokens that don't target a resource server (OIDC only or scopeless).",
@@ -2767,6 +2811,19 @@ const translations = {
     'errors.APP-1030': 'The application is declarative and cannot be modified or deleted.',
     'errors.APP-1031': 'Failed to synchronize consent configurations for the application.',
     'errors.APP-1032': 'Cannot enable consent for the application as the consent service is not enabled.',
+    'errors.APP-1033': 'One or more ACR values in acr_values are not recognized by the system.',
+    'errors.APP-1034': 'An application may have at most one inbound auth config per protocol.',
+    'errors.APP-1035': 'One or more user attributes are not valid for the configured allowed user types.',
+    'errors.APP-1036': 'The provided recovery flow ID is invalid.',
+    'errors.APP-1037': 'Native flow execution is not allowed for single-page applications as it requires PKCE.',
+    'errors.APP-1038': 'Attestation configuration may configure only one platform (android or apple) at a time.',
+    'errors.APP-1039':
+      'A referenced flow conflicts with the flow configured on the application. Both must point to the same flow.',
+    'errors.APP-1040': 'The application type is invalid. It must be one of: browser, fullstack, mobile, m2m, custom.',
+    'errors.APP-1041': 'The application type is set at creation and cannot be modified.',
+    'errors.APP-1042': 'An application type must be provided',
+    'errors.APP-1043': 'The provided Terms of Service URI is not a valid URI.',
+    'errors.APP-1044': 'The provided Privacy Policy URI is not a valid URI.',
     'errors.APP-5001': 'An unexpected error occurred while processing the request.',
     'errors.APP-5002': 'An error occurred while performing the certificate operation.',
   },
@@ -3083,6 +3140,10 @@ const translations = {
   // ============================================================================
   validations: {
     'form.field.required': '{{field}} is required.',
+    'field.email.invalid': 'Please enter a valid email address.',
+    'validation.pattern.invalid': '{{field}} format is invalid.',
+    'validation.minLength.invalid': '{{field}} must be at least {{minLength}} characters.',
+    'validation.maxLength.invalid': '{{field}} must not exceed {{maxLength}} characters.',
   },
 
   // ============================================================================
@@ -3177,6 +3238,14 @@ const translations = {
 
     // OTP executor
     'core.executions.otp.description': 'Configure the OTP executor settings.',
+    'core.executions.otp.otpLength.label': 'OTP Length',
+    'core.executions.otp.otpLength.placeholder': 'e.g., 6',
+    'core.executions.otp.otpLength.hint': 'Number of characters in the generated OTP (4-10).',
+    'core.executions.otp.otpUseNumericOnly.label': 'Numeric Only',
+    'core.executions.otp.otpUseNumericOnly.hint': 'When enabled, OTP will contain only numeric characters.',
+    'core.executions.otp.otpValidityPeriodSeconds.label': 'Validity Period (seconds)',
+    'core.executions.otp.otpValidityPeriodSeconds.placeholder': 'e.g., 120',
+    'core.executions.otp.otpValidityPeriodSeconds.hint': 'Time in seconds before the OTP expires (30-600).',
     'core.executions.otp.maxAttempts.label': 'Maximum Attempts',
     'core.executions.otp.maxAttempts.placeholder': 'e.g., 3',
     'core.executions.otp.maxAttempts.hint': 'The maximum number of OTP verification attempts before the flow fails.',
@@ -3304,6 +3373,12 @@ const translations = {
     'core.executions.provisioning.assignGroup.placeholder': 'Comma-separated group IDs to assign',
     'core.executions.provisioning.assignRole.label': 'Assign Role',
     'core.executions.provisioning.assignRole.placeholder': 'Comma-separated role IDs to assign',
+
+    // Session sign out executor
+    'core.executions.sessionSignOut.description': 'Configure the session sign out executor settings.',
+    'core.executions.sessionSignOut.promptOnSignOut.label': 'Prompt for Confirmation',
+    'core.executions.sessionSignOut.promptOnSignOut.hint':
+      'Ask the user to confirm before signing out when the logout request has no valid ID token hint.',
     'core.placeholders.dynamicInputPlaceholder.title': 'Dynamic Input',
     'core.placeholders.dynamicInputPlaceholder.hint': 'Resolves input fields passed from runtime.',
 
@@ -3601,6 +3676,13 @@ const translations = {
     'sso.properties.checkpointLabel': 'Session checkpoint',
     'sso.properties.checkpointDangling': 'The referenced session step no longer exists. Select a valid session step.',
 
+    // Discard unsaved changes dialog
+    'core.dialogs.discardChanges.title': 'Discard unsaved changes?',
+    'core.dialogs.discardChanges.description':
+      'You have unsaved changes to this flow. If you leave now, your changes will be lost.',
+    'core.dialogs.discardChanges.cancelButton': 'Keep editing',
+    'core.dialogs.discardChanges.confirmButton': 'Discard changes',
+
     // Form adapter
     'core.adapters.form.badgeLabel': 'Form',
     'core.adapters.form.placeholder': 'DROP FORM COMPONENTS HERE',
@@ -3609,6 +3691,11 @@ const translations = {
     'core.headerPanel.goBack': 'Go back to Flows',
     'core.headerPanel.autoLayout': 'Auto Layout',
     'core.headerPanel.save': 'Save',
+    'core.headerPanel.unsavedChanges': 'You have unsaved changes',
+    'core.headerPanel.undo': 'Undo',
+    'core.headerPanel.undoTooltip': 'Undo (Ctrl+Z / Cmd+Z)',
+    'core.headerPanel.redo': 'Redo',
+    'core.headerPanel.redoTooltip': 'Redo (Ctrl+Shift+Z / Cmd+Shift+Z)',
     'core.headerPanel.editTitle': 'Edit flow name',
     'core.headerPanel.saveTitle': 'Save flow name',
     'core.headerPanel.cancelEdit': 'Cancel',
@@ -3712,6 +3799,14 @@ const translations = {
     'core.loginFlowBuilder.errors.saveFailed': 'Failed to save flow. Please try again.',
     'core.loginFlowBuilder.success.flowCreated': 'Flow created successfully.',
     'core.loginFlowBuilder.success.flowUpdated': 'Flow updated successfully.',
+  },
+
+  // ============================================================================
+  // Onboarding namespace - User onboarding flows
+  // ============================================================================
+  onboarding: {
+    'forms.onboarding_mode.actions.create.description': 'Create user account immediately with all details',
+    'forms.onboarding_mode.actions.invite.description': 'Send invitation for user to complete their profile',
   },
 
   /**
@@ -4064,10 +4159,9 @@ const translations = {
     'next_steps.section.title': 'Quick Links',
 
     // Invite Members card
-    'next_steps.invite_members.title': 'Invite Members',
-    'next_steps.invite_members.description': 'Add collaborators to help manage your organization and act as a backup.',
+    'next_steps.invite_members.title': 'Add Users',
+    'next_steps.invite_members.description': 'Add or invite collaborators to help manage your organization.',
     'next_steps.invite_members.actions.primary.label': 'Add User',
-    'next_steps.invite_members.actions.secondary.label': 'Invite User',
     'next_steps.invite_members.status.count': '{{count}} member',
     'next_steps.invite_members.status.count_other': '{{count}} members',
     'next_steps.invite_members.status.empty': 'No members yet — add collaborators',
@@ -4595,9 +4689,9 @@ const translations = {
     'cors.validation.invalid': 'Enter a valid origin (e.g. https://app.example.com) or a valid regular expression.',
     'cors.validation.duplicate': 'This origin is already in the list.',
     'cors.unsavedChanges': 'You have unsaved changes',
-    'cors.discard': 'Discard',
+    'cors.reset': 'Reset',
     'cors.save': 'Save changes',
-    'cors.saving': 'Saving…',
+    'cors.saving': 'Saving...',
     'cors.load.error': 'Failed to load allowed origins.',
     'cors.save.success': 'Allowed origins updated.',
     'cors.save.error': 'Failed to update allowed origins.',

@@ -74,6 +74,26 @@ func newServiceWithCert(certService cert.CertificateServiceInterface) *inboundCl
 	return svc.(*inboundClientService)
 }
 
+func newServiceWithEntityType(et entitytypepkg.EntityTypeServiceInterface) *inboundClientService {
+	svc := newInboundClientService(
+		nil, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, et,
+	)
+	return svc.(*inboundClientService)
+}
+
+// userAttrProfile builds an OAuth profile with the three user attribute allow-lists populated.
+func userAttrProfile(access, id, userinfo []string) *providers.OAuthProfile {
+	return &providers.OAuthProfile{
+		Token: &providers.OAuthTokenConfig{
+			AccessToken: &providers.AccessTokenConfig{
+				UserConfig: &providers.AccessTokenSubConfig{Attributes: access},
+			},
+			IDToken: &providers.IDTokenConfig{UserAttributes: id},
+		},
+		UserInfo: &providers.UserInfoConfig{UserAttributes: userinfo},
+	}
+}
+
 func validInboundClient() inboundmodel.InboundClient {
 	return inboundmodel.InboundClient{
 		ID:                        "p1",
@@ -548,6 +568,118 @@ func (suite *InboundClientServiceTestSuite) TestUpdateInboundClient_Succeeds() {
 	svc := newInboundClientService(store, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, nil)
 	err := svc.UpdateInboundClient(context.Background(), ptrInboundClient(), validOAuthProfile(), true, "")
 	assert.NoError(suite.T(), err)
+}
+
+func (suite *InboundClientServiceTestSuite) TestStripUndeclaredUserAttributes_StripsFromAllLists() {
+	et := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	et.EXPECT().
+		GetAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "users", false, true, false).
+		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
+	svc := newServiceWithEntityType(et)
+
+	// "custom2" is undeclared; "groups"/"roles"/"ouId" are computed and must survive.
+	assertion := &inboundmodel.AssertionConfig{UserAttributes: []string{"email", "custom2", "groups"}}
+	profile := userAttrProfile(
+		[]string{"email", "custom2"},
+		[]string{"custom2", "roles"},
+		[]string{"email", "custom2", "ouId"},
+	)
+
+	err := svc.stripUndeclaredUserAttributes(context.Background(), []string{"users"}, assertion, profile)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), []string{"email", "groups"}, assertion.UserAttributes)
+	assert.Equal(suite.T(), []string{"email"}, profile.Token.AccessToken.UserConfig.Attributes)
+	assert.Equal(suite.T(), []string{"roles"}, profile.Token.IDToken.UserAttributes)
+	assert.Equal(suite.T(), []string{"email", "ouId"}, profile.UserInfo.UserAttributes)
+}
+
+func (suite *InboundClientServiceTestSuite) TestStripUndeclaredUserAttributes_NoOpWhenNoAllowedTypes() {
+	et := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	svc := newServiceWithEntityType(et)
+
+	assertion := &inboundmodel.AssertionConfig{UserAttributes: []string{"custom2"}}
+	err := svc.stripUndeclaredUserAttributes(context.Background(), nil, assertion, nil)
+	assert.NoError(suite.T(), err)
+	// No allowed types → skip; list untouched and no schema lookup performed.
+	assert.Equal(suite.T(), []string{"custom2"}, assertion.UserAttributes)
+}
+
+func (suite *InboundClientServiceTestSuite) TestStripUndeclaredUserAttributes_NoOpWhenEntityTypeNil() {
+	svc := newServiceWithEntityType(nil)
+
+	assertion := &inboundmodel.AssertionConfig{UserAttributes: []string{"custom2"}}
+	err := svc.stripUndeclaredUserAttributes(context.Background(), []string{"users"}, assertion, nil)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), []string{"custom2"}, assertion.UserAttributes)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateUserAttributes_RejectsUndeclared() {
+	et := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	et.EXPECT().
+		GetAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "users", false, true, false).
+		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
+	svc := newServiceWithEntityType(et)
+
+	// Create/Validate keep rejecting undeclared attrs after the reject→strip refactor.
+	assertion := &inboundmodel.AssertionConfig{UserAttributes: []string{"custom2"}}
+	err := svc.validateUserAttributesAgainstAllowedTypes(
+		context.Background(), []string{"users"}, assertion, nil)
+	assert.ErrorIs(suite.T(), err, ErrInvalidUserAttribute)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateUserAttributes_NoConfiguredAttrsSkipsSchemaLookup() {
+	et := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	svc := newServiceWithEntityType(et)
+
+	// No configured attributes → return early without a schema lookup (GetAttributes never expected).
+	err := svc.validateUserAttributesAgainstAllowedTypes(
+		context.Background(), []string{"users"}, nil, nil)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *InboundClientServiceTestSuite) TestUpdateInboundClient_StripsUndeclaredUserAttributes() {
+	store := newInboundClientStoreInterfaceMock(suite.T())
+	store.EXPECT().IsDeclarative(mock.Anything, "p1").Return(false)
+	store.EXPECT().UpdateInboundClient(mock.Anything, mock.Anything).Return(nil)
+	store.EXPECT().GetOAuthProfileByEntityID(mock.Anything, "p1").Return(nil, ErrInboundClientNotFound)
+	store.EXPECT().CreateOAuthProfile(mock.Anything, "p1", mock.Anything).Return(nil)
+
+	et := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	et.EXPECT().
+		GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryUser, mock.Anything, mock.Anything, false).
+		Return(&entitytypepkg.EntityTypeListResponse{
+			TotalResults: 1,
+			Types:        []entitytypepkg.EntityTypeListItem{{Name: "users"}},
+		}, nil)
+	// Exactly one schema lookup per allowed user type on the update path.
+	et.EXPECT().
+		GetAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "users", false, true, false).
+		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil).
+		Once()
+
+	svc := newInboundClientService(store, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, et)
+
+	client := ptrInboundClient()
+	client.AllowedUserTypes = []string{"users"}
+	client.Assertion = &inboundmodel.AssertionConfig{UserAttributes: []string{"email", "custom2"}}
+	profile := validOAuthProfile()
+	profile.Token = &providers.OAuthTokenConfig{
+		IDToken: &providers.IDTokenConfig{UserAttributes: []string{"email", "custom2"}},
+	}
+	profile.UserInfo = &providers.UserInfoConfig{UserAttributes: []string{"custom2"}}
+
+	err := svc.UpdateInboundClient(context.Background(), client, profile, true, "")
+	assert.NoError(suite.T(), err)
+
+	// The undeclared "custom2" is stripped from every allow-list; declared "email" survives.
+	assert.NotContains(suite.T(), client.Assertion.UserAttributes, "custom2")
+	assert.Contains(suite.T(), client.Assertion.UserAttributes, "email")
+	if profile.Token != nil && profile.Token.IDToken != nil {
+		assert.NotContains(suite.T(), profile.Token.IDToken.UserAttributes, "custom2")
+	}
+	if profile.UserInfo != nil {
+		assert.NotContains(suite.T(), profile.UserInfo.UserAttributes, "custom2")
+	}
 }
 
 func (suite *InboundClientServiceTestSuite) TestValidate_ValidProfile() {
@@ -1241,20 +1373,6 @@ func (suite *InboundClientServiceTestSuite) TestResolveOAuthTokens_CarriesDefaul
 	assert.Equal(suite.T(), "https://api.example.com", at.DefaultAudience)
 }
 
-// ----- resolveScopeClaims -----
-
-func (suite *InboundClientServiceTestSuite) TestResolveScopeClaims_NilReturnsEmptyMap() {
-	out := resolveScopeClaims(nil)
-	assert.NotNil(suite.T(), out)
-	assert.Empty(suite.T(), out)
-}
-
-func (suite *InboundClientServiceTestSuite) TestResolveScopeClaims_PassesThroughExistingMap() {
-	in := map[string][]string{"profile": {"given_name"}}
-	out := resolveScopeClaims(in)
-	assert.Equal(suite.T(), in, out)
-}
-
 // ----- validateRedirectURIs error branches -----
 
 func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_SchemeWildcardRejected() {
@@ -1574,6 +1692,105 @@ func (suite *InboundClientServiceTestSuite) TestResolveFlowDefaults_RecoveryFlow
 	assert.Equal(suite.T(), "recovery-1", c.RecoveryFlowID)
 }
 
+// All four flow types use the same explicit -> OU -> server default chain via ResolveEffectiveFlowID.
+func (suite *InboundClientServiceTestSuite) TestResolveFlowDefaults_ResolvesAllFlowTypes() {
+	flowMgt := flowmgtmock.NewFlowMgtServiceInterfaceMock(suite.T())
+	flowMgt.EXPECT().ResolveEffectiveFlowID(
+		mock.Anything, "auth-1", "", providers.FlowTypeAuthentication).Return("auth-1", nil).Once()
+	flowMgt.EXPECT().ResolveEffectiveFlowID(
+		mock.Anything, "reg-1", "", providers.FlowTypeRegistration).Return("reg-1", nil).Once()
+	flowMgt.EXPECT().ResolveEffectiveFlowID(
+		mock.Anything, "rec-1", "", providers.FlowTypeRecovery).Return("rec-1", nil).Once()
+	flowMgt.EXPECT().ResolveEffectiveFlowID(
+		mock.Anything, "so-1", "", providers.FlowTypeSignOut).Return("so-1", nil).Once()
+	svc := &inboundClientService{flowMgt: flowMgt}
+	c := &inboundmodel.InboundClient{
+		ID:                        "p1",
+		AuthFlowID:                "auth-1",
+		RegistrationFlowID:        "reg-1",
+		IsRegistrationFlowEnabled: true,
+		RecoveryFlowID:            "rec-1",
+		IsRecoveryFlowEnabled:     true,
+		SignOutFlowID:             "so-1",
+	}
+	err := svc.resolveFlowDefaults(context.Background(), c)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "auth-1", c.AuthFlowID)
+	assert.Equal(suite.T(), "reg-1", c.RegistrationFlowID)
+	assert.True(suite.T(), c.IsRegistrationFlowEnabled)
+	assert.Equal(suite.T(), "rec-1", c.RecoveryFlowID)
+	assert.True(suite.T(), c.IsRecoveryFlowEnabled)
+	assert.Equal(suite.T(), "so-1", c.SignOutFlowID)
+}
+
+// Registration/recovery/signout resolve to empty when no explicit or OU override exists
+// (their server-default handles are intentionally unconfigured).
+func (suite *InboundClientServiceTestSuite) TestResolveFlowDefaults_NonAuthFlowsEmptyWhenNoOverride() {
+	flowMgt := flowmgtmock.NewFlowMgtServiceInterfaceMock(suite.T())
+	flowMgt.EXPECT().ResolveEffectiveFlowID(
+		mock.Anything, "auth-1", "", providers.FlowTypeAuthentication).Return("auth-1", nil).Once()
+	flowMgt.EXPECT().ResolveEffectiveFlowID(
+		mock.Anything, "", "", providers.FlowTypeRegistration).Return("", nil).Once()
+	flowMgt.EXPECT().ResolveEffectiveFlowID(
+		mock.Anything, "", "", providers.FlowTypeRecovery).Return("", nil).Once()
+	flowMgt.EXPECT().ResolveEffectiveFlowID(
+		mock.Anything, "", "", providers.FlowTypeSignOut).Return("", nil).Once()
+	svc := &inboundClientService{flowMgt: flowMgt}
+	c := &inboundmodel.InboundClient{ID: "p1", AuthFlowID: "auth-1"}
+	err := svc.resolveFlowDefaults(context.Background(), c)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), c.RegistrationFlowID)
+	assert.False(suite.T(), c.IsRegistrationFlowEnabled)
+	assert.Empty(suite.T(), c.RecoveryFlowID)
+	assert.False(suite.T(), c.IsRecoveryFlowEnabled)
+	assert.Empty(suite.T(), c.SignOutFlowID)
+}
+
+// ResolveEffectiveFlowID errors are mapped to the correct sentinel errors for each flow type.
+func (suite *InboundClientServiceTestSuite) TestResolveFlowDefaults_ResolveErrors() {
+	tests := []struct {
+		name        string
+		flowType    providers.FlowType
+		resolveErr  *tidcommon.ServiceError
+		expectedErr error
+	}{
+		{"auth server error", providers.FlowTypeAuthentication,
+			&tidcommon.ServiceError{Type: tidcommon.ServerErrorType, Code: "SRV"}, ErrFKFlowServerError},
+		{"auth other error", providers.FlowTypeAuthentication,
+			&tidcommon.ServiceError{Type: tidcommon.ClientErrorType, Code: "OTHER"},
+			ErrFKFlowDefinitionRetrievalFailed},
+		{"reg server error", providers.FlowTypeRegistration,
+			&tidcommon.ServiceError{Type: tidcommon.ServerErrorType, Code: "SRV"}, ErrFKFlowServerError},
+		{"rec server error", providers.FlowTypeRecovery,
+			&tidcommon.ServiceError{Type: tidcommon.ServerErrorType, Code: "SRV"}, ErrFKFlowServerError},
+		{"signout server error", providers.FlowTypeSignOut,
+			&tidcommon.ServiceError{Type: tidcommon.ServerErrorType, Code: "SRV"}, ErrFKFlowServerError},
+	}
+	for _, tt := range tests {
+		suite.Run(tt.name, func() {
+			flowMgt := flowmgtmock.NewFlowMgtServiceInterfaceMock(suite.T())
+			if tt.flowType != providers.FlowTypeAuthentication {
+				flowMgt.EXPECT().ResolveEffectiveFlowID(
+					mock.Anything, mock.Anything, "", providers.FlowTypeAuthentication).Return("auth-1", nil).Once()
+			}
+			if tt.flowType == providers.FlowTypeRecovery || tt.flowType == providers.FlowTypeSignOut {
+				flowMgt.EXPECT().ResolveEffectiveFlowID(
+					mock.Anything, mock.Anything, "", providers.FlowTypeRegistration).Return("", nil).Once()
+			}
+			if tt.flowType == providers.FlowTypeSignOut {
+				flowMgt.EXPECT().ResolveEffectiveFlowID(
+					mock.Anything, mock.Anything, "", providers.FlowTypeRecovery).Return("", nil).Once()
+			}
+			flowMgt.EXPECT().ResolveEffectiveFlowID(
+				mock.Anything, mock.Anything, "", tt.flowType).Return("", tt.resolveErr).Once()
+			svc := &inboundClientService{flowMgt: flowMgt}
+			c := &inboundmodel.InboundClient{ID: "p1", AuthFlowID: "auth-1"}
+			err := svc.resolveFlowDefaults(context.Background(), c)
+			assert.ErrorIs(suite.T(), err, tt.expectedErr)
+		})
+	}
+}
+
 // ----- ResolveInboundAuthProfileHandles -----
 
 func (suite *InboundClientServiceTestSuite) TestResolveInboundAuthProfileHandles_NilFlowMgtIsNoOp() {
@@ -1806,6 +2023,113 @@ func (suite *InboundClientServiceTestSuite) TestValidateGrantAndResponseTypes_Ha
 		GrantTypes: []string{"client_credentials"},
 	}
 	assert.NoError(suite.T(), validateGrantAndResponseTypes(p))
+}
+
+// ----- allow-list enforcement (validateWithAllowed*) -----
+
+func (suite *InboundClientServiceTestSuite) configureAllowedGrantTypes(allowed []string) {
+	sysconfig.ResetServerRuntime()
+	cfg := &sysconfig.Config{}
+	cfg.OAuth.AllowedGrantTypes = allowed
+	suite.Require().NoError(sysconfig.InitializeServerRuntime("/tmp/test", cfg))
+}
+
+func (suite *InboundClientServiceTestSuite) configureAllowedResponseTypes(allowed []string) {
+	sysconfig.ResetServerRuntime()
+	cfg := &sysconfig.Config{}
+	cfg.OAuth.AllowedResponseTypes = allowed
+	suite.Require().NoError(sysconfig.InitializeServerRuntime("/tmp/test", cfg))
+}
+
+func (suite *InboundClientServiceTestSuite) configureAllowedAuthMethods(allowed []string) {
+	sysconfig.ResetServerRuntime()
+	cfg := &sysconfig.Config{}
+	cfg.OAuth.AllowedAuthMethods = allowed
+	suite.Require().NoError(sysconfig.InitializeServerRuntime("/tmp/test", cfg))
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateWithAllowedGrantTypes_EmptyAllowList_PermitsAny() {
+	err := validateWithAllowedGrantTypes([]string{"authorization_code", "client_credentials"})
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateWithAllowedGrantTypes_NotInAllowList_Rejected() {
+	suite.configureAllowedGrantTypes([]string{"client_credentials"})
+	err := validateWithAllowedGrantTypes([]string{"authorization_code"})
+	assert.ErrorIs(suite.T(), err, ErrOAuthInvalidGrantType)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateWithAllowedGrantTypes_InAllowList_Allowed() {
+	suite.configureAllowedGrantTypes([]string{"authorization_code", "refresh_token"})
+	err := validateWithAllowedGrantTypes([]string{"authorization_code"})
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateWithAllowedGrantTypes_InvalidGrantTypeStillRejected() {
+	// An allow-list entry does not bypass the underlying IsValid() check.
+	suite.configureAllowedGrantTypes([]string{"bogus_grant"})
+	err := validateWithAllowedGrantTypes([]string{"bogus_grant"})
+	assert.ErrorIs(suite.T(), err, ErrOAuthInvalidGrantType)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateWithAllowedResponseTypes_EmptyAllowList_PermitsAny() {
+	err := validateWithAllowedResponseTypes([]string{"code"})
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateWithAllowedResponseTypes_NotInAllowList_Rejected() {
+	suite.configureAllowedResponseTypes([]string{"code"})
+	err := validateWithAllowedResponseTypes([]string{"id_token"})
+	assert.ErrorIs(suite.T(), err, ErrOAuthInvalidResponseType)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateWithAllowedResponseTypes_InAllowList_Allowed() {
+	suite.configureAllowedResponseTypes([]string{"code"})
+	err := validateWithAllowedResponseTypes([]string{"code"})
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateWithAllowedTokenEndpointAuthMethod_EmptyAllowList_PermitsAny() {
+	err := validateWithAllowedTokenEndpointAuthMethod("client_secret_basic")
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateWithAllowedTokenEndpointAuthMethod_NotInAllowList_Rejected() {
+	suite.configureAllowedAuthMethods([]string{"client_secret_basic"})
+	err := validateWithAllowedTokenEndpointAuthMethod("none")
+	assert.ErrorIs(suite.T(), err, ErrOAuthInvalidTokenEndpointAuthMethod)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateWithAllowedTokenEndpointAuthMethod_InAllowList_Allowed() {
+	suite.configureAllowedAuthMethods([]string{"client_secret_basic"})
+	err := validateWithAllowedTokenEndpointAuthMethod("client_secret_basic")
+	assert.NoError(suite.T(), err)
+}
+
+// ----- allow-list enforcement wired into the higher-level validators -----
+
+func (suite *InboundClientServiceTestSuite) TestValidateGrantAndResponseTypes_GrantTypeNotAllowed() {
+	suite.configureAllowedGrantTypes([]string{"client_credentials"})
+	p := &providers.OAuthProfile{
+		GrantTypes: []string{"authorization_code"},
+	}
+	assert.ErrorIs(suite.T(), validateGrantAndResponseTypes(p), ErrOAuthInvalidGrantType)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateGrantAndResponseTypes_ResponseTypeNotAllowed() {
+	suite.configureAllowedResponseTypes([]string{"code"})
+	p := &providers.OAuthProfile{
+		GrantTypes:    []string{"authorization_code"},
+		ResponseTypes: []string{"id_token"},
+	}
+	assert.ErrorIs(suite.T(), validateGrantAndResponseTypes(p), ErrOAuthInvalidResponseType)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateTokenEndpointAuthMethod_NotAllowed() {
+	suite.configureAllowedAuthMethods([]string{"client_secret_basic"})
+	p := &providers.OAuthProfile{TokenEndpointAuthMethod: "private_key_jwt"}
+	err := validateTokenEndpointAuthMethod(p, false)
+	assert.ErrorIs(suite.T(), err, ErrOAuthInvalidTokenEndpointAuthMethod)
 }
 
 // ----- validatePublicClient branch coverage -----
@@ -2283,31 +2607,6 @@ func (suite *InboundClientServiceTestSuite) TestCreateInboundClient_RejectsInval
 	assert.ErrorIs(suite.T(), err, ErrInvalidUserAttribute)
 }
 
-func (suite *InboundClientServiceTestSuite) TestUpdateInboundClient_RejectsInvalidUserAttribute() {
-	store := newInboundClientStoreInterfaceMock(suite.T())
-	store.EXPECT().IsDeclarative(mock.Anything, "p1").Return(false)
-
-	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
-	// validateAllowedUserTypes (called by validateFKs) checks entity type existence via GetEntityTypeList.
-	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, false).Return(
-		&entitytypepkg.EntityTypeListResponse{
-			TotalResults: 1,
-			Types:        []entitytypepkg.EntityTypeListItem{{Name: "employee"}},
-		}, nil)
-	us.EXPECT().GetAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false, true, false).
-		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
-
-	svc := newInboundClientService(store, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, us)
-
-	c := validInboundClient()
-	c.AllowedUserTypes = []string{"employee"}
-	p := validOAuthProfileData()
-	p.UserInfo = &providers.UserInfoConfig{UserAttributes: []string{"ghost"}}
-
-	err := svc.UpdateInboundClient(context.Background(), &c, p, true, "")
-	assert.ErrorIs(suite.T(), err, ErrInvalidUserAttribute)
-}
-
 func (suite *InboundClientServiceTestSuite) TestValidate_RejectsInvalidUserAttribute() {
 	store := newInboundClientStoreInterfaceMock(suite.T())
 
@@ -2518,10 +2817,9 @@ func (suite *InboundClientServiceTestSuite) TestReconcileReferencedFlows_AutoFil
 	flowMgt.EXPECT().GetReachableCallTargets(mock.Anything, "auth").Return(
 		[]flowmgt.CallTarget{{FlowID: "so-b", FlowType: providers.FlowTypeSignOut}}, nil)
 	svc := &inboundClientService{flowMgt: flowMgt}
-	c := &inboundmodel.InboundClient{AuthFlowID: "auth", IsSignOutFlowEnabled: true}
+	c := &inboundmodel.InboundClient{AuthFlowID: "auth"}
 	suite.Require().NoError(svc.reconcileReferencedFlows(context.Background(), c))
 	assert.Equal(suite.T(), "so-b", c.SignOutFlowID)
-	assert.False(suite.T(), c.IsSignOutFlowEnabled)
 }
 
 func (suite *InboundClientServiceTestSuite) TestReconcileReferencedFlows_MatchingBindingPreservesEnableFlag() {

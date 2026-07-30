@@ -162,6 +162,10 @@ interface TokenUserAttributesSectionProps {
    * in to `IncludeActClaim`, which isn't exposed in this UI, so they default to false.
    */
   showActorClaim?: boolean;
+  /**
+   * Value shown for `act.sub` in the actor claim preview (the acting agent's ID).
+   */
+  actorSub?: string;
 }
 
 /**
@@ -207,6 +211,7 @@ export default function TokenUserAttributesSection({
   onUserInfoConfigChange = undefined,
   showUserInfoTab = true,
   showActorClaim = false,
+  actorSub = '<agent-id>',
 }: TokenUserAttributesSectionProps) {
   const {t} = useTranslation();
 
@@ -242,9 +247,9 @@ export default function TokenUserAttributesSection({
     }
 
     // The backend always adds this claim to access tokens an agent uses to act on
-    // behalf of a user (see OAuthClient.ShouldAppendActorClaim in the backend).
+    // behalf of a user, identifying the acting agent by its ID.
     if (tokenType === 'access' && showActorClaim) {
-      preview.act = {sub: '<agent-id>', iss: '<issuer>'};
+      preview.act = {sub: actorSub};
     }
 
     return preview;
@@ -311,8 +316,9 @@ export default function TokenUserAttributesSection({
       tokenType === 'userinfo' ? TokenConstants.USER_INFO_DEFAULT_ATTRIBUTES : TokenConstants.DEFAULT_TOKEN_ATTRIBUTES;
     const isPendingTab = tokenType === 'shared' || activeTab === tokenType;
 
+    // Include already selected attributes so ones dropped from the schema stay visible and removable.
     const availableAttributes = Array.from(
-      new Set([...userAttributes, ...TokenConstants.ADDITIONAL_USER_ATTRIBUTES]),
+      new Set([...userAttributes, ...TokenConstants.ADDITIONAL_USER_ATTRIBUTES, ...currentAttrs]),
     ).filter((attr) => !(defaultAttrs as readonly string[]).includes(attr));
 
     return (
@@ -334,7 +340,7 @@ export default function TokenUserAttributesSection({
                 {t('applications:edit.token.loading_attributes', 'Loading user attributes...')}
               </Typography>
             )}
-            {!isLoadingUserAttributes && userAttributes.length > 0 && (
+            {!isLoadingUserAttributes && (userAttributes.length > 0 || currentAttrs.length > 0) && (
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 {availableAttributes.sort().map((attr) => {
                   const isAdded = currentAttrs.includes(attr);

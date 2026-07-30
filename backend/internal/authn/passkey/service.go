@@ -26,7 +26,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	tidcommon "github.com/thunder-id/thunderid/pkg/thunderidengine/common"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine/providers"
@@ -40,8 +39,8 @@ const (
 	// loggerComponentName is the component name for logging.
 	loggerComponentName = "PasskeyService"
 
-	// passkeyCredentialType is the credential type key.
-	passkeyCredentialType = "passkey"
+	// CredentialType is the credential type key that identifies passkey credentials in the provider chain.
+	CredentialType = "passkey"
 )
 
 // PasskeyServiceInterface defines the interface for passkey authentication and registration operations.
@@ -52,7 +51,7 @@ type PasskeyServiceInterface interface {
 	) (*PasskeyRegistrationStartData, *tidcommon.ServiceError)
 	FinishRegistration(
 		ctx context.Context, req *PasskeyRegistrationFinishRequest,
-	) (*PasskeyRegistrationFinishData, *tidcommon.ServiceError)
+	) (*common.AuthnResult, *tidcommon.ServiceError)
 
 	// Authentication methods
 	StartAuthentication(
@@ -126,7 +125,7 @@ func (w *passkeyService) StartRegistration(
 	webAuthnUser := newWebAuthnUserFromEntity(coreEntity, credentials)
 
 	// Initialize WebAuthn service with relying party configuration
-	rpOrigins := getConfiguredOrigins()
+	rpOrigins := resolveAllowedOrigins(req.AllowedOrigins)
 	webAuthnService, err := newDefaultWebAuthnService(req.RelyingPartyID, rpDisplayName, rpOrigins)
 	if err != nil {
 		logger.Error(ctx, "Failed to initialize WebAuthn service", log.String("error", err.Error()))
@@ -176,7 +175,7 @@ func (w *passkeyService) StartRegistration(
 
 // FinishRegistration completes passkey credential registration.
 func (w *passkeyService) FinishRegistration(ctx context.Context, req *PasskeyRegistrationFinishRequest) (
-	*PasskeyRegistrationFinishData, *tidcommon.ServiceError) {
+	*common.AuthnResult, *tidcommon.ServiceError) {
 	logger := w.logger.With(log.String(log.LoggerKeyComponentName, loggerComponentName))
 	logger.Debug(ctx, "Finishing passkey credential registration")
 
@@ -246,7 +245,7 @@ func (w *passkeyService) FinishRegistration(ctx context.Context, req *PasskeyReg
 	webAuthnUser := newWebAuthnUserFromEntity(coreEntity, credentials)
 
 	// Initialize WebAuthn service with relying party configuration
-	rpOrigins := getConfiguredOrigins()
+	rpOrigins := resolveAllowedOrigins(req.AllowedOrigins)
 	webAuthnService, err := newDefaultWebAuthnService(relyingPartyID, relyingPartyID, rpOrigins)
 	if err != nil {
 		logger.Error(ctx, "Failed to initialize WebAuthn service", log.String("error", err.Error()))
@@ -260,15 +259,6 @@ func (w *passkeyService) FinishRegistration(ctx context.Context, req *PasskeyReg
 		return nil, &ErrorInvalidAttestationResponse
 	}
 
-	// Generate credential name if not provided
-	credentialName := req.CredentialName
-	if credentialName == "" {
-		credentialName = generateDefaultCredentialName()
-	}
-
-	// Encode credential ID to base64url
-	credentialID := base64.StdEncoding.EncodeToString(credential.ID)
-
 	// Store credential in database using user service
 	if err := w.storePasskeyCredential(ctx, userID, credential); err != nil {
 		logger.Error(ctx, "Failed to store credential in database", log.Error(err))
@@ -278,10 +268,9 @@ func (w *passkeyService) FinishRegistration(ctx context.Context, req *PasskeyReg
 	// Clear session data
 	w.clearSessionData(ctx, req.SessionToken)
 
-	return &PasskeyRegistrationFinishData{
-		CredentialID:   credentialID,
-		CredentialName: credentialName,
-		CreatedAt:      time.Now().UTC().Format(time.RFC3339),
+	return &common.AuthnResult{
+		Token:               map[string]interface{}{common.UserAttributeUserID: coreEntity.ID},
+		AuthenticatedClaims: map[string]interface{}{common.UserAttributeUserID: coreEntity.ID},
 	}, nil
 }
 
@@ -312,7 +301,7 @@ func (w *passkeyService) StartAuthentication(ctx context.Context, req *PasskeyAu
 	}
 
 	// Initialize WebAuthn service with relying party configuration
-	rpOrigins := getConfiguredOrigins()
+	rpOrigins := resolveAllowedOrigins(req.AllowedOrigins)
 	webAuthnService, err := newDefaultWebAuthnService(req.RelyingPartyID, req.RelyingPartyID, rpOrigins)
 	if err != nil {
 		logger.Error(ctx, "Failed to initialize WebAuthn service", log.String("error", err.Error()))
@@ -463,7 +452,7 @@ func (w *passkeyService) FinishAuthentication(ctx context.Context, req *PasskeyA
 	webAuthnUser := newWebAuthnUserFromEntity(coreEntity, credentials)
 
 	// Initialize WebAuthn service with relying party configuration
-	rpOrigins := getConfiguredOrigins()
+	rpOrigins := resolveAllowedOrigins(req.AllowedOrigins)
 	webAuthnService, err := newDefaultWebAuthnService(relyingPartyID, relyingPartyID, rpOrigins)
 	if err != nil {
 		logger.Error(ctx, "Failed to initialize WebAuthn service", log.String("error", err.Error()))
@@ -553,7 +542,7 @@ func (w *passkeyService) getStoredPasskeyEntries(
 ) ([]entity.StoredCredential, *tidcommon.ServiceError) {
 	logger := w.logger.With(log.String(log.LoggerKeyComponentName, loggerComponentName))
 
-	entries, err := w.entityService.GetCredentialsByType(ctx, entityID, passkeyCredentialType)
+	entries, err := w.entityService.GetCredentialsByType(ctx, entityID, CredentialType)
 	if err != nil {
 		if errors.Is(err, entity.ErrEntityNotFound) {
 			logger.Debug(ctx, "Entity not found", log.MaskedString("entityID", entityID))
@@ -614,7 +603,7 @@ func (w *passkeyService) storePasskeyCredential(
 	})
 
 	payload, err := json.Marshal(map[string][]entity.StoredCredential{
-		passkeyCredentialType: existingEntries,
+		CredentialType: existingEntries,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal passkey credentials: %w", err)
@@ -690,7 +679,7 @@ func (w *passkeyService) updatePasskeyCredential(
 	}
 
 	payload, err := json.Marshal(map[string][]entity.StoredCredential{
-		passkeyCredentialType: updatedEntries,
+		CredentialType: updatedEntries,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal passkey credentials: %w", err)

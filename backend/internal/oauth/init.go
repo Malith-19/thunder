@@ -21,6 +21,8 @@ package oauth
 
 import (
 	"net/http"
+	"slices"
+	"time"
 
 	"github.com/thunder-id/thunderid/internal/attributecache"
 	"github.com/thunder-id/thunderid/internal/flow/flowexec"
@@ -41,12 +43,10 @@ import (
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/userinfo"
 	"github.com/thunder-id/thunderid/internal/oauth/scope"
-	"github.com/thunder-id/thunderid/internal/serverconfig"
 	syshttp "github.com/thunder-id/thunderid/internal/system/http"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwe"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	kmprovider "github.com/thunder-id/thunderid/internal/system/kmprovider/common"
-	"github.com/thunder-id/thunderid/internal/system/transaction"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine/providers"
 )
 
@@ -64,12 +64,11 @@ func Initialize(
 	attributeCacheSvc attributecache.AttributeCacheServiceInterface,
 	authzService providers.AuthorizationProvider,
 	resourceService providers.ResourceServerProvider,
-	serverConfigService serverconfig.ServerConfigService,
 	i18nService providers.I18nProvider,
 	idpService providers.IDPProvider,
 	dpopVerifier dpop.VerifierInterface,
 	runtimeStore providers.RuntimeStoreProvider,
-	transactioner transaction.Transactioner,
+	transactioner providers.Transactioner,
 	cfg oauthconfig.Config,
 ) error {
 	jwks.Initialize(mux, runtimeCrypto)
@@ -79,25 +78,39 @@ func Initialize(
 	resolver := jwksresolver.Initialize(httpClient)
 	scopeValidator := scope.Initialize()
 	discoveryService := discovery.Initialize(mux, runtimeCrypto, cfg)
-	// The enforcement service (revocation read path) is built before the token service so it can be
-	// injected into the validator, which enforces the deny list as the final step of every validation.
-	enforcementService, refreshTokenRevoker := revocation.Initialize(
-		mux, jwtService, actorProvider, authnProvider, discoveryService, observabilitySvc)
+	var enforcementService revocation.EnforcementServiceInterface
+	var revocationSvc revocation.RevocationServiceInterface
+	if cfg.OAuth.TokenRevocation.Enabled {
+		// The enforcement service (revocation read path) is built before the token service so it can be
+		// injected into the validator, which enforces the deny list as the final step of every validation.
+		tokenFamilyRevocationTTL := time.Duration(cfg.OAuth.RefreshToken.ValidityPeriod) * time.Second
+		enforcementService, revocationSvc = revocation.Initialize(
+			mux, jwtService, actorProvider, authnProvider, discoveryService, observabilitySvc,
+			tokenFamilyRevocationTTL, cfg.OAuth.Revocation.TokenFamily.OnExplicitRevoke)
+	}
+
 	tokenBuilder, tokenValidator := tokenservice.Initialize(
 		cfg, jwtService, jweService, resolver, idpService, enforcementService)
 	parService := par.Initialize(mux, actorProvider, authnProvider, jwtService, discoveryService,
 		resourceService, dpopVerifier, cfg, runtimeStore)
-	cibaService := ciba.Initialize(mux, jwtService, actorProvider, authnProvider, flowExecService,
-		discoveryService, resourceService, serverConfigService, cfg)
 	oauth2AuthzService, err := oauth2authz.Initialize(mux, actorProvider, resourceService,
-		jwtService, flowExecService, parService, cfg, runtimeStore, transactioner)
+		jwtService, flowExecService, parService, revocationSvc, cfg, runtimeStore, transactioner)
 	if err != nil {
 		return err
 	}
+
+	var cibaService ciba.CIBAServiceInterface
+	if len(cfg.OAuth.AllowedGrantTypes) == 0 ||
+		slices.Contains(cfg.OAuth.AllowedGrantTypes, string(providers.GrantTypeCIBA)) {
+		cibaService = ciba.Initialize(mux, jwtService, actorProvider, authnProvider, flowExecService,
+			discoveryService, resourceService, runtimeStore, cfg)
+	}
+
 	grantHandlerProvider := granthandlers.Initialize(
 		jwtService, oauth2AuthzService, tokenBuilder, tokenValidator,
-		attributeCacheSvc, ouService, authzService, actorProvider, resourceService, serverConfigService,
-		cibaService, refreshTokenRevoker, cfg)
+		attributeCacheSvc, ouService, authzService, actorProvider, resourceService,
+		cibaService, revocationSvc, revocationSvc, cfg)
+
 	token.Initialize(mux, jwtService, actorProvider, authnProvider, grantHandlerProvider,
 		scopeValidator, observabilitySvc, discoveryService, dpopVerifier, cfg)
 	introspect.Initialize(mux, jwtService, actorProvider, authnProvider, discoveryService, tokenValidator)
@@ -105,6 +118,9 @@ func Initialize(
 		tokenValidator, actorProvider, attributeCacheSvc,
 		discoveryService, dpopVerifier, cfg)
 	callback.Initialize(mux, oauth2AuthzService, cibaService, cfg)
-	oauth2logout.Initialize(mux, jwtService, actorProvider, flowExecService, runtimeStore, cfg)
+
+	if cfg.OAuth.Logout.Enabled {
+		oauth2logout.Initialize(mux, jwtService, actorProvider, flowExecService, runtimeStore, cfg)
+	}
 	return nil
 }
