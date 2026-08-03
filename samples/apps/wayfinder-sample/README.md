@@ -105,9 +105,7 @@ The importable bundle already adds `http://localhost:5173` to the server-config 
 
 ## ThunderID Setup
 
-The `thunderid-config/redirect/` directory contains an importable YAML that creates all required ThunderID resources, including resource servers, roles, users, the OAuth application, and the AI agent. This is the config for the default redirect-based authentication mode.
-
-> **App-native mode** (embedded sign-in without a Login Gate redirect) is also supported. See [APP_NATIVE.md](APP_NATIVE.md) for setup and try-out instructions.
+The `thunderid-config/redirect/` directory contains an importable YAML that creates all required ThunderID resources, including resource servers, roles, users, the OAuth application, and the AI agent.
 
 ### Import Resources
 

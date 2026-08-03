@@ -17,7 +17,6 @@ import {
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router";
 import { getLocations } from "./api";
 import { getCachedChatAccessToken, getChatAccessToken } from "./auth/chatTokenService";
-import { AUTH_CONFIG } from "./auth/config";
 import { useAuth } from "./auth/useAuth";
 import { BookingDetailsPageWithAuth } from "./pages/BookingDetailsPageWithAuth";
 import { BookingsPageWithAuth } from "./pages/BookingsPageWithAuth";
@@ -27,7 +26,6 @@ import { getDisplayName, HomePage, SignedInHomePage } from "./pages/HomePage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { PaymentPageWithAuth } from "./pages/PaymentPageWithAuth";
 import { ResultsPage, ResultsPageWithAuth } from "./pages/ResultsPage";
-import { AuthPage } from "./pages/AuthPage";
 import { buildResultsPath, readCriteria } from "./utils/routes";
 
 const AGENT_CHAT_URL = import.meta.env.VITE_AGENT_CHAT_URL || "http://localhost:8790/chat";
@@ -856,9 +854,9 @@ function AppRoutes({ authReady, criteria, locations, onSearch }) {
         path="/profile"
         element={authReady ? <ProfilePage /> : <BookingsUnavailable />}
       />
-      <Route path="/signin" element={authReady ? <AuthPage key="signin" /> : <BookingsUnavailable />} />
-      <Route path="/signup" element={authReady ? <AuthPage key="signup" /> : <BookingsUnavailable />} />
-      <Route path="/recovery" element={authReady ? <AuthPage key="recovery" /> : <BookingsUnavailable />} />
+      <Route path="/signin" element={authReady ? <Navigate to="/" replace /> : <BookingsUnavailable />} />
+      <Route path="/signup" element={authReady ? <Navigate to="/" replace /> : <BookingsUnavailable />} />
+      <Route path="/recovery" element={authReady ? <Navigate to="/" replace /> : <BookingsUnavailable />} />
       <Route path="/auth" element={<Navigate to="/signin" replace />} />
       {AI_FEATURES_ENABLED && <Route path="/agent-callback" element={<AgentCallbackRoute />} />}
       {AI_FEATURES_ENABLED && <Route path="/chat-token-callback" element={<ChatTokenCallbackRoute />} />}
@@ -937,26 +935,21 @@ function App({ authReady }) {
   }
 
   const criteria = readCriteria(location.search);
-  const isAuthPage =
-    !AUTH_CONFIG.isRedirectBased &&
-    ["/signin", "/signup", "/recovery"].includes(location.pathname);
 
   return (
     <div className="app-shell">
-      {!isAuthPage && (
-        <header className="site-header">
-          <Link className="brand" to="/flights" aria-label="Wayfinder Travel home">
-            <span className="brand-mark">
-              <Plane size={22} />
-            </span>
-            <span>Wayfinder</span>
-          </Link>
-          <PrimaryNav authReady={authReady} />
-          <AuthenticatedHeader authReady={authReady} />
-        </header>
-      )}
+      <header className="site-header">
+        <Link className="brand" to="/flights" aria-label="Wayfinder Travel home">
+          <span className="brand-mark">
+            <Plane size={22} />
+          </span>
+          <span>Wayfinder</span>
+        </Link>
+        <PrimaryNav authReady={authReady} />
+        <AuthenticatedHeader authReady={authReady} />
+      </header>
 
-      {!isAuthPage && !authReady && (
+      {!authReady && (
         <div className="setup-banner" role="status">
           <ShieldCheck size={18} />
           Add `VITE_THUNDER_CLIENT_ID` and `VITE_THUNDER_BASE_URL` to enable live
@@ -970,8 +963,8 @@ function App({ authReady }) {
         locations={locations}
         onSearch={handleSearch}
       />
-      {AI_FEATURES_ENABLED && !isAuthPage && <ChatWidget authReady={authReady} />}
-      {!isAuthPage && <SiteFooter authReady={authReady} />}
+      {AI_FEATURES_ENABLED && <ChatWidget authReady={authReady} />}
+      <SiteFooter authReady={authReady} />
     </div>
   );
 }

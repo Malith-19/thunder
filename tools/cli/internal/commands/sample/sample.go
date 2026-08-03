@@ -292,8 +292,7 @@ func runWithResult(
 }
 
 // defaultAuthMode is the sample auth mode the CLI provisions. The wayfinder
-// config is organized by auth mode (e.g. "redirect", "app-native"); the
-// redirect flow is the default consumer experience.
+// config is organized under an auth-mode subdirectory, currently "redirect".
 const defaultAuthMode = "redirect"
 
 // findSampleConfig locates the config YAML and env file within dir.
