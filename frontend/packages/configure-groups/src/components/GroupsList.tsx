@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {QueryErrorNotice} from '@thunderid/components';
+import {useProject} from '@thunderid/contexts';
 import {useDataGridLocaleText} from '@thunderid/hooks';
 import {useLogger} from '@thunderid/logger/react';
 import {IconButton, Typography, Tooltip, DataGrid, ListingTable} from '@wso2/oxygen-ui';
@@ -24,13 +25,25 @@ export default function GroupsList(): JSX.Element {
   const dataGridLocaleText = useDataGridLocaleText();
   const routes = useGroupRoutes();
   const [paginationModel, setPaginationModel] = useState<DataGrid.GridPaginationModel>({pageSize: 10, page: 0});
+  const {selectedProject} = useProject();
+
+  // A page number means nothing in another project, so switching projects starts from the first page.
+  const [pagedProjectId, setPagedProjectId] = useState<string | undefined>(selectedProject?.id);
+  const isPagedProject = pagedProjectId === selectedProject?.id;
+  if (!isPagedProject) {
+    setPagedProjectId(selectedProject?.id);
+    setPaginationModel((prev) => ({...prev, page: 0}));
+  }
+  // The reset above only lands on the next render, so this render already asks for the first page.
+  const currentPaginationModel = isPagedProject ? paginationModel : {...paginationModel, page: 0};
 
   const groupsParams = useMemo(
     () => ({
-      limit: paginationModel.pageSize,
-      offset: paginationModel.page * paginationModel.pageSize,
+      limit: currentPaginationModel.pageSize,
+      offset: currentPaginationModel.page * currentPaginationModel.pageSize,
+      ouId: selectedProject?.id,
     }),
-    [paginationModel],
+    [currentPaginationModel.pageSize, currentPaginationModel.page, selectedProject?.id],
   );
   const {data, isLoading, error, refetch} = useGetGroups(groupsParams);
 
@@ -168,7 +181,7 @@ export default function GroupsList(): JSX.Element {
             }}
             paginationMode="server"
             rowCount={data?.totalResults ?? 0}
-            paginationModel={paginationModel}
+            paginationModel={currentPaginationModel}
             onPaginationModelChange={setPaginationModel}
             pageSizeOptions={[5, 10, 25]}
             disableRowSelectionOnClick

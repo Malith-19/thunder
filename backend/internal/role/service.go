@@ -28,7 +28,7 @@ const loggerComponentName = "RoleMgtService"
 
 // RoleServiceInterface defines the interface for the role service.
 type RoleServiceInterface interface {
-	GetRoleList(ctx context.Context, limit, offset int) (*RoleList, *tidcommon.ServiceError)
+	GetRoleList(ctx context.Context, limit, offset int, ouID string) (*RoleList, *tidcommon.ServiceError)
 	CreateRole(ctx context.Context, role RoleCreationDetail) (
 		*RoleWithPermissionsAndAssignments, *tidcommon.ServiceError)
 	GetRoleWithPermissions(ctx context.Context, id string) (*RoleWithPermissions, *tidcommon.ServiceError)
@@ -88,14 +88,27 @@ func newRoleService(
 }
 
 // GetRoleList retrieves a list of roles.
-func (rs *roleService) GetRoleList(ctx context.Context, limit, offset int) (*RoleList, *tidcommon.ServiceError) {
+func (rs *roleService) GetRoleList(
+	ctx context.Context, limit, offset int, ouID string,
+) (*RoleList, *tidcommon.ServiceError) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, loggerComponentName))
 
 	if err := validatePaginationParams(limit, offset); err != nil {
 		return nil, err
 	}
 
-	totalCount, err := rs.roleStore.GetRoleListCount(ctx)
+	scope, svcErr := oupkg.ScopeToSubtree(ctx, rs.ouService, nil, ouID)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+
+	var totalCount int
+	var err error
+	if scope == nil {
+		totalCount, err = rs.roleStore.GetRoleListCount(ctx)
+	} else {
+		totalCount, err = rs.roleStore.GetRoleListCountByOUIDs(ctx, scope.IDs)
+	}
 	if err != nil {
 		if errors.Is(err, errResultLimitExceededInCompositeMode) {
 			return nil, &ResultLimitExceededInCompositeMode
@@ -104,7 +117,12 @@ func (rs *roleService) GetRoleList(ctx context.Context, limit, offset int) (*Rol
 		return nil, &tidcommon.InternalServerError
 	}
 
-	roles, err := rs.roleStore.GetRoleList(ctx, limit, offset)
+	var roles []Role
+	if scope == nil {
+		roles, err = rs.roleStore.GetRoleList(ctx, limit, offset)
+	} else {
+		roles, err = rs.roleStore.GetRoleListByOUIDs(ctx, scope.IDs, limit, offset)
+	}
 	if err != nil {
 		if errors.Is(err, errResultLimitExceededInCompositeMode) {
 			return nil, &ResultLimitExceededInCompositeMode
@@ -139,7 +157,7 @@ func (rs *roleService) GetRoleList(ctx context.Context, limit, offset int) (*Rol
 		Roles:        roles,
 		StartIndex:   offset + 1,
 		Count:        len(roles),
-		Links:        utils.BuildPaginationLinks("/roles", limit, offset, totalCount, ""),
+		Links:        utils.BuildPaginationLinks("/roles", limit, offset, totalCount, utils.OUIDQueryParam(ouID)),
 	}
 
 	return response, nil

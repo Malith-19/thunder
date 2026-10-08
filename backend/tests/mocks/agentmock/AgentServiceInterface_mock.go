@@ -330,8 +330,8 @@ func (_c *AgentServiceInterfaceMock_GetAgentGroups_Call) RunAndReturn(run func(c
 }
 
 // GetAgentList provides a mock function for the type AgentServiceInterfaceMock
-func (_mock *AgentServiceInterfaceMock) GetAgentList(ctx context.Context, limit int, offset int, filters map[string]interface{}, includeDisplay bool) (*model.AgentListResponse, *common.ServiceError) {
-	ret := _mock.Called(ctx, limit, offset, filters, includeDisplay)
+func (_mock *AgentServiceInterfaceMock) GetAgentList(ctx context.Context, limit int, offset int, ouID string, filters map[string]interface{}, includeDisplay bool) (*model.AgentListResponse, *common.ServiceError) {
+	ret := _mock.Called(ctx, limit, offset, ouID, filters, includeDisplay)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetAgentList")
@@ -339,18 +339,18 @@ func (_mock *AgentServiceInterfaceMock) GetAgentList(ctx context.Context, limit 
 
 	var r0 *model.AgentListResponse
 	var r1 *common.ServiceError
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, map[string]interface{}, bool) (*model.AgentListResponse, *common.ServiceError)); ok {
-		return returnFunc(ctx, limit, offset, filters, includeDisplay)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, string, map[string]interface{}, bool) (*model.AgentListResponse, *common.ServiceError)); ok {
+		return returnFunc(ctx, limit, offset, ouID, filters, includeDisplay)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, map[string]interface{}, bool) *model.AgentListResponse); ok {
-		r0 = returnFunc(ctx, limit, offset, filters, includeDisplay)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, string, map[string]interface{}, bool) *model.AgentListResponse); ok {
+		r0 = returnFunc(ctx, limit, offset, ouID, filters, includeDisplay)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.AgentListResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, int, int, map[string]interface{}, bool) *common.ServiceError); ok {
-		r1 = returnFunc(ctx, limit, offset, filters, includeDisplay)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int, int, string, map[string]interface{}, bool) *common.ServiceError); ok {
+		r1 = returnFunc(ctx, limit, offset, ouID, filters, includeDisplay)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*common.ServiceError)
@@ -368,13 +368,14 @@ type AgentServiceInterfaceMock_GetAgentList_Call struct {
 //   - ctx context.Context
 //   - limit int
 //   - offset int
+//   - ouID string
 //   - filters map[string]interface{}
 //   - includeDisplay bool
-func (_e *AgentServiceInterfaceMock_Expecter) GetAgentList(ctx interface{}, limit interface{}, offset interface{}, filters interface{}, includeDisplay interface{}) *AgentServiceInterfaceMock_GetAgentList_Call {
-	return &AgentServiceInterfaceMock_GetAgentList_Call{Call: _e.mock.On("GetAgentList", ctx, limit, offset, filters, includeDisplay)}
+func (_e *AgentServiceInterfaceMock_Expecter) GetAgentList(ctx interface{}, limit interface{}, offset interface{}, ouID interface{}, filters interface{}, includeDisplay interface{}) *AgentServiceInterfaceMock_GetAgentList_Call {
+	return &AgentServiceInterfaceMock_GetAgentList_Call{Call: _e.mock.On("GetAgentList", ctx, limit, offset, ouID, filters, includeDisplay)}
 }
 
-func (_c *AgentServiceInterfaceMock_GetAgentList_Call) Run(run func(ctx context.Context, limit int, offset int, filters map[string]interface{}, includeDisplay bool)) *AgentServiceInterfaceMock_GetAgentList_Call {
+func (_c *AgentServiceInterfaceMock_GetAgentList_Call) Run(run func(ctx context.Context, limit int, offset int, ouID string, filters map[string]interface{}, includeDisplay bool)) *AgentServiceInterfaceMock_GetAgentList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -388,13 +389,17 @@ func (_c *AgentServiceInterfaceMock_GetAgentList_Call) Run(run func(ctx context.
 		if args[2] != nil {
 			arg2 = args[2].(int)
 		}
-		var arg3 map[string]interface{}
+		var arg3 string
 		if args[3] != nil {
-			arg3 = args[3].(map[string]interface{})
+			arg3 = args[3].(string)
 		}
-		var arg4 bool
+		var arg4 map[string]interface{}
 		if args[4] != nil {
-			arg4 = args[4].(bool)
+			arg4 = args[4].(map[string]interface{})
+		}
+		var arg5 bool
+		if args[5] != nil {
+			arg5 = args[5].(bool)
 		}
 		run(
 			arg0,
@@ -402,6 +407,7 @@ func (_c *AgentServiceInterfaceMock_GetAgentList_Call) Run(run func(ctx context.
 			arg2,
 			arg3,
 			arg4,
+			arg5,
 		)
 	})
 	return _c
@@ -412,7 +418,7 @@ func (_c *AgentServiceInterfaceMock_GetAgentList_Call) Return(agentListResponse 
 	return _c
 }
 
-func (_c *AgentServiceInterfaceMock_GetAgentList_Call) RunAndReturn(run func(ctx context.Context, limit int, offset int, filters map[string]interface{}, includeDisplay bool) (*model.AgentListResponse, *common.ServiceError)) *AgentServiceInterfaceMock_GetAgentList_Call {
+func (_c *AgentServiceInterfaceMock_GetAgentList_Call) RunAndReturn(run func(ctx context.Context, limit int, offset int, ouID string, filters map[string]interface{}, includeDisplay bool) (*model.AgentListResponse, *common.ServiceError)) *AgentServiceInterfaceMock_GetAgentList_Call {
 	_c.Call.Return(run)
 	return _c
 }

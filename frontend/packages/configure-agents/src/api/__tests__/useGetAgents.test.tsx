@@ -105,6 +105,38 @@ describe('useGetAgents', () => {
     );
   });
 
+  it('should append ouId to the URL when provided', async () => {
+    mockHttpRequest.mockResolvedValueOnce({data: mockResponse});
+
+    const {result} = renderHook(() => useGetAgents({ouId: 'project-ou'}));
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockHttpRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://api.test.com/agents?limit=30&offset=0&include=display&ouId=project-ou',
+      }),
+    );
+  });
+
+  it('should omit ouId from the URL when not provided', async () => {
+    mockHttpRequest.mockResolvedValueOnce({data: mockResponse});
+
+    const {result} = renderHook(() => useGetAgents({limit: 50}));
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockHttpRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://api.test.com/agents?limit=50&offset=0&include=display',
+      }),
+    );
+  });
+
   it('should handle API error', async () => {
     const apiError = new Error('Failed to load agents');
     mockHttpRequest.mockRejectedValueOnce(apiError);

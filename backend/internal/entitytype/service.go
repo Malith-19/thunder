@@ -38,7 +38,7 @@ type AttributeFilter = model.AttributeFilter
 
 // EntityTypeServiceInterface defines the interface for the entity type service.
 type EntityTypeServiceInterface interface {
-	GetEntityTypeList(ctx context.Context, category TypeCategory, limit, offset int,
+	GetEntityTypeList(ctx context.Context, category TypeCategory, limit, offset int, ouID string,
 		includeDisplay bool) (*EntityTypeListResponse, *tidcommon.ServiceError)
 	CreateEntityType(
 		ctx context.Context, category TypeCategory, request CreateEntityTypeRequestWithID,
@@ -107,7 +107,7 @@ func newEntityTypeService(
 
 // GetEntityTypeList lists entity types for the given category with pagination.
 func (us *entityTypeService) GetEntityTypeList(ctx context.Context, category TypeCategory,
-	limit, offset int, includeDisplay bool) (
+	limit, offset int, ouID string, includeDisplay bool) (
 	*EntityTypeListResponse, *tidcommon.ServiceError) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, entityTypeLoggerComponentName))
 
@@ -124,13 +124,18 @@ func (us *entityTypeService) GetEntityTypeList(ctx context.Context, category Typ
 		return nil, svcErr
 	}
 
+	accessible, svcErr = oupkg.ScopeToSubtree(ctx, us.ouService, accessible, ouID)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+
 	if accessible.AllAllowed {
 		logger.Debug(ctx, "Caller has access to all entity types, retrieving without OU filtering",
 			log.String("category", string(category)))
 		return us.listAllEntityTypes(ctx, category, limit, offset, includeDisplay, logger)
 	}
 
-	return us.listAccessibleEntityTypes(ctx, category, accessible.IDs, limit, offset, includeDisplay, logger)
+	return us.listAccessibleEntityTypes(ctx, category, accessible.IDs, limit, offset, ouID, includeDisplay, logger)
 }
 
 // listAllEntityTypes retrieves entity types without authorization filtering.
@@ -163,10 +168,10 @@ func (us *entityTypeService) listAllEntityTypes(
 
 // listAccessibleEntityTypes retrieves only the entity types belonging to the caller's accessible OUs.
 func (us *entityTypeService) listAccessibleEntityTypes(
-	ctx context.Context, category TypeCategory, ouIDs []string, limit, offset int,
+	ctx context.Context, category TypeCategory, ouIDs []string, limit, offset int, ouID string,
 	includeDisplay bool, logger *log.Logger,
 ) (*EntityTypeListResponse, *tidcommon.ServiceError) {
-	displayQuery := utils.DisplayQueryParam(includeDisplay)
+	displayQuery := utils.DisplayQueryParam(includeDisplay) + utils.OUIDQueryParam(ouID)
 
 	if len(ouIDs) == 0 {
 		return &EntityTypeListResponse{

@@ -140,6 +140,40 @@ describe('useGetRoles', () => {
     expect(callArgs.url).toContain('offset=5');
   });
 
+  it('should append ouId to the request URL when provided', async () => {
+    mockHttpRequest.mockResolvedValueOnce({
+      data: mockRoleListResponse,
+    });
+
+    renderHook(() => useGetRoles({limit: 10, offset: 0, ouId: 'ou-123'}));
+
+    await waitFor(() => {
+      expect(mockHttpRequest).toHaveBeenCalledTimes(1);
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const callArgs = mockHttpRequest.mock.calls[0][0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    expect(callArgs.url).toBe('https://api.test.com/roles?limit=10&offset=0&include=display&ouId=ou-123');
+  });
+
+  it('should omit ouId from the request URL when not provided', async () => {
+    mockHttpRequest.mockResolvedValueOnce({
+      data: mockRoleListResponse,
+    });
+
+    renderHook(() => useGetRoles({limit: 10, offset: 0}));
+
+    await waitFor(() => {
+      expect(mockHttpRequest).toHaveBeenCalledTimes(1);
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const callArgs = mockHttpRequest.mock.calls[0][0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    expect(callArgs.url).toBe('https://api.test.com/roles?limit=10&offset=0&include=display');
+  });
+
   it('should handle API error', async () => {
     const apiError = new Error('Failed to fetch roles');
     mockHttpRequest.mockRejectedValueOnce(apiError);

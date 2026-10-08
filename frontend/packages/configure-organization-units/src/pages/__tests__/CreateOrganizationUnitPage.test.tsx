@@ -1,6 +1,7 @@
 // Copyright 2025-2026 The ThunderID Authors
 // SPDX-License-Identifier: Apache-2.0
 
+import {ProjectContext, type ProjectContextType} from '@thunderid/contexts';
 import {screen, fireEvent, waitFor, renderWithProviders, renderHook, within} from '@thunderid/test-utils';
 import {useTranslation} from 'react-i18next';
 import {describe, it, expect, vi, beforeEach, beforeAll} from 'vitest';
@@ -554,5 +555,73 @@ describe('CreateOrganizationUnitPage', () => {
     renderWithProviders(<CreateOrganizationUnitPage />);
 
     expect(screen.getByText('Need inspiration? How about')).toBeInTheDocument();
+  });
+
+  describe('selected project', () => {
+    const projectContextValue: ProjectContextType = {
+      projects: [{id: 'project-ou', handle: 'project-handle', name: 'Project Root'}],
+      selectedProject: {id: 'project-ou', handle: 'project-handle', name: 'Project Root'},
+      selectProject: vi.fn(),
+      isLoading: false,
+    };
+
+    const renderInProject = () =>
+      renderWithProviders(
+        <ProjectContext.Provider value={projectContextValue}>
+          <CreateOrganizationUnitPage />
+        </ProjectContext.Provider>,
+      );
+
+    const submitWithName = async (name: string) => {
+      fireEvent.change(screen.getByLabelText(/Name/i), {target: {value: name}});
+
+      await waitFor(() => {
+        expect(screen.getByText(t('common:actions.create'))).not.toBeDisabled();
+      });
+
+      fireEvent.click(screen.getByText(t('common:actions.create')));
+    };
+
+    it('should preselect the selected project as the parent when navigation state has no parent', () => {
+      renderInProject();
+
+      expect(screen.getByText('Project Root (project-handle)')).toBeInTheDocument();
+      expect(screen.queryByText(t('organizationUnits:edit.general.ou.noParent.label'))).not.toBeInTheDocument();
+    });
+
+    it('should submit with the selected project as the parent when navigation state has no parent', async () => {
+      renderInProject();
+
+      await submitWithName('Child Organization');
+
+      await waitFor(() => {
+        expect(mockMutate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            parent: 'project-ou',
+          }),
+          expect.any(Object),
+        );
+      });
+    });
+
+    it('should prefer the parent from navigation state over the selected project', async () => {
+      mockLocationState = {parentId: 'ou-1', parentName: 'Engineering', parentHandle: 'engineering'};
+
+      renderInProject();
+
+      expect(screen.getByText('Engineering (engineering)')).toBeInTheDocument();
+      expect(screen.queryByText('Project Root (project-handle)')).not.toBeInTheDocument();
+
+      await submitWithName('Child Organization');
+
+      await waitFor(() => {
+        expect(mockMutate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            parent: 'ou-1',
+          }),
+          expect.any(Object),
+        );
+      });
+    });
   });
 });

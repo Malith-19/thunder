@@ -25,4 +25,9 @@ export interface ApiFilteringParams {
    * Filter expression used to narrow the result set.
    */
   filter?: string;
+
+  /**
+   * Organization unit that scopes the list to its own resources and those of every unit beneath it.
+   */
+  ouId?: string;
 }

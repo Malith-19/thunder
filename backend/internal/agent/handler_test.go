@@ -33,7 +33,7 @@ type InlineStubAgentService struct {
 	) (*model.AgentGetResponse, *tidcommon.ServiceError)
 	OnDeleteAgent  func(ctx context.Context, id string) *tidcommon.ServiceError
 	OnGetAgentList func(
-		ctx context.Context, limit, offset int, filters map[string]interface{}, inc bool,
+		ctx context.Context, limit, offset int, ouID string, filters map[string]interface{}, inc bool,
 	) (*model.AgentListResponse, *tidcommon.ServiceError)
 	OnGetAgentGroups func(
 		ctx context.Context, id string, limit, offset int,
@@ -77,10 +77,10 @@ func (s *InlineStubAgentService) DeleteAgent(
 }
 
 func (s *InlineStubAgentService) GetAgentList(
-	ctx context.Context, limit, offset int, filters map[string]interface{}, inc bool,
+	ctx context.Context, limit, offset int, ouID string, filters map[string]interface{}, inc bool,
 ) (*model.AgentListResponse, *tidcommon.ServiceError) {
 	if s.OnGetAgentList != nil {
-		return s.OnGetAgentList(ctx, limit, offset, filters, inc)
+		return s.OnGetAgentList(ctx, limit, offset, ouID, filters, inc)
 	}
 	return &model.AgentListResponse{Agents: []model.BasicAgentResponse{}, Links: []utils.Link{}}, nil
 }
@@ -283,7 +283,7 @@ func TestHandleAgentListRequest_InvalidFilter(t *testing.T) {
 func TestHandleAgentListRequest_ServiceError(t *testing.T) {
 	stubService := &InlineStubAgentService{
 		OnGetAgentList: func(
-			ctx context.Context, limit, offset int, filters map[string]interface{}, inc bool,
+			ctx context.Context, limit, offset int, ouID string, filters map[string]interface{}, inc bool,
 		) (*model.AgentListResponse, *tidcommon.ServiceError) {
 			return nil, &tidcommon.InternalServerError
 		},
@@ -400,4 +400,23 @@ func TestHandleAgentRolesRequest_ServiceError(t *testing.T) {
 	handler.HandleAgentRolesRequest(w, req)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Contains(t, w.Body.String(), ErrorAgentNotFound.Code)
+}
+
+func TestHandleAgentListRequest_ForwardsOUID(t *testing.T) {
+	var gotOUID string
+	stubService := &InlineStubAgentService{
+		OnGetAgentList: func(
+			ctx context.Context, limit, offset int, ouID string, filters map[string]interface{}, inc bool,
+		) (*model.AgentListResponse, *tidcommon.ServiceError) {
+			gotOUID = ouID
+			return &model.AgentListResponse{Agents: []model.BasicAgentResponse{}, Links: []utils.Link{}}, nil
+		},
+	}
+	handler := newAgentHandler(stubService)
+	req := httptest.NewRequest(http.MethodGet, "/agents?ouId=ou-1", nil)
+	w := httptest.NewRecorder()
+
+	handler.HandleAgentListRequest(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "ou-1", gotOUID)
 }

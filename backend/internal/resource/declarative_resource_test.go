@@ -94,7 +94,7 @@ func (s *ResourceServerExporterTestSuite) TestGetAllResourceIDs_Success() {
 		},
 	}
 
-	s.mockService.EXPECT().GetResourceServerList(ctx, serverconst.MaxPageSize, 0).Return(expectedList, nil)
+	s.mockService.EXPECT().GetResourceServerList(ctx, serverconst.MaxPageSize, 0, "").Return(expectedList, nil)
 	s.mockService.EXPECT().IsResourceServerDeclarative("rs1").Return(false)
 	s.mockService.EXPECT().IsResourceServerDeclarative("rs2").Return(false)
 
@@ -117,7 +117,7 @@ func (s *ResourceServerExporterTestSuite) TestGetAllResourceIDs_FilterDeclarativ
 		},
 	}
 
-	s.mockService.EXPECT().GetResourceServerList(ctx, serverconst.MaxPageSize, 0).Return(expectedList, nil)
+	s.mockService.EXPECT().GetResourceServerList(ctx, serverconst.MaxPageSize, 0, "").Return(expectedList, nil)
 	s.mockService.EXPECT().IsResourceServerDeclarative("rs1").Return(false)
 	s.mockService.EXPECT().IsResourceServerDeclarative("rs2").Return(true)
 	s.mockService.EXPECT().IsResourceServerDeclarative("rs3").Return(false)
@@ -137,7 +137,7 @@ func (s *ResourceServerExporterTestSuite) TestGetAllResourceIDs_Error() {
 		Error: tidcommon.I18nMessage{DefaultValue: "test error"},
 	}
 
-	s.mockService.EXPECT().GetResourceServerList(ctx, serverconst.MaxPageSize, 0).Return(nil, expectedError)
+	s.mockService.EXPECT().GetResourceServerList(ctx, serverconst.MaxPageSize, 0, "").Return(nil, expectedError)
 
 	ids, err := s.exporter.GetAllResourceIDs(ctx)
 

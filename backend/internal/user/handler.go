@@ -62,8 +62,10 @@ func (uh *userHandler) HandleUserListRequest(w http.ResponseWriter, r *http.Requ
 	// Parse include parameter to check if display names should be included.
 	includeDisplay := r.URL.Query().Get(sysutils.QueryParamInclude) == sysutils.IncludeValueDisplay
 
+	ouID := r.URL.Query().Get(sysutils.QueryParamOUID)
+
 	// Get the user list using the user service.
-	userListResponse, svcErr := uh.userService.GetUserList(ctx, limit, offset, filters, includeDisplay)
+	userListResponse, svcErr := uh.userService.GetUserList(ctx, limit, offset, ouID, filters, includeDisplay)
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
 		return

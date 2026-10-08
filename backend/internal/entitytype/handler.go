@@ -53,8 +53,10 @@ func (h *entityTypeHandler) HandleEntityTypeListRequest(w http.ResponseWriter, r
 
 	includeDisplay := r.URL.Query().Get(sysutils.QueryParamInclude) == sysutils.IncludeValueDisplay
 
+	ouID := r.URL.Query().Get(sysutils.QueryParamOUID)
+
 	entityTypeListResponse, svcErr := h.entityTypeService.GetEntityTypeList(
-		ctx, h.category, limit, offset, includeDisplay)
+		ctx, h.category, limit, offset, ouID, includeDisplay)
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
 		return

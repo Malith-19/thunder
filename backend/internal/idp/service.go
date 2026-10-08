@@ -407,7 +407,7 @@ func (is *idpService) ApplySchemaAwareDefaults(ctx context.Context, idp *provide
 // linking attribute that another type allows duplicates of.
 func (is *idpService) loadCandidateUserTypes(ctx context.Context) []userTypeAttributes {
 	response, svcErr := is.entityTypeService.GetEntityTypeList(
-		ctx, entitytype.TypeCategoryUser, serverconst.MaxPageSize, 0, false)
+		ctx, entitytype.TypeCategoryUser, serverconst.MaxPageSize, 0, "", false)
 	if svcErr != nil || response == nil {
 		is.logger.Warn(ctx, "Could not list user types, skipping connection default seeding")
 		return nil

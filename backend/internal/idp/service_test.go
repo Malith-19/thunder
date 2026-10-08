@@ -102,7 +102,7 @@ func (s *IDPServiceTestSuite) SetupTest() {
 	// deployment with none, so the target is unresolvable and seeding is a no-op for tests that are
 	// not about it. Tests that exercise seeding build their own service with a dedicated mock.
 	s.mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser,
-		mock.Anything, mock.Anything, mock.Anything).
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(&entitytype.EntityTypeListResponse{}, nil).Maybe()
 	// Unused unless a test configures AuthorizationRuleMappings: no expectations are set here, so a test
 	// that never reaches the existence check never touches them.
@@ -1482,7 +1482,7 @@ func seedTestIDP(idpType providers.IDPType, scopes string) *providers.IDPDTO {
 func expectUserTypes(mockET *entitytypemock.EntityTypeServiceInterfaceMock,
 	types ...entitytype.EntityTypeListItem) {
 	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser,
-		mock.Anything, mock.Anything, mock.Anything).
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(&entitytype.EntityTypeListResponse{Types: types}, nil)
 }
 
@@ -1859,7 +1859,7 @@ func (s *IDPServiceTestSuite) TestApplySchemaAwareDefaults_PreservesExplicitConf
 func (s *IDPServiceTestSuite) TestApplySchemaAwareDefaults_SkipsWhenUserTypesCannotBeRead() {
 	service, mockET := s.newSeedingService()
 	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser,
-		mock.Anything, mock.Anything, mock.Anything).
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, &tidcommon.InternalServerError)
 
 	idp := seedTestIDP(providers.IDPTypeGoogle, "openid,email,profile")
@@ -1907,7 +1907,7 @@ func (s *IDPServiceTestSuite) TestUpdateIdentityProvider_DoesNotReSeedRemovedDef
 	// and the assertion below fails.
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(s.T())
 	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser,
-		mock.Anything, mock.Anything, mock.Anything).
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(&entitytype.EntityTypeListResponse{Types: []entitytype.EntityTypeListItem{
 			{Handle: seedUserType, AllowSelfRegistration: true},
 		}}, nil).Maybe()

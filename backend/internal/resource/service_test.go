@@ -589,7 +589,7 @@ func (suite *ResourceServiceTestSuite) TestGetResourceServerList_Success() {
 	suite.mockStore.On("GetResourceServerList", mock.Anything,
 		30, 0).Return(resourceServers, nil)
 
-	result, err := suite.service.GetResourceServerList(context.Background(), 30, 0)
+	result, err := suite.service.GetResourceServerList(context.Background(), 30, 0, "")
 
 	suite.Nil(err)
 	suite.NotNil(result)
@@ -3232,7 +3232,7 @@ func (suite *ResourceServiceTestSuite) TestGetActionListAtResourceServer() {
 func (suite *ResourceServiceTestSuite) TestGetResourceServerList_CountError() {
 	suite.mockStore.On("GetResourceServerListCount", mock.Anything).Return(0, errors.New("database error"))
 
-	result, err := suite.service.GetResourceServerList(context.Background(), 30, 0)
+	result, err := suite.service.GetResourceServerList(context.Background(), 30, 0, "")
 
 	suite.Nil(result)
 	suite.NotNil(err)
@@ -3244,7 +3244,7 @@ func (suite *ResourceServiceTestSuite) TestGetResourceServerList_ListError() {
 	suite.mockStore.On("GetResourceServerList", mock.Anything,
 		30, 0).Return(nil, errors.New("database error"))
 
-	result, err := suite.service.GetResourceServerList(context.Background(), 30, 0)
+	result, err := suite.service.GetResourceServerList(context.Background(), 30, 0, "")
 
 	suite.Nil(result)
 	suite.NotNil(err)
@@ -4390,7 +4390,7 @@ func (suite *ResourceServiceTestSuite) TestBuildPaginationLinks() {
 
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
-			links := buildPaginationLinks(tc.base, tc.limit, tc.offset, tc.totalCount)
+			links := buildPaginationLinks(tc.base, tc.limit, tc.offset, tc.totalCount, "")
 
 			suite.Equal(len(tc.expectedLinks), len(links),
 				"Expected %d links but got %d for: %s", len(tc.expectedLinks), len(links), tc.description)
@@ -4443,7 +4443,7 @@ func (suite *ResourceServiceTestSuite) TestListMethods_PaginationValidationError
 		suite.Run("GetResourceServerList_"+tc.name, func() {
 			suite.SetupTest()
 
-			result, err := suite.service.GetResourceServerList(context.Background(), tc.limit, tc.offset)
+			result, err := suite.service.GetResourceServerList(context.Background(), tc.limit, tc.offset, "")
 
 			suite.Nil(result)
 			suite.NotNil(err)
@@ -5374,5 +5374,76 @@ ouHandle: default
 	}
 	if rs.OUID != "" {
 		t.Errorf("OUID = %q, want empty (resolution happens later)", rs.OUID)
+	}
+}
+
+func (suite *ResourceServiceTestSuite) TestGetResourceServerList_OUSubtreeScope_Success() {
+	subtree := []string{"root-ou", "child-ou"}
+	resourceServers := []providers.ResourceServer{{ID: "rs-1", Name: "RS 1", OUID: "child-ou"}}
+
+	suite.mockOU.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "root-ou").Return(subtree, nil).Once()
+	suite.mockStore.On("GetResourceServerListCountByOUIDs", mock.Anything, subtree).Return(3, nil).Once()
+	suite.mockStore.On("GetResourceServerListByOUIDs", mock.Anything, subtree, 1, 0).
+		Return(resourceServers, nil).Once()
+
+	result, err := suite.service.GetResourceServerList(context.Background(), 1, 0, "root-ou")
+
+	suite.Nil(err)
+	suite.Require().NotNil(result)
+	suite.Equal(3, result.TotalResults)
+	suite.Equal(1, result.Count)
+	suite.Require().NotEmpty(result.Links)
+	for _, link := range result.Links {
+		suite.Contains(link.Href, "&ouId=root-ou")
+	}
+	suite.mockStore.AssertNotCalled(suite.T(), "GetResourceServerListCount", mock.Anything)
+	suite.mockStore.AssertNotCalled(suite.T(), "GetResourceServerList", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func (suite *ResourceServiceTestSuite) TestGetResourceServerList_OUSubtreeScope_SubtreeError() {
+	suite.mockOU.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "missing-ou").
+		Return(nil, &oupkg.ErrorOrganizationUnitNotFound).Once()
+
+	result, err := suite.service.GetResourceServerList(context.Background(), 30, 0, "missing-ou")
+
+	suite.Nil(result)
+	suite.Require().NotNil(err)
+	suite.Equal(oupkg.ErrorOrganizationUnitNotFound.Code, err.Code)
+}
+
+func (suite *ResourceServiceTestSuite) TestGetResourceServerList_OUSubtreeScope_CountLimitExceeded() {
+	suite.mockOU.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "root-ou").
+		Return([]string{"root-ou"}, nil).Once()
+	suite.mockStore.On("GetResourceServerListCountByOUIDs", mock.Anything, []string{"root-ou"}).
+		Return(0, errResultLimitExceededInCompositeMode).Once()
+
+	result, err := suite.service.GetResourceServerList(context.Background(), 30, 0, "root-ou")
+
+	suite.Nil(result)
+	suite.Require().NotNil(err)
+	suite.Equal(ErrResultLimitExceededInCompositeMode.Code, err.Code)
+}
+
+func (suite *ResourceServiceTestSuite) TestGetResourceServerList_OUSubtreeScope_ListError() {
+	suite.mockOU.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "root-ou").
+		Return([]string{"root-ou"}, nil).Once()
+	suite.mockStore.On("GetResourceServerListCountByOUIDs", mock.Anything, []string{"root-ou"}).
+		Return(2, nil).Once()
+	suite.mockStore.On("GetResourceServerListByOUIDs", mock.Anything, []string{"root-ou"}, 30, 0).
+		Return(nil, errors.New("database error")).Once()
+
+	result, err := suite.service.GetResourceServerList(context.Background(), 30, 0, "root-ou")
+
+	suite.Nil(result)
+	suite.Require().NotNil(err)
+	suite.Equal(tidcommon.InternalServerError.Code, err.Code)
+}
+
+func (suite *ResourceServiceTestSuite) TestBuildPaginationLinks_WithExtraQuery() {
+	links := buildPaginationLinks("/resource-servers", 10, 10, 30, "&ouId=ou-1")
+
+	suite.Require().Len(links, 4)
+	for _, link := range links {
+		suite.Contains(link.Href, "&ouId=ou-1")
 	}
 }

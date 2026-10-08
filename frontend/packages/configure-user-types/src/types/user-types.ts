@@ -162,6 +162,7 @@ export interface UpdateUserTypeRequest {
 export interface UserTypeListParams {
   limit?: number;
   offset?: number;
+  ouId?: string;
 }
 
 /**

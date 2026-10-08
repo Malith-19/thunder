@@ -89,6 +89,7 @@ func (l *testResourceServerLister) GetResourceServerList(
 	_ context.Context,
 	_ int,
 	offset int,
+	_ string,
 ) (*resource.ResourceServerList, *tidcommon.ServiceError) {
 	l.called = append(l.called, offset)
 	if l.err != nil {

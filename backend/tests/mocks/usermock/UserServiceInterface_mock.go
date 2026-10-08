@@ -407,8 +407,8 @@ func (_c *UserServiceInterfaceMock_GetUserGroups_Call) RunAndReturn(run func(ctx
 }
 
 // GetUserList provides a mock function for the type UserServiceInterfaceMock
-func (_mock *UserServiceInterfaceMock) GetUserList(ctx context.Context, limit int, offset int, filters map[string]interface{}, includeDisplay bool) (*user.UserListResponse, *common.ServiceError) {
-	ret := _mock.Called(ctx, limit, offset, filters, includeDisplay)
+func (_mock *UserServiceInterfaceMock) GetUserList(ctx context.Context, limit int, offset int, ouID string, filters map[string]interface{}, includeDisplay bool) (*user.UserListResponse, *common.ServiceError) {
+	ret := _mock.Called(ctx, limit, offset, ouID, filters, includeDisplay)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserList")
@@ -416,18 +416,18 @@ func (_mock *UserServiceInterfaceMock) GetUserList(ctx context.Context, limit in
 
 	var r0 *user.UserListResponse
 	var r1 *common.ServiceError
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, map[string]interface{}, bool) (*user.UserListResponse, *common.ServiceError)); ok {
-		return returnFunc(ctx, limit, offset, filters, includeDisplay)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, string, map[string]interface{}, bool) (*user.UserListResponse, *common.ServiceError)); ok {
+		return returnFunc(ctx, limit, offset, ouID, filters, includeDisplay)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, map[string]interface{}, bool) *user.UserListResponse); ok {
-		r0 = returnFunc(ctx, limit, offset, filters, includeDisplay)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, string, map[string]interface{}, bool) *user.UserListResponse); ok {
+		r0 = returnFunc(ctx, limit, offset, ouID, filters, includeDisplay)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*user.UserListResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, int, int, map[string]interface{}, bool) *common.ServiceError); ok {
-		r1 = returnFunc(ctx, limit, offset, filters, includeDisplay)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int, int, string, map[string]interface{}, bool) *common.ServiceError); ok {
+		r1 = returnFunc(ctx, limit, offset, ouID, filters, includeDisplay)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*common.ServiceError)
@@ -445,13 +445,14 @@ type UserServiceInterfaceMock_GetUserList_Call struct {
 //   - ctx context.Context
 //   - limit int
 //   - offset int
+//   - ouID string
 //   - filters map[string]interface{}
 //   - includeDisplay bool
-func (_e *UserServiceInterfaceMock_Expecter) GetUserList(ctx interface{}, limit interface{}, offset interface{}, filters interface{}, includeDisplay interface{}) *UserServiceInterfaceMock_GetUserList_Call {
-	return &UserServiceInterfaceMock_GetUserList_Call{Call: _e.mock.On("GetUserList", ctx, limit, offset, filters, includeDisplay)}
+func (_e *UserServiceInterfaceMock_Expecter) GetUserList(ctx interface{}, limit interface{}, offset interface{}, ouID interface{}, filters interface{}, includeDisplay interface{}) *UserServiceInterfaceMock_GetUserList_Call {
+	return &UserServiceInterfaceMock_GetUserList_Call{Call: _e.mock.On("GetUserList", ctx, limit, offset, ouID, filters, includeDisplay)}
 }
 
-func (_c *UserServiceInterfaceMock_GetUserList_Call) Run(run func(ctx context.Context, limit int, offset int, filters map[string]interface{}, includeDisplay bool)) *UserServiceInterfaceMock_GetUserList_Call {
+func (_c *UserServiceInterfaceMock_GetUserList_Call) Run(run func(ctx context.Context, limit int, offset int, ouID string, filters map[string]interface{}, includeDisplay bool)) *UserServiceInterfaceMock_GetUserList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -465,13 +466,17 @@ func (_c *UserServiceInterfaceMock_GetUserList_Call) Run(run func(ctx context.Co
 		if args[2] != nil {
 			arg2 = args[2].(int)
 		}
-		var arg3 map[string]interface{}
+		var arg3 string
 		if args[3] != nil {
-			arg3 = args[3].(map[string]interface{})
+			arg3 = args[3].(string)
 		}
-		var arg4 bool
+		var arg4 map[string]interface{}
 		if args[4] != nil {
-			arg4 = args[4].(bool)
+			arg4 = args[4].(map[string]interface{})
+		}
+		var arg5 bool
+		if args[5] != nil {
+			arg5 = args[5].(bool)
 		}
 		run(
 			arg0,
@@ -479,6 +484,7 @@ func (_c *UserServiceInterfaceMock_GetUserList_Call) Run(run func(ctx context.Co
 			arg2,
 			arg3,
 			arg4,
+			arg5,
 		)
 	})
 	return _c
@@ -489,7 +495,7 @@ func (_c *UserServiceInterfaceMock_GetUserList_Call) Return(userListResponse *us
 	return _c
 }
 
-func (_c *UserServiceInterfaceMock_GetUserList_Call) RunAndReturn(run func(ctx context.Context, limit int, offset int, filters map[string]interface{}, includeDisplay bool) (*user.UserListResponse, *common.ServiceError)) *UserServiceInterfaceMock_GetUserList_Call {
+func (_c *UserServiceInterfaceMock_GetUserList_Call) RunAndReturn(run func(ctx context.Context, limit int, offset int, ouID string, filters map[string]interface{}, includeDisplay bool) (*user.UserListResponse, *common.ServiceError)) *UserServiceInterfaceMock_GetUserList_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -145,7 +145,7 @@ func (s *scimDiscoveryService) ListSchemas(
 	if remaining > 0 && entityOffset < dynamicTotal {
 		runtimeCtx := security.WithRuntimeContext(ctx)
 		page, svcErr := s.userTypeService.GetEntityTypeList(
-			runtimeCtx, entitytype.TypeCategoryUser, remaining, entityOffset, false,
+			runtimeCtx, entitytype.TypeCategoryUser, remaining, entityOffset, "", false,
 		)
 		if svcErr != nil {
 			s.logger.Error(ctx, "Failed to list user types for SCIM schema page",
@@ -327,7 +327,7 @@ func (s *scimDiscoveryService) listUserTypeHandles(ctx context.Context) ([]strin
 	offset := 0
 	for {
 		page, svcErr := s.userTypeService.GetEntityTypeList(
-			runtimeCtx, entitytype.TypeCategoryUser, serverconst.MaxPageSize, offset, false,
+			runtimeCtx, entitytype.TypeCategoryUser, serverconst.MaxPageSize, offset, "", false,
 		)
 		if svcErr != nil {
 			s.logger.Error(runtimeCtx, "Failed to list user types",
@@ -371,7 +371,7 @@ func (s *scimDiscoveryService) resolveCoreUserTypeAndTotal(
 	runtimeCtx := security.WithRuntimeContext(ctx)
 
 	page, svcErr := s.userTypeService.GetEntityTypeList(
-		runtimeCtx, entitytype.TypeCategoryUser, 1, 0, false,
+		runtimeCtx, entitytype.TypeCategoryUser, 1, 0, "", false,
 	)
 	if svcErr != nil {
 		return nil, 0, scim.BuildUserTypeErrorToSCIM(svcErr)
