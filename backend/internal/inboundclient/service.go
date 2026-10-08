@@ -1462,7 +1462,7 @@ func (s *inboundClientService) validateAllowedEntityTypes(
 	for {
 		// Runtime context: skip authorization checks when fetching entity types.
 		entityTypeList, svcErr := s.entityType.GetEntityTypeList(
-			security.WithRuntimeContext(ctx), category, limit, offset, false)
+			security.WithRuntimeContext(ctx), category, limit, offset, "", false)
 		if svcErr != nil {
 			s.logger.Error(ctx, "Failed to retrieve entity type list for validation",
 				log.String("category", string(category)),

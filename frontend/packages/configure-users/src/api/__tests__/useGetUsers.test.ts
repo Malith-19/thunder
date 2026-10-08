@@ -130,6 +130,40 @@ describe('useGetUsers', () => {
     expect(url).toContain('filter=');
   });
 
+  it('should append ouId to the request URL when provided', async () => {
+    mockHttpRequest.mockResolvedValueOnce({
+      data: mockUserListResponse,
+    });
+
+    renderHook(() => useGetUsers({ouId: 'ou-123'}));
+
+    await waitFor(() => {
+      expect(mockHttpRequest).toHaveBeenCalledTimes(1);
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const callArgs = mockHttpRequest.mock.calls[0][0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    expect(callArgs.url).toBe('https://api.test.com/users?ouId=ou-123&include=display');
+  });
+
+  it('should omit ouId from the request URL when not provided', async () => {
+    mockHttpRequest.mockResolvedValueOnce({
+      data: mockUserListResponse,
+    });
+
+    renderHook(() => useGetUsers({limit: 10, offset: 0}));
+
+    await waitFor(() => {
+      expect(mockHttpRequest).toHaveBeenCalledTimes(1);
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const callArgs = mockHttpRequest.mock.calls[0][0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    expect(callArgs.url).not.toContain('ouId');
+  });
+
   it('should handle API error', async () => {
     const apiError = new Error('Failed to fetch users');
     mockHttpRequest.mockRejectedValueOnce(apiError);

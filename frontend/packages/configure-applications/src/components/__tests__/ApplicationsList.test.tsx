@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import userEvent from '@testing-library/user-event';
+import {ProjectContext} from '@thunderid/contexts';
 import {render, screen, waitFor} from '@thunderid/test-utils';
 import type {NavigateFunction} from 'react-router';
 import {describe, it, expect, beforeEach, vi} from 'vitest';
@@ -212,6 +213,38 @@ describe('ApplicationsList', () => {
     expect(screen.getByText('Test App 2')).toBeInTheDocument();
     expect(screen.getByText('First test application')).toBeInTheDocument();
     expect(screen.getByText('Second test application')).toBeInTheDocument();
+  });
+
+  it('should request applications scoped to the selected project', () => {
+    vi.mocked(useGetApplications).mockReturnValue({
+      data: mockApplicationsData,
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useGetApplications>);
+
+    const project = {id: 'project-car', handle: 'car', name: 'Car insurance'};
+    render(
+      <ProjectContext.Provider
+        value={{projects: [project], selectedProject: project, selectProject: vi.fn(), isLoading: false}}
+      >
+        <ApplicationsList />
+      </ProjectContext.Provider>,
+    );
+
+    expect(useGetApplications).toHaveBeenCalledWith({ouId: 'project-car'});
+    expect(screen.getByText('Test App 1')).toBeInTheDocument();
+  });
+
+  it('should request applications without an ouId when no project is selected', () => {
+    vi.mocked(useGetApplications).mockReturnValue({
+      data: mockApplicationsData,
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useGetApplications>);
+
+    renderComponent();
+
+    expect(useGetApplications).toHaveBeenCalledWith({ouId: undefined});
   });
 
   it('should display client IDs as chips', () => {

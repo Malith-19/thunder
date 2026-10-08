@@ -128,7 +128,7 @@ func (f *fakeApplicationService) ValidateApplication(
 }
 
 func (f *fakeApplicationService) GetApplicationList(
-	_ context.Context,
+	_ context.Context, _ string,
 ) (*model.ApplicationListResponse, *tidcommon.ServiceError) {
 	return nil, nil
 }

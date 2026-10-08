@@ -21,6 +21,10 @@ export interface UseGetApplicationsParams {
    * Number of records to skip for pagination.
    */
   offset?: number;
+  /**
+   * Organization unit that scopes the list to its own resources and those of every unit beneath it.
+   */
+  ouId?: string;
 }
 
 /**
@@ -58,16 +62,19 @@ export interface UseGetApplicationsParams {
 export default function useGetApplications(params?: UseGetApplicationsParams): UseQueryResult<ApplicationListResponse> {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
-  const {limit = 30, offset = 0} = params ?? {};
+  const {limit = 30, offset = 0, ouId} = params ?? {};
 
   return useQuery<ApplicationListResponse>({
-    queryKey: [ApplicationQueryKeys.APPLICATIONS, {limit, offset}],
+    queryKey: [ApplicationQueryKeys.APPLICATIONS, {limit, offset, ouId}],
     queryFn: async (): Promise<ApplicationListResponse> => {
       const serverUrl: string = getServerUrl();
       const queryParams: URLSearchParams = new URLSearchParams({
         limit: limit.toString(),
         offset: offset.toString(),
       });
+      if (ouId) {
+        queryParams.append('ouId', ouId);
+      }
 
       const response: {
         data: ApplicationListResponse;

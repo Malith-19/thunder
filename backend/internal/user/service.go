@@ -31,7 +31,7 @@ const loggerComponentName = "UserService"
 
 // UserServiceInterface defines the interface for the user service.
 type UserServiceInterface interface {
-	GetUserList(ctx context.Context, limit, offset int,
+	GetUserList(ctx context.Context, limit, offset int, ouID string,
 		filters map[string]interface{}, includeDisplay bool) (*UserListResponse, *tidcommon.ServiceError)
 	GetUsersByPath(ctx context.Context, handlePath string, limit, offset int,
 		filters map[string]interface{}, includeDisplay bool) (*UserListResponse, *tidcommon.ServiceError)
@@ -82,7 +82,7 @@ func newUserService(
 }
 
 // GetUserList retrieves a list of users with pagination and filtering.
-func (us *userService) GetUserList(ctx context.Context, limit, offset int,
+func (us *userService) GetUserList(ctx context.Context, limit, offset int, ouID string,
 	filters map[string]interface{}, includeDisplay bool) (*UserListResponse, *tidcommon.ServiceError) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, loggerComponentName))
 
@@ -99,13 +99,18 @@ func (us *userService) GetUserList(ctx context.Context, limit, offset int,
 		return nil, &tidcommon.InternalServerError
 	}
 
+	accessible, svcErr = oupkg.ScopeToSubtree(ctx, us.ouService, accessible, ouID)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+
 	// Unfiltered path: system-level caller — return all users.
 	if accessible.AllAllowed {
 		return us.listAllUsers(ctx, limit, offset, filters, includeDisplay, logger)
 	}
 
 	// Filtered path: return users belonging to the accessible OUs.
-	return us.listUsersByOUIDs(ctx, accessible.IDs, limit, offset, filters, includeDisplay, logger)
+	return us.listUsersByOUIDs(ctx, accessible.IDs, limit, offset, ouID, filters, includeDisplay, logger)
 }
 
 // listAllUsers retrieves users without OU filtering.
@@ -134,10 +139,10 @@ func (us *userService) listAllUsers(
 
 // listUsersByOUIDs retrieves users scoped to the given organization unit IDs.
 func (us *userService) listUsersByOUIDs(
-	ctx context.Context, ouIDs []string, limit, offset int, filters map[string]interface{},
+	ctx context.Context, ouIDs []string, limit, offset int, ouID string, filters map[string]interface{},
 	includeDisplay bool, logger *log.Logger,
 ) (*UserListResponse, *tidcommon.ServiceError) {
-	displayQuery := utils.DisplayQueryParam(includeDisplay)
+	displayQuery := utils.DisplayQueryParam(includeDisplay) + utils.OUIDQueryParam(ouID)
 
 	if len(ouIDs) == 0 {
 		return buildUserListResponse([]providers.User{}, 0, limit, offset, displayQuery), nil

@@ -36,7 +36,7 @@ type AgentServiceInterface interface {
 		*tidcommon.ServiceError)
 	GetAgent(ctx context.Context, agentID string, includeDisplay bool) (*model.AgentGetResponse,
 		*tidcommon.ServiceError)
-	GetAgentList(ctx context.Context, limit, offset int, filters map[string]interface{},
+	GetAgentList(ctx context.Context, limit, offset int, ouID string, filters map[string]interface{},
 		includeDisplay bool) (*model.AgentListResponse, *tidcommon.ServiceError)
 	UpdateAgent(ctx context.Context, agentID string, req *model.UpdateAgentRequest) (
 		*model.AgentCompleteResponse, *tidcommon.ServiceError)
@@ -203,7 +203,7 @@ func (s *agentService) GetAgent(ctx context.Context, agentID string, includeDisp
 }
 
 // GetAgentList returns a paginated list of agents.
-func (s *agentService) GetAgentList(ctx context.Context, limit, offset int,
+func (s *agentService) GetAgentList(ctx context.Context, limit, offset int, ouID string,
 	filters map[string]interface{}, includeDisplay bool) (
 	*model.AgentListResponse, *tidcommon.ServiceError) {
 	if svcErr := validatePaginationParams(limit, offset); svcErr != nil {
@@ -222,13 +222,18 @@ func (s *agentService) GetAgentList(ctx context.Context, limit, offset int,
 		return nil, &tidcommon.InternalServerError
 	}
 
+	accessible, svcErr = oupkg.ScopeToSubtree(ctx, s.ouService, accessible, ouID)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+
 	// Unfiltered path: system-level caller — return all agents.
 	if accessible.AllAllowed {
 		return s.listAllAgents(ctx, limit, offset, filters, includeDisplay)
 	}
 
 	// Filtered path: return agents belonging to the accessible OUs.
-	return s.listAgentsByOUIDs(ctx, accessible.IDs, limit, offset, filters, includeDisplay)
+	return s.listAgentsByOUIDs(ctx, accessible.IDs, limit, offset, ouID, filters, includeDisplay)
 }
 
 // listAllAgents retrieves agents without OU filtering.
@@ -247,16 +252,16 @@ func (s *agentService) listAllAgents(ctx context.Context, limit, offset int,
 		return nil, &tidcommon.InternalServerError
 	}
 
-	return s.buildListResponse(ctx, entities, totalCount, limit, offset, includeDisplay), nil
+	return s.buildListResponse(ctx, entities, totalCount, limit, offset, "", includeDisplay), nil
 }
 
 // listAgentsByOUIDs retrieves agents scoped to the given organization unit IDs. The OU filter is
 // applied at the store layer so that page sizes and total counts remain correct.
-func (s *agentService) listAgentsByOUIDs(ctx context.Context, ouIDs []string, limit, offset int,
+func (s *agentService) listAgentsByOUIDs(ctx context.Context, ouIDs []string, limit, offset int, ouID string,
 	filters map[string]interface{}, includeDisplay bool) (
 	*model.AgentListResponse, *tidcommon.ServiceError) {
 	if len(ouIDs) == 0 {
-		return s.buildListResponse(ctx, []providers.Entity{}, 0, limit, offset, includeDisplay), nil
+		return s.buildListResponse(ctx, []providers.Entity{}, 0, limit, offset, ouID, includeDisplay), nil
 	}
 
 	totalCount, err := s.entityService.GetEntityListCountByOUIDs(
@@ -273,7 +278,7 @@ func (s *agentService) listAgentsByOUIDs(ctx context.Context, ouIDs []string, li
 		return nil, &tidcommon.InternalServerError
 	}
 
-	return s.buildListResponse(ctx, entities, totalCount, limit, offset, includeDisplay), nil
+	return s.buildListResponse(ctx, entities, totalCount, limit, offset, ouID, includeDisplay), nil
 }
 
 // UpdateAgent applies a full-replacement update to the agent.
@@ -1179,7 +1184,7 @@ func (s *agentService) composeGetResponse(ctx context.Context, e *providers.Enti
 
 // buildListResponse builds the paged agent list response from a slice of entities and pagination metadata.
 func (s *agentService) buildListResponse(ctx context.Context, entities []providers.Entity,
-	totalCount, limit, offset int, includeDisplay bool) *model.AgentListResponse {
+	totalCount, limit, offset int, ouID string, includeDisplay bool) *model.AgentListResponse {
 	logoByID := s.agentLogoMap(ctx, entities)
 	agents := make([]model.BasicAgentResponse, 0, len(entities))
 	for i := range entities {
@@ -1204,7 +1209,7 @@ func (s *agentService) buildListResponse(ctx context.Context, entities []provide
 		s.populateOUHandlesForList(ctx, agents)
 	}
 
-	displayQuery := sysutils.DisplayQueryParam(includeDisplay)
+	displayQuery := sysutils.DisplayQueryParam(includeDisplay) + sysutils.OUIDQueryParam(ouID)
 	return &model.AgentListResponse{
 		TotalResults: totalCount,
 		StartIndex:   offset + 1,

@@ -64,7 +64,7 @@ func agentTypeNodeContext() *providers.NodeContext {
 
 func (suite *AgentTypeResolverTestSuite) listReturns(types ...entitytype.EntityTypeListItem) {
 	suite.mockEntityTypeService.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryAgent,
-		entityTypeCandidateLimit, 0, false).
+		entityTypeCandidateLimit, 0, mock.Anything, false).
 		Return(&entitytype.EntityTypeListResponse{Types: types}, nil).Once()
 }
 
@@ -150,7 +150,7 @@ func (suite *AgentTypeResolverTestSuite) TestAllowedAgentTypesNarrowsTheChoice()
 // The errors are shared across categories, so the category has to reach the rendered message.
 func (suite *AgentTypeResolverTestSuite) TestErrorsNameTheAgentCategory() {
 	suite.mockEntityTypeService.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryAgent,
-		entityTypeCandidateLimit, 0, false).
+		entityTypeCandidateLimit, 0, mock.Anything, false).
 		Return(&entitytype.EntityTypeListResponse{Types: []entitytype.EntityTypeListItem{}}, nil).Once()
 
 	resp, err := suite.executor.Execute(agentTypeNodeContext())
@@ -208,7 +208,7 @@ func (suite *AgentTypeResolverTestSuite) TestRegistrationFlowDoesNotListTypes() 
 
 	suite.NoError(err)
 	suite.mockEntityTypeService.AssertNotCalled(suite.T(), "GetEntityTypeList",
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
 // Any other flow type is a no-op rather than a failure, matching the user type resolver.
@@ -262,5 +262,5 @@ func (suite *AgentTypeResolverTestSuite) TestAuthenticationAllowedWhenAgentTypes
 	suite.Nil(resp.Error)
 	suite.Empty(resp.RuntimeData[categoryTypeKey])
 	suite.mockEntityTypeService.AssertNotCalled(suite.T(), "GetEntityTypeList",
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }

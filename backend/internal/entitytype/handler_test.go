@@ -11,6 +11,7 @@ import (
 	tidcommon "github.com/thunder-id/thunderid/pkg/thunderidengine/common"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 // InlineStubEntityTypeService satisfies the service interface contract cleanly.
@@ -64,7 +65,7 @@ func (s *InlineStubEntityTypeService) DeleteEntityType(
 }
 
 func (s *InlineStubEntityTypeService) GetEntityTypeList(
-	ctx context.Context, cat TypeCategory, limit, offset int, inc bool,
+	ctx context.Context, cat TypeCategory, limit, offset int, ouID string, inc bool,
 ) (*EntityTypeListResponse, *tidcommon.ServiceError) {
 	return &EntityTypeListResponse{Types: []EntityTypeListItem{}}, nil
 }
@@ -453,6 +454,18 @@ func TestHandleEntityTypeListRequest_Success(t *testing.T) {
 	stub := &InlineStubEntityTypeService{}
 	handler := newEntityTypeHandler(stub, TypeCategoryUser)
 	req := httptest.NewRequest(http.MethodGet, "/user-types", nil)
+	w := httptest.NewRecorder()
+
+	handler.HandleEntityTypeListRequest(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestHandleEntityTypeListRequest_ForwardsOUID(t *testing.T) {
+	svc := NewEntityTypeServiceInterfaceMock(t)
+	svc.On("GetEntityTypeList", mock.Anything, TypeCategoryUser, mock.Anything, 0, "ou-1", false).
+		Return(&EntityTypeListResponse{Types: []EntityTypeListItem{}}, nil).Once()
+	handler := newEntityTypeHandler(svc, TypeCategoryUser)
+	req := httptest.NewRequest(http.MethodGet, "/user-types?ouId=ou-1", nil)
 	w := httptest.NewRecorder()
 
 	handler.HandleEntityTypeListRequest(w, req)

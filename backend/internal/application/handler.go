@@ -142,7 +142,7 @@ func (ah *applicationHandler) HandleApplicationPostRequest(w http.ResponseWriter
 // HandleApplicationListRequest handles the application request.
 func (ah *applicationHandler) HandleApplicationListRequest(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	listResponse, svcErr := ah.service.GetApplicationList(ctx)
+	listResponse, svcErr := ah.service.GetApplicationList(ctx, r.URL.Query().Get(sysutils.QueryParamOUID))
 	if svcErr != nil {
 		ah.handleError(ctx, w, r, svcErr)
 		return

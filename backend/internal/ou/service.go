@@ -40,6 +40,7 @@ type OrganizationUnitServiceInterface interface {
 	IsOrganizationUnitExists(ctx context.Context, id string) (bool, *tidcommon.ServiceError)
 	IsOrganizationUnitDeclarative(ctx context.Context, id string) bool
 	IsParent(ctx context.Context, parentID, childID string) (bool, *tidcommon.ServiceError)
+	GetOrganizationUnitSubtreeIDs(ctx context.Context, id string) ([]string, *tidcommon.ServiceError)
 	UpdateOrganizationUnit(
 		ctx context.Context, id string, request OrganizationUnitRequestWithID,
 	) (OrganizationUnit, *tidcommon.ServiceError)
@@ -523,6 +524,32 @@ func (ous *organizationUnitService) IsParent(
 	}
 
 	return false, nil
+}
+
+// GetOrganizationUnitSubtreeIDs returns the ID of the organization unit and of every unit beneath it,
+// at any depth. It is what scopes a resource listing to a subtree, so it makes no access decision of
+// its own: the listing intersects it with what the caller may see.
+func (ous *organizationUnitService) GetOrganizationUnitSubtreeIDs(
+	ctx context.Context, id string,
+) ([]string, *tidcommon.ServiceError) {
+	if strings.TrimSpace(id) == "" {
+		return nil, &ErrorMissingOUID
+	}
+
+	exists, svcErr := ous.IsOrganizationUnitExists(ctx, id)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+	if !exists {
+		return nil, &ErrorOrganizationUnitNotFound
+	}
+
+	descendants, svcErr := newOUHierarchyEnumerator(ous.ouStore).DescendantOUIDs(ctx, id)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+
+	return append([]string{id}, descendants...), nil
 }
 
 // UpdateOrganizationUnit updates an organization unit.

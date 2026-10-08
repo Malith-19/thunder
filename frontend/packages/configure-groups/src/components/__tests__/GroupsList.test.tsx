@@ -3,6 +3,7 @@
 
 import {screen, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import {ProjectContext, type Project} from '@thunderid/contexts';
 import {renderWithProviders} from '@thunderid/test-utils';
 import type * as OxygenUI from '@wso2/oxygen-ui';
 import {describe, it, expect, beforeEach, afterEach, vi} from 'vitest';
@@ -19,6 +20,8 @@ interface MockDataGridProps {
   loading?: boolean;
   onRowClick?: (params: {row: unknown}, details: unknown, event: unknown) => void;
   getRowId?: (row: {id: string; [key: string]: unknown}) => string;
+  paginationModel?: {page: number; pageSize: number};
+  onPaginationModelChange?: (model: {page: number; pageSize: number}) => void;
 }
 
 vi.mock('@wso2/oxygen-ui', async () => {
@@ -44,8 +47,19 @@ vi.mock('@wso2/oxygen-ui', async () => {
         loading = false,
         onRowClick = undefined,
         getRowId = undefined,
+        paginationModel = undefined,
+        onPaginationModelChange = undefined,
       }: MockDataGridProps) => (
         <div data-testid="data-grid" data-loading={loading}>
+          <button
+            type="button"
+            data-testid="next-page"
+            onClick={() =>
+              paginationModel && onPaginationModelChange?.({...paginationModel, page: paginationModel.page + 1})
+            }
+          >
+            Next page
+          </button>
           {rows.map((row) => {
             const rowId = getRowId ? getRowId(row) : row.id;
             return (
@@ -152,6 +166,49 @@ describe('GroupsList', () => {
 
     expect(screen.getByTestId('row-g1')).toHaveTextContent('Group One');
     expect(screen.getByTestId('row-g2')).toHaveTextContent('Group Two');
+  });
+
+  it('should scope the groups request to the selected project', () => {
+    const project: Project = {id: 'project-ou-1', handle: 'project-one', name: 'Project One'};
+
+    renderWithProviders(
+      <ProjectContext.Provider
+        value={{projects: [project], selectedProject: project, selectProject: vi.fn(), isLoading: false}}
+      >
+        <GroupsList />
+      </ProjectContext.Provider>,
+    );
+
+    expect(mockUseGetGroups).toHaveBeenLastCalledWith({limit: 10, offset: 0, ouId: 'project-ou-1'});
+  });
+
+  it('should not scope the groups request when no project is selected', () => {
+    renderWithProviders(<GroupsList />);
+
+    expect(mockUseGetGroups).toHaveBeenLastCalledWith({limit: 10, offset: 0, ouId: undefined});
+  });
+
+  it('should return to the first page when the selected project changes', async () => {
+    const user = userEvent.setup();
+    const projectOne: Project = {id: 'project-ou-1', handle: 'project-one', name: 'Project One'};
+    const projectTwo: Project = {id: 'project-ou-2', handle: 'project-two', name: 'Project Two'};
+    const renderWithProject = (project: Project) => (
+      <ProjectContext.Provider
+        value={{projects: [projectOne, projectTwo], selectedProject: project, selectProject: vi.fn(), isLoading: false}}
+      >
+        <GroupsList />
+      </ProjectContext.Provider>
+    );
+
+    const {rerender} = renderWithProviders(renderWithProject(projectOne));
+
+    await user.click(screen.getByTestId('next-page'));
+    expect(mockUseGetGroups).toHaveBeenLastCalledWith({limit: 10, offset: 10, ouId: 'project-ou-1'});
+
+    rerender(renderWithProject(projectTwo));
+
+    expect(mockUseGetGroups).toHaveBeenLastCalledWith({limit: 10, offset: 0, ouId: 'project-ou-2'});
+    expect(mockUseGetGroups).not.toHaveBeenCalledWith({limit: 10, offset: 10, ouId: 'project-ou-2'});
   });
 
   it('should show loading state', () => {

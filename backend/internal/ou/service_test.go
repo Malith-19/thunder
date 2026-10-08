@@ -2715,6 +2715,86 @@ func (suite *OrganizationUnitServiceTestSuite) TestOUService_BuildRoleListRespon
 	suite.Equal(tidcommon.InternalServerError, *err)
 }
 
+func (suite *OrganizationUnitServiceTestSuite) TestOUService_GetOrganizationUnitSubtreeIDs() {
+	suite.Run("returns error for blank id", func() {
+		service := suite.newService(newOrganizationUnitStoreInterfaceMock(suite.T()), newAllowAllAuthz(suite.T()))
+
+		ids, err := service.GetOrganizationUnitSubtreeIDs(context.Background(), "  ")
+
+		suite.Require().Nil(ids)
+		suite.Require().NotNil(err)
+		suite.Require().Equal(ErrorMissingOUID.Code, err.Code)
+	})
+
+	suite.Run("returns not found when the unit does not exist", func() {
+		store := newOrganizationUnitStoreInterfaceMock(suite.T())
+		store.On("IsOrganizationUnitExists", mock.Anything, testOUID).Return(false, nil).Once()
+		service := suite.newService(store, newAllowAllAuthz(suite.T()))
+
+		ids, err := service.GetOrganizationUnitSubtreeIDs(context.Background(), testOUID)
+
+		suite.Require().Nil(ids)
+		suite.Require().NotNil(err)
+		suite.Require().Equal(ErrorOrganizationUnitNotFound.Code, err.Code)
+	})
+
+	suite.Run("returns internal error when the existence check fails", func() {
+		store := newOrganizationUnitStoreInterfaceMock(suite.T())
+		store.On("IsOrganizationUnitExists", mock.Anything, testOUID).
+			Return(false, errors.New("db error")).Once()
+		service := suite.newService(store, newAllowAllAuthz(suite.T()))
+
+		ids, err := service.GetOrganizationUnitSubtreeIDs(context.Background(), testOUID)
+
+		suite.Require().Nil(ids)
+		suite.Require().NotNil(err)
+		suite.Require().Equal(tidcommon.InternalServerError.Code, err.Code)
+	})
+
+	suite.Run("returns internal error when listing children fails", func() {
+		store := newOrganizationUnitStoreInterfaceMock(suite.T())
+		store.On("IsOrganizationUnitExists", mock.Anything, testOUID).Return(true, nil).Once()
+		store.On("GetOrganizationUnitChildrenList", mock.Anything, testOUID, hierarchyPageSize, 0, mock.Anything).
+			Return(nil, errors.New("db error")).Once()
+		service := suite.newService(store, newAllowAllAuthz(suite.T()))
+
+		ids, err := service.GetOrganizationUnitSubtreeIDs(context.Background(), testOUID)
+
+		suite.Require().Nil(ids)
+		suite.Require().NotNil(err)
+		suite.Require().Equal(tidcommon.InternalServerError.Code, err.Code)
+	})
+
+	suite.Run("returns the root followed by every descendant", func() {
+		store := newOrganizationUnitStoreInterfaceMock(suite.T())
+		store.On("IsOrganizationUnitExists", mock.Anything, "root").Return(true, nil).Once()
+		expectChildren(store, "root", "child-a", "child-b")
+		expectChildren(store, "child-a", "grandchild")
+		expectChildren(store, "child-b")
+		expectChildren(store, "grandchild")
+		service := suite.newService(store, newAllowAllAuthz(suite.T()))
+
+		ids, err := service.GetOrganizationUnitSubtreeIDs(context.Background(), "root")
+
+		suite.Require().Nil(err)
+		suite.Require().Len(ids, 4)
+		suite.Require().Equal("root", ids[0])
+		suite.Require().ElementsMatch([]string{"root", "child-a", "child-b", "grandchild"}, ids)
+	})
+
+	suite.Run("returns only the unit itself for a leaf", func() {
+		store := newOrganizationUnitStoreInterfaceMock(suite.T())
+		store.On("IsOrganizationUnitExists", mock.Anything, "leaf").Return(true, nil).Once()
+		expectChildren(store, "leaf")
+		service := suite.newService(store, newAllowAllAuthz(suite.T()))
+
+		ids, err := service.GetOrganizationUnitSubtreeIDs(context.Background(), "leaf")
+
+		suite.Require().Nil(err)
+		suite.Require().Equal([]string{"leaf"}, ids)
+	})
+}
+
 func TestOUService_ValidateAndProcessHandlePath(t *testing.T) {
 	t.Run("invalid path", func(t *testing.T) {
 		handles, err := validateAndProcessHandlePath("   ")

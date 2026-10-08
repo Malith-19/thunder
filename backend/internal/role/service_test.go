@@ -112,7 +112,7 @@ func (suite *RoleServiceTestSuite) TestGetRoleList_Success() {
 	suite.mockOUService.On("GetOrganizationUnitHandlesByIDs", mock.Anything,
 		[]string{"ou1"}).Return(map[string]string{"ou1": "default"}, nil)
 
-	result, err := suite.service.GetRoleList(context.Background(), 10, 0)
+	result, err := suite.service.GetRoleList(context.Background(), 10, 0, "")
 
 	suite.Nil(err)
 	suite.NotNil(result)
@@ -142,7 +142,7 @@ func (suite *RoleServiceTestSuite) TestGetRoleList_InvalidPagination() {
 
 	for _, tc := range testCases {
 		suite.T().Run(tc.name, func(t *testing.T) {
-			result, err := suite.service.GetRoleList(context.Background(), tc.limit, tc.offset)
+			result, err := suite.service.GetRoleList(context.Background(), tc.limit, tc.offset, "")
 			suite.Nil(result)
 			suite.NotNil(err)
 			suite.Equal(tc.errCode, err.Code)
@@ -176,7 +176,7 @@ func (suite *RoleServiceTestSuite) TestGetRoleList_StoreErrors() {
 		suite.Run(tc.name, func() {
 			tc.mockSetup()
 
-			result, err := suite.service.GetRoleList(context.Background(), 10, 0)
+			result, err := suite.service.GetRoleList(context.Background(), 10, 0, "")
 
 			suite.Nil(result)
 			suite.NotNil(err)
@@ -195,7 +195,7 @@ func (suite *RoleServiceTestSuite) TestGetRoleList_OUHandlesError() {
 	suite.mockOUService.On("GetOrganizationUnitHandlesByIDs", mock.Anything,
 		[]string{"ou1"}).Return(nil, &tidcommon.ServiceError{Code: "INTERNAL_ERROR"})
 
-	result, err := suite.service.GetRoleList(context.Background(), 10, 0)
+	result, err := suite.service.GetRoleList(context.Background(), 10, 0, "")
 
 	suite.Nil(err)
 	suite.NotNil(result)
@@ -1708,4 +1708,67 @@ func newAllowAllRoleAuthz(t *testing.T) sysauthz.SystemAuthorizationServiceInter
 	mockAuthz.On("CanGrantMembership", mock.Anything, mock.Anything, mock.Anything).
 		Return((*tidcommon.ServiceError)(nil)).Maybe()
 	return mockAuthz
+}
+
+func (suite *RoleServiceTestSuite) TestGetRoleList_OUSubtreeScope_Success() {
+	subtree := []string{"root-ou", "child-ou"}
+	expectedRoles := []Role{{ID: "role1", Name: "Admin", OUID: "child-ou"}}
+
+	suite.mockOUService.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "root-ou").Return(subtree, nil).Once()
+	suite.mockStore.On("GetRoleListCountByOUIDs", mock.Anything, subtree).Return(3, nil).Once()
+	suite.mockStore.On("GetRoleListByOUIDs", mock.Anything, subtree, 1, 0).Return(expectedRoles, nil).Once()
+	suite.mockOUService.On("GetOrganizationUnitHandlesByIDs", mock.Anything,
+		[]string{"child-ou"}).Return(map[string]string{"child-ou": "child"}, nil)
+
+	result, err := suite.service.GetRoleList(context.Background(), 1, 0, "root-ou")
+
+	suite.Nil(err)
+	suite.Require().NotNil(result)
+	suite.Equal(3, result.TotalResults)
+	suite.Require().Len(result.Roles, 1)
+	suite.Equal("role1", result.Roles[0].ID)
+	suite.Require().NotEmpty(result.Links)
+	for _, link := range result.Links {
+		suite.Contains(link.Href, "&ouId=root-ou")
+	}
+	suite.mockStore.AssertNotCalled(suite.T(), "GetRoleListCount", mock.Anything)
+	suite.mockStore.AssertNotCalled(suite.T(), "GetRoleList", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func (suite *RoleServiceTestSuite) TestGetRoleList_OUSubtreeScope_SubtreeError() {
+	suite.mockOUService.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "missing-ou").
+		Return(nil, &oupkg.ErrorOrganizationUnitNotFound).Once()
+
+	result, err := suite.service.GetRoleList(context.Background(), 10, 0, "missing-ou")
+
+	suite.Nil(result)
+	suite.Require().NotNil(err)
+	suite.Equal(oupkg.ErrorOrganizationUnitNotFound.Code, err.Code)
+}
+
+func (suite *RoleServiceTestSuite) TestGetRoleList_OUSubtreeScope_CountError() {
+	suite.mockOUService.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "root-ou").
+		Return([]string{"root-ou"}, nil).Once()
+	suite.mockStore.On("GetRoleListCountByOUIDs", mock.Anything, []string{"root-ou"}).
+		Return(0, errors.New("count error")).Once()
+
+	result, err := suite.service.GetRoleList(context.Background(), 10, 0, "root-ou")
+
+	suite.Nil(result)
+	suite.Require().NotNil(err)
+	suite.Equal(tidcommon.InternalServerError.Code, err.Code)
+}
+
+func (suite *RoleServiceTestSuite) TestGetRoleList_OUSubtreeScope_ListLimitExceeded() {
+	suite.mockOUService.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "root-ou").
+		Return([]string{"root-ou"}, nil).Once()
+	suite.mockStore.On("GetRoleListCountByOUIDs", mock.Anything, []string{"root-ou"}).Return(5, nil).Once()
+	suite.mockStore.On("GetRoleListByOUIDs", mock.Anything, []string{"root-ou"}, 10, 0).
+		Return(nil, errResultLimitExceededInCompositeMode).Once()
+
+	result, err := suite.service.GetRoleList(context.Background(), 10, 0, "root-ou")
+
+	suite.Nil(result)
+	suite.Require().NotNil(err)
+	suite.Equal(ResultLimitExceededInCompositeMode.Code, err.Code)
 }

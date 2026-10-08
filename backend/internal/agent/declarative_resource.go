@@ -64,7 +64,7 @@ func (e *agentExporter) GetAllResourceIDs(ctx context.Context) ([]string, *tidco
 	ids := []string{}
 
 	for {
-		agents, err := e.service.GetAgentList(ctx, limit, offset, nil, false)
+		agents, err := e.service.GetAgentList(ctx, limit, offset, "", nil, false)
 		if err != nil {
 			return nil, err
 		}

@@ -10,15 +10,16 @@ import type {AgentListResponse} from '../models/agent';
 export interface UseGetAgentsParams {
   limit?: number;
   offset?: number;
+  ouId?: string;
 }
 
 export default function useGetAgents(params?: UseGetAgentsParams): UseQueryResult<AgentListResponse> {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
-  const {limit = 30, offset = 0} = params ?? {};
+  const {limit = 30, offset = 0, ouId} = params ?? {};
 
   return useQuery<AgentListResponse>({
-    queryKey: [AgentQueryKeys.AGENTS, {limit, offset}],
+    queryKey: [AgentQueryKeys.AGENTS, {limit, offset, ouId}],
     queryFn: async (): Promise<AgentListResponse> => {
       const serverUrl = getServerUrl();
       const queryParams = new URLSearchParams({
@@ -26,6 +27,9 @@ export default function useGetAgents(params?: UseGetAgentsParams): UseQueryResul
         offset: offset.toString(),
         include: 'display',
       });
+      if (ouId) {
+        queryParams.append('ouId', ouId);
+      }
 
       const response: {data: AgentListResponse} = await http.request({
         url: `${serverUrl}/agents?${queryParams.toString()}`,

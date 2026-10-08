@@ -166,6 +166,7 @@ type BasicApplicationResponse struct {
 	Name                      string          `json:"name" jsonschema:"Application name."`
 	Description               string          `json:"description,omitempty" jsonschema:"Application description."`
 	ClientID                  string          `json:"clientId,omitempty" jsonschema:"OAuth Client ID."`
+	OUID                      string          `json:"ouId,omitempty" jsonschema:"Organization unit ID. The OU this application belongs to."`
 	LogoURL                   string          `json:"logoUrl,omitempty" jsonschema:"Logo URL."`
 	AuthFlowID                string          `json:"authFlowId,omitempty" jsonschema:"Authentication Flow ID."`
 	RegistrationFlowID        string          `json:"registrationFlowId,omitempty" jsonschema:"Registration Flow ID."`

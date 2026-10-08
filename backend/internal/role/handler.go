@@ -46,7 +46,9 @@ func (rh *roleHandler) HandleRoleListRequest(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	roleList, svcErr := rh.roleService.GetRoleList(ctx, limit, offset)
+	ouID := r.URL.Query().Get(sysutils.QueryParamOUID)
+
+	roleList, svcErr := rh.roleService.GetRoleList(ctx, limit, offset, ouID)
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
 		return

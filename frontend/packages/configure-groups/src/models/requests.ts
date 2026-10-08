@@ -38,4 +38,6 @@ export interface GroupListParams {
   limit?: number;
   /** Number of records to skip */
   offset?: number;
+  /** Organization unit that scopes the list to it and every unit beneath it */
+  ouId?: string;
 }

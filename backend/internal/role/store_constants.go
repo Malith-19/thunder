@@ -158,19 +158,6 @@ var (
 		Query: `SELECT COUNT(*) as total FROM "ROLE_ASSIGNMENT"
 			WHERE ROLE_ID = $1 AND ASSIGNEE_TYPE = $3 AND DEPLOYMENT_ID = $2`,
 	}
-
-	// queryGetRoleListByOUID retrieves a list of roles belonging to an organization unit with pagination.
-	queryGetRoleListByOUID = dbmodel.DBQuery{
-		ID: "RLQ-ROLE_MGT-23",
-		Query: `SELECT ID, OU_ID, NAME, DESCRIPTION FROM "ROLE" ` +
-			`WHERE OU_ID = $1 AND DEPLOYMENT_ID = $4 ORDER BY CREATED_AT DESC LIMIT $2 OFFSET $3`,
-	}
-
-	// queryGetRoleListCountByOUID retrieves the total count of roles belonging to an organization unit.
-	queryGetRoleListCountByOUID = dbmodel.DBQuery{
-		ID:    "RLQ-ROLE_MGT-24",
-		Query: `SELECT COUNT(*) as total FROM "ROLE" WHERE OU_ID = $1 AND DEPLOYMENT_ID = $2`,
-	}
 )
 
 // buildGetRolesByNamesQuery constructs a query to fetch roles by a list of names, regardless of
@@ -590,4 +577,69 @@ func mergeResourcePermissions(sources ...[]ResourcePermissions) []ResourcePermis
 		}
 	}
 	return resourcePermissionsFromMap(byResourceServer)
+}
+
+// ouIDPlaceholders returns the Postgres and SQLite placeholder lists for an OU_ID IN clause whose
+// values are the first len(ouIDs) arguments.
+func ouIDPlaceholders(ouIDs []string) (postgres, sqlite string) {
+	postgresPlaceholders := make([]string, len(ouIDs))
+	sqlitePlaceholders := make([]string, len(ouIDs))
+	for i := range ouIDs {
+		postgresPlaceholders[i] = fmt.Sprintf("$%d", i+1)
+		sqlitePlaceholders[i] = "?"
+	}
+	return strings.Join(postgresPlaceholders, ","), strings.Join(sqlitePlaceholders, ",")
+}
+
+// buildGetRoleListCountByOUIDsQuery returns the query and args to count the roles belonging to any
+// of the given organization units.
+func buildGetRoleListCountByOUIDsQuery(ouIDs []string, deploymentID string) (dbmodel.DBQuery, []interface{}) {
+	postgres, sqlite := ouIDPlaceholders(ouIDs)
+	postgresQuery := fmt.Sprintf(
+		`SELECT COUNT(*) as total FROM "ROLE" WHERE OU_ID IN (%s) AND DEPLOYMENT_ID = $%d`,
+		postgres, len(ouIDs)+1)
+	sqliteQuery := fmt.Sprintf(
+		`SELECT COUNT(*) as total FROM "ROLE" WHERE OU_ID IN (%s) AND DEPLOYMENT_ID = ?`, sqlite)
+
+	args := make([]interface{}, 0, len(ouIDs)+1)
+	for _, id := range ouIDs {
+		args = append(args, id)
+	}
+	args = append(args, deploymentID)
+
+	return dbmodel.DBQuery{
+		ID:            "RLQ-ROLE_MGT-24",
+		Query:         postgresQuery,
+		PostgresQuery: postgresQuery,
+		SQLiteQuery:   sqliteQuery,
+	}, args
+}
+
+// buildGetRoleListByOUIDsQuery returns the query and args to list, with pagination, the roles
+// belonging to any of the given organization units.
+func buildGetRoleListByOUIDsQuery(
+	ouIDs []string, limit, offset int, deploymentID string,
+) (dbmodel.DBQuery, []interface{}) {
+	postgres, sqlite := ouIDPlaceholders(ouIDs)
+	n := len(ouIDs)
+	postgresQuery := fmt.Sprintf(
+		`SELECT ID, OU_ID, NAME, DESCRIPTION FROM "ROLE" `+
+			`WHERE OU_ID IN (%s) AND DEPLOYMENT_ID = $%d ORDER BY CREATED_AT DESC LIMIT $%d OFFSET $%d`,
+		postgres, n+1, n+2, n+3)
+	sqliteQuery := fmt.Sprintf(
+		`SELECT ID, OU_ID, NAME, DESCRIPTION FROM "ROLE" `+
+			`WHERE OU_ID IN (%s) AND DEPLOYMENT_ID = ? ORDER BY CREATED_AT DESC LIMIT ? OFFSET ?`, sqlite)
+
+	args := make([]interface{}, 0, n+3)
+	for _, id := range ouIDs {
+		args = append(args, id)
+	}
+	args = append(args, deploymentID, limit, offset)
+
+	return dbmodel.DBQuery{
+		ID:            "RLQ-ROLE_MGT-23",
+		Query:         postgresQuery,
+		PostgresQuery: postgresQuery,
+		SQLiteQuery:   sqliteQuery,
+	}, args
 }

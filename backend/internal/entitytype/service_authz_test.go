@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	oupkg "github.com/thunder-id/thunderid/internal/ou"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/security"
 	"github.com/thunder-id/thunderid/internal/system/sysauthz"
@@ -83,7 +84,7 @@ func (s *AuthzTestSuite) TestGetEntityTypeList_AllAllowed() {
 		authzService:    newAllowAllAuthz(s.T()),
 	}
 
-	resp, svcErr := svc.GetEntityTypeList(context.Background(), TypeCategoryUser, 10, 0, false)
+	resp, svcErr := svc.GetEntityTypeList(context.Background(), TypeCategoryUser, 10, 0, "", false)
 	s.Require().Nil(svcErr)
 	s.Require().NotNil(resp)
 	s.Equal(2, resp.TotalResults)
@@ -109,7 +110,7 @@ func (s *AuthzTestSuite) TestGetEntityTypeList_FilteredByOUIDs() {
 		authzService:    authzMock,
 	}
 
-	resp, svcErr := svc.GetEntityTypeList(context.Background(), TypeCategoryUser, 10, 0, false)
+	resp, svcErr := svc.GetEntityTypeList(context.Background(), TypeCategoryUser, 10, 0, "", false)
 	s.Require().Nil(svcErr)
 	s.Require().NotNil(resp)
 	s.Equal(1, resp.TotalResults)
@@ -129,7 +130,7 @@ func (s *AuthzTestSuite) TestGetEntityTypeList_EmptyAccessibleOUIDs() {
 		authzService:    authzMock,
 	}
 
-	resp, svcErr := svc.GetEntityTypeList(context.Background(), TypeCategoryUser, 10, 0, false)
+	resp, svcErr := svc.GetEntityTypeList(context.Background(), TypeCategoryUser, 10, 0, "", false)
 	s.Require().Nil(svcErr)
 	s.Require().NotNil(resp)
 	s.Equal(0, resp.TotalResults)
@@ -143,7 +144,7 @@ func (s *AuthzTestSuite) TestGetEntityTypeList_AuthzServiceError() {
 		authzService:    newAuthzError(s.T()),
 	}
 
-	resp, svcErr := svc.GetEntityTypeList(context.Background(), TypeCategoryUser, 10, 0, false)
+	resp, svcErr := svc.GetEntityTypeList(context.Background(), TypeCategoryUser, 10, 0, "", false)
 	s.Nil(resp)
 	s.Require().NotNil(svcErr)
 	s.Equal(tidcommon.InternalServerError.Code, svcErr.Code)
@@ -162,7 +163,7 @@ func (s *AuthzTestSuite) TestGetEntityTypeList_NilAuthzService() {
 		authzService:    nil,
 	}
 
-	resp, svcErr := svc.GetEntityTypeList(context.Background(), TypeCategoryUser, 10, 0, false)
+	resp, svcErr := svc.GetEntityTypeList(context.Background(), TypeCategoryUser, 10, 0, "", false)
 	s.Require().Nil(svcErr)
 	s.Require().NotNil(resp)
 	s.Equal(1, resp.TotalResults)
@@ -615,7 +616,7 @@ func (s *AuthzTestSuite) TestGetEntityTypeList_WithIncludeDisplay() {
 	}
 
 	resp, svcErr := svc.GetEntityTypeList(
-		context.Background(), TypeCategoryUser, 10, 0, true)
+		context.Background(), TypeCategoryUser, 10, 0, "", true)
 	s.Require().Nil(svcErr)
 	s.Require().NotNil(resp)
 	s.Require().Len(resp.Types, 2)
@@ -657,4 +658,85 @@ func (s *AuthzTestSuite) TestDeleteEntityType_NilAuthz_NoError() {
 
 	svcErr := svc.DeleteEntityType(context.Background(), TypeCategoryUser, "schema-1")
 	s.Nil(svcErr)
+}
+
+// ---- GetEntityTypeList OU subtree scope ----
+
+func (s *AuthzTestSuite) TestGetEntityTypeList_OUSubtreeScope_AllAllowed() {
+	subtree := []string{testOUID1, testOUID2}
+	storeMock := newEntityTypeStoreInterfaceMock(s.T())
+	storeMock.On("GetEntityTypeListCountByOUIDs", mock.Anything, TypeCategoryUser, subtree).Return(3, nil).Once()
+	storeMock.On("GetEntityTypeListByOUIDs", mock.Anything, TypeCategoryUser, subtree, 1, 0).
+		Return([]EntityTypeListItem{
+			{ID: "s1", Handle: "schema1", DisplayName: "schema1", OUID: testOUID2},
+		}, nil).Once()
+	ouMock := oumock.NewOrganizationUnitServiceInterfaceMock(s.T())
+	ouMock.On("GetOrganizationUnitSubtreeIDs", mock.Anything, testOUID1).Return(subtree, nil).Once()
+
+	svc := &entityTypeService{
+		entityTypeStore: storeMock,
+		transactioner:   &mockTransactioner{},
+		authzService:    newAllowAllAuthz(s.T()),
+		ouService:       ouMock,
+	}
+
+	resp, svcErr := svc.GetEntityTypeList(context.Background(), TypeCategoryUser, 1, 0, testOUID1, false)
+	s.Require().Nil(svcErr)
+	s.Require().NotNil(resp)
+	s.Equal(3, resp.TotalResults)
+	s.Len(resp.Types, 1)
+	s.Require().NotEmpty(resp.Links)
+	for _, link := range resp.Links {
+		s.Contains(link.Href, "&ouId="+testOUID1)
+	}
+	storeMock.AssertNotCalled(s.T(), "GetEntityTypeList", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+}
+
+func (s *AuthzTestSuite) TestGetEntityTypeList_OUSubtreeScope_IntersectsAccessible() {
+	storeMock := newEntityTypeStoreInterfaceMock(s.T())
+	storeMock.On("GetEntityTypeListCountByOUIDs", mock.Anything, TypeCategoryUser, []string{testOUID2}).
+		Return(1, nil).Once()
+	storeMock.On("GetEntityTypeListByOUIDs", mock.Anything, TypeCategoryUser, []string{testOUID2}, 10, 0).
+		Return([]EntityTypeListItem{
+			{ID: "s2", Handle: "schema2", DisplayName: "schema2", OUID: testOUID2},
+		}, nil).Once()
+	authzMock := sysauthzmock.NewSystemAuthorizationServiceInterfaceMock(s.T())
+	authzMock.On("GetAccessibleResources", mock.Anything, security.ActionListUserTypes,
+		security.ResourceTypeUserType).
+		Return(&sysauthz.AccessibleResources{IDs: []string{testOUID2, "outside-ou"}}, nil)
+	ouMock := oumock.NewOrganizationUnitServiceInterfaceMock(s.T())
+	ouMock.On("GetOrganizationUnitSubtreeIDs", mock.Anything, testOUID1).
+		Return([]string{testOUID1, testOUID2}, nil).Once()
+
+	svc := &entityTypeService{
+		entityTypeStore: storeMock,
+		transactioner:   &mockTransactioner{},
+		authzService:    authzMock,
+		ouService:       ouMock,
+	}
+
+	resp, svcErr := svc.GetEntityTypeList(context.Background(), TypeCategoryUser, 10, 0, testOUID1, false)
+	s.Require().Nil(svcErr)
+	s.Require().NotNil(resp)
+	s.Equal(1, resp.TotalResults)
+	s.Require().Len(resp.Types, 1)
+	s.Equal("s2", resp.Types[0].ID)
+}
+
+func (s *AuthzTestSuite) TestGetEntityTypeList_OUSubtreeScope_SubtreeError() {
+	ouMock := oumock.NewOrganizationUnitServiceInterfaceMock(s.T())
+	ouMock.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "missing-ou").
+		Return(nil, &oupkg.ErrorOrganizationUnitNotFound).Once()
+
+	svc := &entityTypeService{
+		entityTypeStore: newEntityTypeStoreInterfaceMock(s.T()),
+		transactioner:   &mockTransactioner{},
+		authzService:    newAllowAllAuthz(s.T()),
+		ouService:       ouMock,
+	}
+
+	resp, svcErr := svc.GetEntityTypeList(context.Background(), TypeCategoryUser, 10, 0, "missing-ou", false)
+	s.Nil(resp)
+	s.Require().NotNil(svcErr)
+	s.Equal(oupkg.ErrorOrganizationUnitNotFound.Code, svcErr.Code)
 }

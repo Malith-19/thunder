@@ -147,6 +147,59 @@ describe('useGetUserTypes', () => {
     expect(callArgs.url).toContain('offset=5');
   });
 
+  it('should append ouId to the URL when provided', async () => {
+    mockHttpRequest.mockResolvedValueOnce({
+      data: mockUserTypeListResponse,
+    });
+
+    renderHook(() => useGetUserTypes({ouId: 'project-ou'}));
+
+    await waitFor(() => {
+      expect(mockHttpRequest).toHaveBeenCalledTimes(1);
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const callArgs = mockHttpRequest.mock.calls[0][0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    expect(callArgs.url).toBe('https://api.test.com/user-types?ouId=project-ou&include=display');
+  });
+
+  it('should omit ouId from the URL when not provided', async () => {
+    mockHttpRequest.mockResolvedValueOnce({
+      data: mockUserTypeListResponse,
+    });
+
+    renderHook(() => useGetUserTypes({limit: 10}));
+
+    await waitFor(() => {
+      expect(mockHttpRequest).toHaveBeenCalledTimes(1);
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const callArgs = mockHttpRequest.mock.calls[0][0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    expect(callArgs.url).not.toContain('ouId');
+  });
+
+  it('should include ouId in the query key', async () => {
+    mockHttpRequest.mockResolvedValueOnce({
+      data: mockUserTypeListResponse,
+    });
+
+    const {result, queryClient} = renderHook(() => useGetUserTypes({ouId: 'project-ou'}));
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    const queries = queryClient.getQueryCache().findAll({
+      queryKey: [UserTypeQueryKeys.USER_TYPES, {limit: undefined, offset: undefined, ouId: 'project-ou'}],
+      exact: true,
+    });
+
+    expect(queries).toHaveLength(1);
+  });
+
   it('should handle API error', async () => {
     const apiError = new Error('Failed to fetch user types');
     mockHttpRequest.mockRejectedValueOnce(apiError);

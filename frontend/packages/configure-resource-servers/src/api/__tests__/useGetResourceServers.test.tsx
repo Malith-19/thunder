@@ -119,4 +119,36 @@ describe('useGetResourceServers', () => {
       expect(result.current.data).toEqual(nextPageData);
     });
   });
+
+  it('should append ouId to the URL when provided', async () => {
+    mockHttpRequest.mockResolvedValueOnce({data: firstPageData});
+
+    const {result} = renderHook(() => useGetResourceServers({limit: 10, offset: 0, ouId: 'project-ou'}));
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockHttpRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://localhost:8090/resource-servers?limit=10&offset=0&ouId=project-ou',
+      }),
+    );
+  });
+
+  it('should omit ouId from the URL when not provided', async () => {
+    mockHttpRequest.mockResolvedValueOnce({data: firstPageData});
+
+    const {result} = renderHook(() => useGetResourceServers({limit: 10, offset: 0}));
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockHttpRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://localhost:8090/resource-servers?limit=10&offset=0',
+      }),
+    );
+  });
 });

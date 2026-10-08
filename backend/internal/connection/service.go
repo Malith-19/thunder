@@ -396,7 +396,7 @@ func (s *service) usagesAuthZENPDP(ctx context.Context, id string) (
 	usages := make([]resourcedependency.ResourceDependency, 0)
 	offset := 0
 	for {
-		list, svcErr := s.resourceService.GetResourceServerList(ctx, serverconst.MaxPageSize, offset)
+		list, svcErr := s.resourceService.GetResourceServerList(ctx, serverconst.MaxPageSize, offset, "")
 		if svcErr != nil {
 			return nil, svcErr
 		}

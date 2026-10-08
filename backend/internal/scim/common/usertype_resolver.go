@@ -60,7 +60,7 @@ func ResolveDefaultUserTypeHandle(
 	ctx context.Context, userTypeService entitytype.EntityTypeServiceInterface,
 ) (string, *tidcommon.ServiceError) {
 	page, svcErr := userTypeService.GetEntityTypeList(
-		ctx, entitytype.TypeCategoryUser, serverconst.MaxPageSize, 0, false)
+		ctx, entitytype.TypeCategoryUser, serverconst.MaxPageSize, 0, "", false)
 	if svcErr != nil {
 		if svcErr.Type == tidcommon.ServerErrorType {
 			return "", &tidcommon.InternalServerError

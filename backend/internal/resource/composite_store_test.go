@@ -1187,3 +1187,43 @@ func (s *CompositeResourceStoreTestSuite) TestMergeAndDeduplicateResourceServers
 	assert.Len(s.T(), result, 1)
 	assert.True(s.T(), result[0].IsReadOnly, "File resource server should have IsReadOnly=true")
 }
+
+func (s *CompositeResourceStoreTestSuite) TestGetResourceServerListByOUIDs_MergesAndPaginates() {
+	ouIDs := []string{"ou1", "ou2"}
+	dbServers := []providers.ResourceServer{{ID: "rs-db1"}, {ID: "rs-shared"}}
+	fileServers := []providers.ResourceServer{{ID: "rs-shared"}, {ID: "rs-file1"}}
+
+	s.dbStoreMock.On("GetResourceServerListCountByOUIDs", s.ctx, ouIDs).Return(len(dbServers), nil)
+	s.fileStoreMock.On("GetResourceServerListCountByOUIDs", s.ctx, ouIDs).Return(len(fileServers), nil)
+	s.dbStoreMock.On("GetResourceServerListByOUIDs", s.ctx, ouIDs, len(dbServers), 0).Return(dbServers, nil)
+	s.fileStoreMock.On("GetResourceServerListByOUIDs", s.ctx, ouIDs, len(fileServers), 0).Return(fileServers, nil)
+
+	result, err := s.compositeStore.GetResourceServerListByOUIDs(s.ctx, ouIDs, 2, 1)
+	s.NoError(err)
+	s.Len(result, 2)
+
+	count, err := s.compositeStore.GetResourceServerListCountByOUIDs(s.ctx, ouIDs)
+	s.NoError(err)
+	s.Equal(3, count)
+}
+
+func (s *CompositeResourceStoreTestSuite) TestGetResourceServerListByOUIDs_EmptyStores() {
+	ouIDs := []string{"ou1"}
+	s.dbStoreMock.On("GetResourceServerListCountByOUIDs", s.ctx, ouIDs).Return(0, nil)
+	s.fileStoreMock.On("GetResourceServerListCountByOUIDs", s.ctx, ouIDs).Return(0, nil)
+
+	result, err := s.compositeStore.GetResourceServerListByOUIDs(s.ctx, ouIDs, 10, 0)
+
+	s.NoError(err)
+	s.Empty(result)
+}
+
+func (s *CompositeResourceStoreTestSuite) TestGetResourceServerListCountByOUIDs_DBError() {
+	ouIDs := []string{"ou1"}
+	s.dbStoreMock.On("GetResourceServerListCountByOUIDs", s.ctx, ouIDs).Return(0, errors.New("db error"))
+
+	count, err := s.compositeStore.GetResourceServerListCountByOUIDs(s.ctx, ouIDs)
+
+	s.Error(err)
+	s.Equal(0, count)
+}

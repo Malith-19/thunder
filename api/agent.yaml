@@ -33,6 +33,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/limitQueryParam'
         - $ref: '#/components/parameters/offsetQueryParam'
+        - $ref: '#/components/parameters/ouIdQueryParam'
         - $ref: '#/components/parameters/filterParam'
         - $ref: '#/components/parameters/includeQueryParam'
       responses:
@@ -1386,6 +1387,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/limitQueryParam'
         - $ref: '#/components/parameters/offsetQueryParam'
+        - $ref: '#/components/parameters/ouIdQueryParam'
         - $ref: '#/components/parameters/includeQueryParam'
       responses:
         "200":
@@ -1834,6 +1836,16 @@ components:
         type: integer
         minimum: 0
         default: 0
+    ouIdQueryParam:
+      in: query
+      name: ouId
+      required: false
+      description: |
+        Organization unit ID that scopes the list to resources in that organization unit and in
+        every organization unit beneath it.
+      schema:
+        type: string
+        format: uuid
     includeQueryParam:
       in: query
       name: include

@@ -1,6 +1,7 @@
 // Copyright 2025 The ThunderID Authors
 // SPDX-License-Identifier: Apache-2.0
 
+import {ProjectContext} from '@thunderid/contexts';
 import {render, screen, waitFor, userEvent} from '@thunderid/test-utils';
 import type * as OxygenUI from '@wso2/oxygen-ui';
 import {DataGrid} from '@wso2/oxygen-ui';
@@ -166,10 +167,10 @@ interface UseGetUsersReturn {
   error: Error | null;
 }
 
-const mockUseGetUsers = vi.fn<() => UseGetUsersReturn>();
+const mockUseGetUsers = vi.fn<(params?: {ouId?: string}) => UseGetUsersReturn>();
 
 vi.mock('@/api/useGetUsers', () => ({
-  default: () => mockUseGetUsers(),
+  default: (params?: {ouId?: string}) => mockUseGetUsers(params),
 }));
 
 // The delete flow lives in UserDeleteDialog (covered by its own test). Stub it here so these
@@ -244,6 +245,26 @@ describe('UsersList', () => {
       const grid = screen.getByTestId('data-grid');
       expect(grid).toBeInTheDocument();
     });
+  });
+
+  it('scopes the users request to the selected project', () => {
+    const project = {id: 'project-ou-1', handle: 'project-one', name: 'Project One'};
+
+    render(
+      <ProjectContext.Provider
+        value={{projects: [project], selectedProject: project, selectProject: vi.fn(), isLoading: false}}
+      >
+        <UsersList />
+      </ProjectContext.Provider>,
+    );
+
+    expect(mockUseGetUsers).toHaveBeenCalledWith({ouId: 'project-ou-1'});
+  });
+
+  it('does not scope the users request when no project is selected', () => {
+    render(<UsersList />);
+
+    expect(mockUseGetUsers).toHaveBeenCalledWith({ouId: undefined});
   });
 
   it('displays loading state', () => {

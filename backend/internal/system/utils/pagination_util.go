@@ -3,7 +3,10 @@
 
 package utils
 
-import "fmt"
+import (
+	"fmt"
+	"net/url"
+)
 
 // QueryParamInclude is the query parameter name for the include parameter.
 const QueryParamInclude = "include"
@@ -14,6 +17,19 @@ const IncludeValueDisplay = "display"
 // IncludeDisplayQuery is the query string fragment appended to pagination links
 // when the include=display parameter is active.
 const IncludeDisplayQuery = "&" + QueryParamInclude + "=" + IncludeValueDisplay
+
+// QueryParamOUID is the query parameter name that scopes a resource listing to an organization unit
+// and every unit beneath it.
+const QueryParamOUID = "ouId"
+
+// OUIDQueryParam returns the query string fragment that keeps a listing scoped to ouID in its
+// pagination links, or an empty string when the listing is not scoped.
+func OUIDQueryParam(ouID string) string {
+	if ouID == "" {
+		return ""
+	}
+	return "&" + QueryParamOUID + "=" + url.QueryEscape(ouID)
+}
 
 // DisplayQueryParam returns IncludeDisplayQuery if includeDisplay is true, empty string otherwise.
 func DisplayQueryParam(includeDisplay bool) string {

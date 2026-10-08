@@ -1016,6 +1016,76 @@ func (_c *OrganizationUnitServiceInterfaceMock_GetOrganizationUnitRolesByPath_Ca
 	return _c
 }
 
+// GetOrganizationUnitSubtreeIDs provides a mock function for the type OrganizationUnitServiceInterfaceMock
+func (_mock *OrganizationUnitServiceInterfaceMock) GetOrganizationUnitSubtreeIDs(ctx context.Context, id string) ([]string, *common.ServiceError) {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOrganizationUnitSubtreeIDs")
+	}
+
+	var r0 []string
+	var r1 *common.ServiceError
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]string, *common.ServiceError)); ok {
+		return returnFunc(ctx, id)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []string); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) *common.ServiceError); ok {
+		r1 = returnFunc(ctx, id)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*common.ServiceError)
+		}
+	}
+	return r0, r1
+}
+
+// OrganizationUnitServiceInterfaceMock_GetOrganizationUnitSubtreeIDs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOrganizationUnitSubtreeIDs'
+type OrganizationUnitServiceInterfaceMock_GetOrganizationUnitSubtreeIDs_Call struct {
+	*mock.Call
+}
+
+// GetOrganizationUnitSubtreeIDs is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id string
+func (_e *OrganizationUnitServiceInterfaceMock_Expecter) GetOrganizationUnitSubtreeIDs(ctx interface{}, id interface{}) *OrganizationUnitServiceInterfaceMock_GetOrganizationUnitSubtreeIDs_Call {
+	return &OrganizationUnitServiceInterfaceMock_GetOrganizationUnitSubtreeIDs_Call{Call: _e.mock.On("GetOrganizationUnitSubtreeIDs", ctx, id)}
+}
+
+func (_c *OrganizationUnitServiceInterfaceMock_GetOrganizationUnitSubtreeIDs_Call) Run(run func(ctx context.Context, id string)) *OrganizationUnitServiceInterfaceMock_GetOrganizationUnitSubtreeIDs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *OrganizationUnitServiceInterfaceMock_GetOrganizationUnitSubtreeIDs_Call) Return(strings []string, serviceError *common.ServiceError) *OrganizationUnitServiceInterfaceMock_GetOrganizationUnitSubtreeIDs_Call {
+	_c.Call.Return(strings, serviceError)
+	return _c
+}
+
+func (_c *OrganizationUnitServiceInterfaceMock_GetOrganizationUnitSubtreeIDs_Call) RunAndReturn(run func(ctx context.Context, id string) ([]string, *common.ServiceError)) *OrganizationUnitServiceInterfaceMock_GetOrganizationUnitSubtreeIDs_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetOrganizationUnitUsers provides a mock function for the type OrganizationUnitServiceInterfaceMock
 func (_mock *OrganizationUnitServiceInterfaceMock) GetOrganizationUnitUsers(ctx context.Context, id string, limit int, offset int, includeDisplay bool) (*UserListResponse, *common.ServiceError) {
 	ret := _mock.Called(ctx, id, limit, offset, includeDisplay)

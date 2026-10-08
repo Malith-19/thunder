@@ -177,6 +177,20 @@ const translations = {
     'userMenu.welcome': 'Welcome',
     'userMenu.signOut': 'Sign Out',
 
+    // Project switcher
+    'projects.switcher.label': 'Project',
+    'projects.switcher.organization': 'Organization',
+    'projects.switcher.create': 'New project',
+    'projects.create.title': 'Create a project',
+    'projects.create.description':
+      'A project groups the applications and configuration of one product. It is stored as a root organization unit.',
+    'projects.create.name': 'Name',
+    'projects.create.handle': 'Handle',
+    'projects.create.handleHelp': 'Used to identify the project in every environment.',
+    'projects.create.submit': 'Create',
+    'projects.create.cancel': 'Cancel',
+    'projects.create.error': 'Could not create the project.',
+
     // Welcome screen
     'welcome.header': 'Welcome',
     'welcome.dismissed': 'Welcome window can be reopened through the user dropdown menu.',

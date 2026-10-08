@@ -23,14 +23,14 @@ func newOURoleResolver(store roleStoreInterface) oupkg.OURoleResolver {
 
 // GetRoleCountByOUID returns the count of roles belonging to the given organization unit.
 func (a *ouRoleResolverAdapter) GetRoleCountByOUID(ctx context.Context, ouID string) (int, error) {
-	return a.store.GetRoleListCountByOUID(ctx, ouID)
+	return a.store.GetRoleListCountByOUIDs(ctx, []string{ouID})
 }
 
 // GetRoleListByOUID returns a paginated list of roles belonging to the given organization unit.
 func (a *ouRoleResolverAdapter) GetRoleListByOUID(
 	ctx context.Context, ouID string, limit, offset int,
 ) ([]oupkg.Role, error) {
-	roles, err := a.store.GetRoleListByOUID(ctx, ouID, limit, offset)
+	roles, err := a.store.GetRoleListByOUIDs(ctx, []string{ouID}, limit, offset)
 	if err != nil {
 		return nil, err
 	}

@@ -501,7 +501,8 @@ func (suite *ServiceTestSuite) TestMapUserTypeToSCIMSchema_UsesHandleForURNAndDi
 func (suite *ServiceTestSuite) TestGetSchema_CoreUserURN_SingleUserType_DerivesSchema() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{
 				TotalResults: 1,
@@ -526,7 +527,8 @@ func (suite *ServiceTestSuite) TestGetSchema_CoreUserURN_SingleUserType_DerivesS
 func (suite *ServiceTestSuite) TestGetSchema_CoreUserURN_NoUserTypes_Returns404() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{TotalResults: 0, Types: nil},
 			(*tidcommon.ServiceError)(nil),
@@ -543,7 +545,8 @@ func (suite *ServiceTestSuite) TestGetSchema_CoreUserURN_NoUserTypes_Returns404(
 func (suite *ServiceTestSuite) TestGetSchema_EnterpriseUserURN_Success() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{
 				TotalResults: 1,
@@ -577,7 +580,8 @@ func (suite *ServiceTestSuite) TestGetSchema_EnterpriseUserURN_Success() {
 func (suite *ServiceTestSuite) TestGetSchema_EnterpriseUserURN_NoEnterpriseAttrs_Returns404() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{
 				TotalResults: 1,
@@ -641,7 +645,8 @@ func (suite *ServiceTestSuite) TestGetSchema_UserTypeNotFound_Returns404() {
 func (suite *ServiceTestSuite) TestListSchemas_NoUserTypes_OmitsCoreUserSchema() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{TotalResults: 0, Types: nil},
 			(*tidcommon.ServiceError)(nil),
@@ -662,7 +667,8 @@ func (suite *ServiceTestSuite) TestListSchemas_NoUserTypes_OmitsCoreUserSchema()
 func (suite *ServiceTestSuite) TestListSchemas_IncludesExtensionSchemasForEachUserType() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{
 				TotalResults: 1,
@@ -702,7 +708,8 @@ func (suite *ServiceTestSuite) TestListSchemas_IncludesExtensionSchemasForEachUs
 func (suite *ServiceTestSuite) TestListSchemas_IncludesEnterpriseUserSchema() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{
 				TotalResults: 1,
@@ -747,7 +754,8 @@ func (suite *ServiceTestSuite) TestListSchemas_IncludesEnterpriseUserSchema() {
 func (suite *ServiceTestSuite) TestListSchemas_IncludesCoreGroupSchema() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{TotalResults: 0, Types: nil},
 			(*tidcommon.ServiceError)(nil),
@@ -769,7 +777,8 @@ func (suite *ServiceTestSuite) TestListSchemas_IncludesCoreGroupSchema() {
 func (suite *ServiceTestSuite) TestListSchemas_SchemasField() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{TotalResults: 0, Types: nil},
 			(*tidcommon.ServiceError)(nil),
@@ -786,7 +795,8 @@ func (suite *ServiceTestSuite) TestListSchemas_SchemasField() {
 func (suite *ServiceTestSuite) TestListSchemas_TotalResultsMatchesResourceCount() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{TotalResults: 0, Types: nil},
 			(*tidcommon.ServiceError)(nil),
@@ -888,7 +898,8 @@ func (suite *ServiceTestSuite) TestGetSchema_MalformedUserTypeSchema_Returns500(
 func (suite *ServiceTestSuite) TestListSchemas_GetEntityTypeListError_ReturnsError() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return((*entitytype.EntityTypeListResponse)(nil), &tidcommon.ServiceError{Code: "ET-500"})
 
 	svc := newSCIMDiscoveryService(mockET, testSCIMConfig, testServerStartTime)
@@ -907,7 +918,8 @@ func (suite *ServiceTestSuite) TestListSchemas_GetEntityTypeListError_ReturnsErr
 func (suite *ServiceTestSuite) TestListSchemas_GetEntityTypeByHandleError_SkipsItem() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{
 				TotalResults: 1,
@@ -934,7 +946,8 @@ func (suite *ServiceTestSuite) TestListSchemas_GetEntityTypeByHandleError_SkipsI
 func (suite *ServiceTestSuite) TestListSchemas_MalformedUserTypeSchema_SkipsItem() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{
 				TotalResults: 1,
@@ -966,7 +979,7 @@ func (suite *ServiceTestSuite) TestListSchemas_WindowSpansStaticAndDynamicSchema
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
 	// Called twice with identical args: once as the core-type/total probe, once as the
 	// windowed dynamic-schema fetch — both happen to land on limit=1, offset=0 here.
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, 1, 0, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, 1, 0, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{
 				TotalResults: 2,
@@ -1001,7 +1014,7 @@ func (suite *ServiceTestSuite) TestListSchemas_WindowSpansStaticAndDynamicSchema
 func (suite *ServiceTestSuite) TestListSchemas_LargeRegistry_ConstantQueryCount() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, 1, 0, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, 1, 0, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{
 				TotalResults: 500,
@@ -1009,7 +1022,7 @@ func (suite *ServiceTestSuite) TestListSchemas_LargeRegistry_ConstantQueryCount(
 			},
 			(*tidcommon.ServiceError)(nil),
 		).Once()
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, 10, 0, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, 10, 0, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{
 				TotalResults: 500,
@@ -1092,7 +1105,8 @@ func (suite *ServiceTestSuite) TestResolveUserType_NonAuthLookupError_Returns404
 func (suite *ServiceTestSuite) TestListResourceTypes_ReturnsUserAndGroupResourceType() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{TotalResults: 0, Types: nil},
 			(*tidcommon.ServiceError)(nil),
@@ -1113,7 +1127,8 @@ func (suite *ServiceTestSuite) TestListResourceTypes_ReturnsUserAndGroupResource
 func (suite *ServiceTestSuite) TestListResourceTypes_SchemasField() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{TotalResults: 0, Types: nil},
 			(*tidcommon.ServiceError)(nil),
@@ -1132,7 +1147,8 @@ func (suite *ServiceTestSuite) TestListResourceTypes_SchemasField() {
 func (suite *ServiceTestSuite) TestListResourceTypes_IncludesExtensionPerUserType() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{
 				TotalResults: 1,
@@ -1156,7 +1172,8 @@ func (suite *ServiceTestSuite) TestListResourceTypes_IncludesExtensionPerUserTyp
 func (suite *ServiceTestSuite) TestListResourceTypes_EntityTypeListError_ReturnsError() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return((*entitytype.EntityTypeListResponse)(nil), &tidcommon.ServiceError{Code: "ET-500"})
 
 	svc := newSCIMDiscoveryService(mockET, testSCIMConfig, testServerStartTime)
@@ -1171,7 +1188,8 @@ func (suite *ServiceTestSuite) TestListResourceTypes_MetaLocationContainsBaseURL
 	t := suite.T()
 	baseURL := testBaseURL
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{TotalResults: 0, Types: nil},
 			(*tidcommon.ServiceError)(nil),
@@ -1194,7 +1212,8 @@ func (suite *ServiceTestSuite) TestListResourceTypes_MetaLocationContainsBaseURL
 func (suite *ServiceTestSuite) TestGetResourceType_UserID_ReturnsUserResourceType() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{TotalResults: 0, Types: nil},
 			(*tidcommon.ServiceError)(nil),
@@ -1213,7 +1232,8 @@ func (suite *ServiceTestSuite) TestGetResourceType_UserID_ReturnsUserResourceTyp
 func (suite *ServiceTestSuite) TestGetResourceType_CaseInsensitiveID() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return(
 			&entitytype.EntityTypeListResponse{TotalResults: 0, Types: nil},
 			(*tidcommon.ServiceError)(nil),
@@ -1243,7 +1263,8 @@ func (suite *ServiceTestSuite) TestGetResourceType_UnknownID_Returns404() {
 func (suite *ServiceTestSuite) TestGetResourceType_EntityTypeListError_Propagates() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything,
+		mock.Anything, mock.Anything, false).
 		Return((*entitytype.EntityTypeListResponse)(nil), &tidcommon.ServiceError{Code: "ET-500"})
 
 	svc := newSCIMDiscoveryService(mockET, testSCIMConfig, testServerStartTime)

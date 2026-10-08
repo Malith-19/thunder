@@ -808,7 +808,7 @@ func (suite *AgentServiceTestSuite) TestDeleteAgent_Success_WithInboundClient() 
 
 func (suite *AgentServiceTestSuite) TestGetAgentList_InvalidLimit() {
 	svc, _, _, _, _ := suite.setupService()
-	resp, svcErr := svc.GetAgentList(context.Background(), -1, 0, nil, false)
+	resp, svcErr := svc.GetAgentList(context.Background(), -1, 0, "", nil, false)
 	assert.Nil(suite.T(), resp)
 	suite.Require().NotNil(svcErr)
 	assert.Equal(suite.T(), ErrorInvalidLimit.Code, svcErr.Code)
@@ -825,7 +825,7 @@ func (suite *AgentServiceTestSuite) TestGetAgentList_Success() {
 	mockEntity.On("GetEntityListCount", mock.Anything, providers.EntityCategoryAgent, mock.Anything).
 		Return(1, nil)
 
-	resp, svcErr := svc.GetAgentList(context.Background(), 0, 0, nil, false)
+	resp, svcErr := svc.GetAgentList(context.Background(), 0, 0, "", nil, false)
 	suite.Require().Nil(svcErr)
 	suite.Require().NotNil(resp)
 	assert.Equal(suite.T(), 1, resp.TotalResults)
@@ -851,7 +851,7 @@ func (suite *AgentServiceTestSuite) TestGetAgentList_ReturnsLogoFromInboundClien
 			Properties: map[string]interface{}{propLogoURL: testAgentLogo},
 		}, nil)
 
-	resp, svcErr := svc.GetAgentList(context.Background(), 0, 0, nil, false)
+	resp, svcErr := svc.GetAgentList(context.Background(), 0, 0, "", nil, false)
 	suite.Require().Nil(svcErr)
 	suite.Require().NotNil(resp)
 	suite.Require().Len(resp.Agents, 1)
@@ -873,7 +873,7 @@ func (suite *AgentServiceTestSuite) TestGetAgentList_LogoLookupError_StillReturn
 	mockInbound.On("GetInboundClientByEntityID", mock.Anything, testAgentID).
 		Return((*inboundmodel.InboundClient)(nil), assert.AnError)
 
-	resp, svcErr := svc.GetAgentList(context.Background(), 0, 0, nil, false)
+	resp, svcErr := svc.GetAgentList(context.Background(), 0, 0, "", nil, false)
 	suite.Require().Nil(svcErr)
 	suite.Require().NotNil(resp)
 	suite.Require().Len(resp.Agents, 1)
@@ -1900,7 +1900,7 @@ func (suite *AgentServiceTestSuite) TestGetAgentList_CountError() {
 	mockEntity.On("GetEntityListCount", mock.Anything, providers.EntityCategoryAgent, mock.Anything).
 		Return(0, errors.New("db error"))
 
-	resp, svcErr := svc.GetAgentList(context.Background(), 10, 0, nil, false)
+	resp, svcErr := svc.GetAgentList(context.Background(), 10, 0, "", nil, false)
 	assert.Nil(suite.T(), resp)
 	suite.Require().NotNil(svcErr)
 	assert.Equal(suite.T(), tidcommon.InternalServerError.Code, svcErr.Code)
@@ -1913,7 +1913,7 @@ func (suite *AgentServiceTestSuite) TestGetAgentList_ListError() {
 		mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, errors.New("db error"))
 
-	resp, svcErr := svc.GetAgentList(context.Background(), 10, 0, nil, false)
+	resp, svcErr := svc.GetAgentList(context.Background(), 10, 0, "", nil, false)
 	assert.Nil(suite.T(), resp)
 	suite.Require().NotNil(svcErr)
 	assert.Equal(suite.T(), tidcommon.InternalServerError.Code, svcErr.Code)
@@ -1925,7 +1925,7 @@ func (suite *AgentServiceTestSuite) TestGetAgentList_DefaultLimit() {
 	mockEntity.On("GetEntityList", mock.Anything, providers.EntityCategoryAgent, 30, 0, mock.Anything).
 		Return([]providers.Entity{}, nil)
 
-	resp, svcErr := svc.GetAgentList(context.Background(), 0, 0, nil, false)
+	resp, svcErr := svc.GetAgentList(context.Background(), 0, 0, "", nil, false)
 	suite.Require().Nil(svcErr)
 	suite.Require().NotNil(resp)
 	assert.Equal(suite.T(), 0, resp.TotalResults)
@@ -1946,7 +1946,7 @@ func (suite *AgentServiceTestSuite) TestGetAgentList_IncludeDisplay() {
 	mockOU.On("GetOrganizationUnitHandlesByIDs", mock.Anything, []string{testOUID}).
 		Return(map[string]string{testOUID: "test-ou"}, (*tidcommon.ServiceError)(nil))
 
-	resp, svcErr := svc.GetAgentList(context.Background(), 10, 0, nil, true)
+	resp, svcErr := svc.GetAgentList(context.Background(), 10, 0, "", nil, true)
 	suite.Require().Nil(svcErr)
 	suite.Require().Len(resp.Agents, 1)
 	assert.Equal(suite.T(), "test-ou", resp.Agents[0].OUHandle)
@@ -3237,7 +3237,7 @@ func (suite *AgentServiceTestSuite) TestGetAgentList_FiltersByAccessibleOUs() {
 		accessibleOUIDs, mock.Anything, mock.Anything, mock.Anything).
 		Return([]providers.Entity{*buildAgentEntityFixture(testAgentName, "", "", "")}, nil)
 
-	resp, svcErr := svc.GetAgentList(context.Background(), 10, 0, nil, false)
+	resp, svcErr := svc.GetAgentList(context.Background(), 10, 0, "", nil, false)
 
 	suite.Require().Nil(svcErr)
 	suite.Require().NotNil(resp)
@@ -3254,7 +3254,7 @@ func (suite *AgentServiceTestSuite) TestGetAgentList_NoAccessibleOUs() {
 		Return(&sysauthz.AccessibleResources{AllAllowed: false, IDs: []string{}}, nil).Once()
 	svc, mockEntity := suite.setupServiceWithAuthz(authzMock)
 
-	resp, svcErr := svc.GetAgentList(context.Background(), 10, 0, nil, false)
+	resp, svcErr := svc.GetAgentList(context.Background(), 10, 0, "", nil, false)
 
 	suite.Require().Nil(svcErr)
 	suite.Require().NotNil(resp)
@@ -3280,4 +3280,72 @@ func (suite *AgentServiceTestSuite) TestGetAgent_AuthzCheckError() {
 	assert.Nil(suite.T(), resp)
 	suite.Require().NotNil(svcErr)
 	assert.Equal(suite.T(), tidcommon.InternalServerError.Code, svcErr.Code)
+}
+
+// An ouId narrows a system-level caller to the subtree, and the pagination links keep the scope.
+func (suite *AgentServiceTestSuite) TestGetAgentList_OUSubtreeScope_AllAllowed() {
+	svc, mockEntity, _, mockOU, _ := suite.setupService()
+	subtree := []string{"root-ou", "child-ou"}
+	mockOU.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "root-ou").Return(subtree, nil).Once()
+
+	clearMockCalls(mockEntity, "GetEntityListCountByOUIDs")
+	mockEntity.On("GetEntityListCountByOUIDs", mock.Anything,
+		providers.EntityCategoryAgent, subtree, mock.Anything).Return(3, nil).Once()
+	clearMockCalls(mockEntity, "GetEntityListByOUIDs")
+	mockEntity.On("GetEntityListByOUIDs", mock.Anything, providers.EntityCategoryAgent,
+		subtree, 1, 0, mock.Anything).
+		Return([]providers.Entity{*buildAgentEntityFixture(testAgentName, "", "", "")}, nil).Once()
+
+	resp, svcErr := svc.GetAgentList(context.Background(), 1, 0, "root-ou", nil, false)
+
+	suite.Require().Nil(svcErr)
+	suite.Require().NotNil(resp)
+	assert.Equal(suite.T(), 3, resp.TotalResults)
+	suite.Require().NotEmpty(resp.Links)
+	for _, link := range resp.Links {
+		assert.Contains(suite.T(), link.Href, "&ouId=root-ou")
+	}
+	mockEntity.AssertNotCalled(suite.T(), "GetEntityList", mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything)
+}
+
+// An ouId never widens a restricted caller: only the accessible units inside the subtree are listed.
+func (suite *AgentServiceTestSuite) TestGetAgentList_OUSubtreeScope_IntersectsAccessible() {
+	authzMock := sysauthzmock.NewSystemAuthorizationServiceInterfaceMock(suite.T())
+	authzMock.On("GetAccessibleResources", mock.Anything, security.ActionListAgents,
+		security.ResourceTypeOU).
+		Return(&sysauthz.AccessibleResources{IDs: []string{"child-ou", "other-ou"}}, nil).Once()
+	svc, mockEntity := suite.setupServiceWithAuthz(authzMock)
+	mockOU := oumock.NewOrganizationUnitServiceInterfaceMock(suite.T())
+	mockOU.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "root-ou").
+		Return([]string{"root-ou", "child-ou"}, nil).Once()
+	svc.ouService = mockOU
+
+	clearMockCalls(mockEntity, "GetEntityListCountByOUIDs")
+	mockEntity.On("GetEntityListCountByOUIDs", mock.Anything,
+		providers.EntityCategoryAgent, []string{"child-ou"}, mock.Anything).Return(1, nil).Once()
+	clearMockCalls(mockEntity, "GetEntityListByOUIDs")
+	mockEntity.On("GetEntityListByOUIDs", mock.Anything, providers.EntityCategoryAgent,
+		[]string{"child-ou"}, 10, 0, mock.Anything).
+		Return([]providers.Entity{*buildAgentEntityFixture(testAgentName, "", "", "")}, nil).Once()
+
+	resp, svcErr := svc.GetAgentList(context.Background(), 10, 0, "root-ou", nil, false)
+
+	suite.Require().Nil(svcErr)
+	suite.Require().NotNil(resp)
+	assert.Equal(suite.T(), 1, resp.TotalResults)
+}
+
+func (suite *AgentServiceTestSuite) TestGetAgentList_OUSubtreeScope_SubtreeError() {
+	svc, mockEntity, _, mockOU, _ := suite.setupService()
+	mockOU.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "missing-ou").
+		Return(nil, &oupkg.ErrorOrganizationUnitNotFound).Once()
+
+	resp, svcErr := svc.GetAgentList(context.Background(), 10, 0, "missing-ou", nil, false)
+
+	assert.Nil(suite.T(), resp)
+	suite.Require().NotNil(svcErr)
+	assert.Equal(suite.T(), oupkg.ErrorOrganizationUnitNotFound.Code, svcErr.Code)
+	mockEntity.AssertNotCalled(suite.T(), "GetEntityListByOUIDs", mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }

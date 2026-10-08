@@ -59,10 +59,10 @@ func (s *EntityTypeExporterTestSuite) TestGetAllResourceIDs_Success() {
 	}
 
 	s.mockService.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryUser, 100, 0, false).
+		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryUser, 100, 0, mock.Anything, false).
 		Return(expectedResponse, nil).Once()
 	s.mockService.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryUser, 100, 2, false).
+		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryUser, 100, 2, mock.Anything, false).
 		Return(&entitytype.EntityTypeListResponse{Types: []entitytype.EntityTypeListItem{}}, nil).Once()
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
@@ -83,7 +83,7 @@ func (s *EntityTypeExporterTestSuite) TestGetAllResourceIDs_Error() {
 	}
 
 	s.mockService.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryUser, 100, 0, false).
+		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryUser, 100, 0, mock.Anything, false).
 		Return(nil, expectedError)
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
@@ -98,7 +98,7 @@ func (s *EntityTypeExporterTestSuite) TestGetAllResourceIDs_EmptyList() {
 	}
 
 	s.mockService.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryUser, 100, 0, false).
+		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryUser, 100, 0, mock.Anything, false).
 		Return(expectedResponse, nil)
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
@@ -246,10 +246,10 @@ func (s *AgentTypeExporterTestSuite) TestGetAllResourceIDs_Success() {
 	}
 
 	s.mockService.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 0, false).
+		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 0, mock.Anything, false).
 		Return(expectedResponse, nil).Once()
 	s.mockService.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 2, false).
+		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 2, mock.Anything, false).
 		Return(&entitytype.EntityTypeListResponse{Types: []entitytype.EntityTypeListItem{}}, nil).Once()
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
@@ -269,7 +269,7 @@ func (s *AgentTypeExporterTestSuite) TestGetAllResourceIDs_Error() {
 	}
 
 	s.mockService.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 0, false).
+		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 0, mock.Anything, false).
 		Return(nil, expectedError)
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
@@ -284,7 +284,7 @@ func (s *AgentTypeExporterTestSuite) TestGetAllResourceIDs_EmptyList() {
 	}
 
 	s.mockService.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 0, false).
+		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 0, mock.Anything, false).
 		Return(expectedResponse, nil)
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
@@ -303,10 +303,10 @@ func (s *AgentTypeExporterTestSuite) TestGetAllResourceIDs_Pagination() {
 	secondPage := &entitytype.EntityTypeListResponse{Types: []entitytype.EntityTypeListItem{}}
 
 	s.mockService.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 0, false).
+		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 0, mock.Anything, false).
 		Return(firstPage, nil).Once()
 	s.mockService.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 2, false).
+		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 2, mock.Anything, false).
 		Return(secondPage, nil).Once()
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
@@ -325,10 +325,10 @@ func (s *AgentTypeExporterTestSuite) TestGetAllResourceIDs_FiltersReadOnly() {
 	}
 
 	s.mockService.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 0, false).
+		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 0, mock.Anything, false).
 		Return(response, nil).Once()
 	s.mockService.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 2, false).
+		GetEntityTypeList(mock.Anything, entitytype.TypeCategoryAgent, 100, 2, mock.Anything, false).
 		Return(&entitytype.EntityTypeListResponse{Types: []entitytype.EntityTypeListItem{}}, nil).Once()
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())

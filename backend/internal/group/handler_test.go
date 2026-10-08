@@ -277,7 +277,7 @@ func (suite *GroupHandlerTestSuite) TestGroupHandler_HandleGroupListRequest() {
 			requestPath: "/groups?limit=3&offset=2",
 			setup: func(svc *GroupServiceInterfaceMock) {
 				svc.
-					On("GetGroupList", mock.Anything, 3, 2, false).
+					On("GetGroupList", mock.Anything, 3, 2, mock.Anything, false).
 					Return(&GroupListResponse{
 						TotalResults: 5,
 						StartIndex:   3,
@@ -307,7 +307,7 @@ func (suite *GroupHandlerTestSuite) TestGroupHandler_HandleGroupListRequest() {
 			requestPath: "/groups?limit=3&offset=0&include=display",
 			setup: func(svc *GroupServiceInterfaceMock) {
 				svc.
-					On("GetGroupList", mock.Anything, 3, 0, true).
+					On("GetGroupList", mock.Anything, 3, 0, mock.Anything, true).
 					Return(&GroupListResponse{
 						TotalResults: 1,
 						Count:        1,
@@ -347,7 +347,7 @@ func (suite *GroupHandlerTestSuite) TestGroupHandler_HandleGroupListRequest() {
 			useFlaky:    true,
 			setup: func(svc *GroupServiceInterfaceMock) {
 				svc.
-					On("GetGroupList", mock.Anything, serverconst.DefaultPageSize, 0, false).
+					On("GetGroupList", mock.Anything, serverconst.DefaultPageSize, 0, mock.Anything, false).
 					Return(&GroupListResponse{}, nil).
 					Once()
 			},
@@ -373,7 +373,7 @@ func (suite *GroupHandlerTestSuite) TestGroupHandler_HandleGroupListRequest() {
 			requestPath: "/groups",
 			setup: func(svc *GroupServiceInterfaceMock) {
 				svc.
-					On("GetGroupList", mock.Anything, serverconst.DefaultPageSize, 0, false).
+					On("GetGroupList", mock.Anything, serverconst.DefaultPageSize, 0, mock.Anything, false).
 					Return((*GroupListResponse)(nil), &tidcommon.InternalServerError).
 					Once()
 			},
@@ -382,6 +382,19 @@ func (suite *GroupHandlerTestSuite) TestGroupHandler_HandleGroupListRequest() {
 				var body apierror.ErrorResponse
 				suite.Require().NoError(json.Unmarshal(recorder.Body.Bytes(), &body))
 				suite.Require().Equal(tidcommon.InternalServerError.Code, body.Code)
+			},
+		},
+		{
+			name:        "forwards ouId",
+			requestPath: "/groups?ouId=ou-1",
+			setup: func(svc *GroupServiceInterfaceMock) {
+				svc.
+					On("GetGroupList", mock.Anything, serverconst.DefaultPageSize, 0, "ou-1", false).
+					Return(&GroupListResponse{Groups: []GroupBasic{}}, nil).
+					Once()
+			},
+			assertBody: func(recorder *httptest.ResponseRecorder) {
+				suite.Require().Equal(http.StatusOK, recorder.Code)
 			},
 		},
 	}

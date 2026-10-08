@@ -182,11 +182,11 @@ func (suite *DeclarativeResourceTestSuite) TestUserExporter_GetAllResourceIDs() 
 	exporter := newUserExporter(mockSvc, entityServiceMock, entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T()))
 
 	users := []providers.User{{ID: "user-1"}, {ID: "user-2"}}
-	mockSvc.On("GetUserList", ctx, serverconst.MaxPageSize, 0, mock.Anything, false).
+	mockSvc.On("GetUserList", ctx, serverconst.MaxPageSize, 0, mock.Anything, mock.Anything, false).
 		Return(&UserListResponse{Users: users}, nil)
 	entityServiceMock.On("IsEntityDeclarative", ctx, "user-1").Return(true, nil)
 	entityServiceMock.On("IsEntityDeclarative", ctx, "user-2").Return(false, nil)
-	mockSvc.On("GetUserList", ctx, serverconst.MaxPageSize, 2, mock.Anything, false).
+	mockSvc.On("GetUserList", ctx, serverconst.MaxPageSize, 2, mock.Anything, mock.Anything, false).
 		Return(&UserListResponse{Users: []providers.User{}}, nil)
 
 	ids, err := exporter.GetAllResourceIDs(ctx)

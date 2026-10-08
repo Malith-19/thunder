@@ -555,8 +555,9 @@ func TestGetAllResourceIDs_WithReadOnlyFilter(t *testing.T) {
 		},
 	}
 
-	mockService.On("GetEntityTypeList", mock.Anything, mock.Anything, 100, 0, false).Return(response, nil).Once()
-	mockService.On("GetEntityTypeList", mock.Anything, mock.Anything, 100, 3, false).
+	mockService.On("GetEntityTypeList", mock.Anything, mock.Anything, 100, 0, mock.Anything,
+		false).Return(response, nil).Once()
+	mockService.On("GetEntityTypeList", mock.Anything, mock.Anything, 100, 3, mock.Anything, false).
 		Return(&EntityTypeListResponse{Types: []EntityTypeListItem{}}, nil).Once()
 
 	ids, err := exporter.GetAllResourceIDs(context.Background())

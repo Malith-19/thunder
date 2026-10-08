@@ -1565,7 +1565,7 @@ func TestUserService_GetUserList(t *testing.T) {
 		authzService:  newAllowAllAuthz(t),
 	}
 
-	resp, err := service.GetUserList(context.Background(), limit, offset, filters, false)
+	resp, err := service.GetUserList(context.Background(), limit, offset, "", filters, false)
 	require.Nil(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, 5, resp.TotalResults)
@@ -1595,7 +1595,7 @@ func TestUserService_GetUserList_ScopedByOUIDs(t *testing.T) {
 		authzService:  authzMock,
 	}
 
-	resp, err := service.GetUserList(context.Background(), limit, offset, filters, false)
+	resp, err := service.GetUserList(context.Background(), limit, offset, "", filters, false)
 	require.Nil(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, 3, resp.TotalResults)
@@ -1616,7 +1616,7 @@ func TestUserService_GetUserList_EmptyOUIDs(t *testing.T) {
 		authzService:  authzMock,
 	}
 
-	resp, err := service.GetUserList(context.Background(), limit, offset, filters, false)
+	resp, err := service.GetUserList(context.Background(), limit, offset, "", filters, false)
 	require.Nil(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, 0, resp.TotalResults)
@@ -2225,7 +2225,7 @@ func TestUserService_GetUserList_ErrorCases(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			svc := tc.setup(t)
-			resp, err := svc.GetUserList(context.Background(), limit, offset, filters, false)
+			resp, err := svc.GetUserList(context.Background(), limit, offset, "", filters, false)
 			require.Nil(t, resp)
 			require.NotNil(t, err)
 			require.Equal(t, tc.wantErrCode, err.Code)
@@ -3423,7 +3423,7 @@ func TestUserService_GetUserList_WithIncludeDisplay(t *testing.T) {
 		authzService:      newAllowAllAuthz(t),
 	}
 
-	resp, err := service.GetUserList(context.Background(), limit, offset, filters, true)
+	resp, err := service.GetUserList(context.Background(), limit, offset, "", filters, true)
 	require.Nil(t, err)
 	require.NotNil(t, resp)
 	require.Len(t, resp.Users, 2)
@@ -3922,4 +3922,105 @@ func TestGetUserMetadata_GetEntityTypeSchemaError(t *testing.T) {
 	require.Nil(t, schema)
 	require.NotNil(t, svcErr)
 	require.Equal(t, entitytype.ErrorEntityTypeNotFound.Code, svcErr.Code)
+}
+
+func TestUserService_GetUserList_OUSubtreeScope(t *testing.T) {
+	limit := 1
+	offset := 0
+	filters := map[string]interface{}{}
+	subtree := []string{"root-ou", "child-ou", "grandchild-ou"}
+
+	t.Run("AllAllowed_ScopesToSubtree", func(t *testing.T) {
+		storeMock := entitymock.NewEntityServiceInterfaceMock(t)
+		storeMock.On("IsEntityDeclarative", mock.Anything, mock.Anything).Return(false, nil).Maybe()
+		storeMock.On("GetEntityListCountByOUIDs", mock.Anything, providers.EntityCategoryUser, subtree, filters).
+			Return(3, nil).Once()
+		storeMock.On("GetEntityListByOUIDs",
+			mock.Anything, providers.EntityCategoryUser, subtree, limit, offset, filters).
+			Return([]providers.Entity{{ID: svcTestUserID1, OUID: "child-ou"}}, nil).Once()
+		ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+		ouServiceMock.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "root-ou").Return(subtree, nil).Once()
+
+		service := &userService{
+			entityService: storeMock,
+			authzService:  newAllowAllAuthz(t),
+			ouService:     ouServiceMock,
+		}
+
+		resp, err := service.GetUserList(context.Background(), limit, offset, "root-ou", filters, false)
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		require.Equal(t, 3, resp.TotalResults)
+		require.Len(t, resp.Users, 1)
+		require.NotEmpty(t, resp.Links)
+		for _, link := range resp.Links {
+			require.Contains(t, link.Href, "&ouId=root-ou")
+		}
+	})
+
+	t.Run("Restricted_IntersectsWithAccessibleOUs", func(t *testing.T) {
+		scoped := []string{"child-ou"}
+		storeMock := entitymock.NewEntityServiceInterfaceMock(t)
+		storeMock.On("IsEntityDeclarative", mock.Anything, mock.Anything).Return(false, nil).Maybe()
+		storeMock.On("GetEntityListCountByOUIDs", mock.Anything, providers.EntityCategoryUser, scoped, filters).
+			Return(1, nil).Once()
+		storeMock.On("GetEntityListByOUIDs",
+			mock.Anything, providers.EntityCategoryUser, scoped, limit, offset, filters).
+			Return([]providers.Entity{{ID: svcTestUserID1, OUID: "child-ou"}}, nil).Once()
+		authzMock := sysauthzmock.NewSystemAuthorizationServiceInterfaceMock(t)
+		authzMock.On("GetAccessibleResources", mock.Anything, mock.Anything, mock.Anything).
+			Return(&sysauthz.AccessibleResources{IDs: []string{"child-ou", "other-ou"}}, nil).Once()
+		ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+		ouServiceMock.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "root-ou").Return(subtree, nil).Once()
+
+		service := &userService{
+			entityService: storeMock,
+			authzService:  authzMock,
+			ouService:     ouServiceMock,
+		}
+
+		resp, err := service.GetUserList(context.Background(), limit, offset, "root-ou", filters, false)
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		require.Equal(t, 1, resp.TotalResults)
+		require.Len(t, resp.Users, 1)
+	})
+
+	t.Run("Restricted_NoOverlap_ReturnsEmpty", func(t *testing.T) {
+		storeMock := entitymock.NewEntityServiceInterfaceMock(t)
+		authzMock := sysauthzmock.NewSystemAuthorizationServiceInterfaceMock(t)
+		authzMock.On("GetAccessibleResources", mock.Anything, mock.Anything, mock.Anything).
+			Return(&sysauthz.AccessibleResources{IDs: []string{"other-ou"}}, nil).Once()
+		ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+		ouServiceMock.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "root-ou").Return(subtree, nil).Once()
+
+		service := &userService{
+			entityService: storeMock,
+			authzService:  authzMock,
+			ouService:     ouServiceMock,
+		}
+
+		resp, err := service.GetUserList(context.Background(), limit, offset, "root-ou", filters, false)
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		require.Equal(t, 0, resp.TotalResults)
+		require.Empty(t, resp.Users)
+	})
+
+	t.Run("SubtreeError_IsReturned", func(t *testing.T) {
+		ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+		ouServiceMock.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "missing-ou").
+			Return(nil, &oupkg.ErrorOrganizationUnitNotFound).Once()
+
+		service := &userService{
+			entityService: entitymock.NewEntityServiceInterfaceMock(t),
+			authzService:  newAllowAllAuthz(t),
+			ouService:     ouServiceMock,
+		}
+
+		resp, err := service.GetUserList(context.Background(), limit, offset, "missing-ou", filters, false)
+		require.Nil(t, resp)
+		require.NotNil(t, err)
+		require.Equal(t, oupkg.ErrorOrganizationUnitNotFound.Code, err.Code)
+	})
 }

@@ -3857,3 +3857,75 @@ func loadRuntimeForScope() {
 		Server: engineconfig.ServerConfig{Identifier: "test-deployment"},
 	})
 }
+
+func (suite *ResourceStoreTestSuite) TestGetResourceServerListByOUIDs() {
+	ouIDs := []string{"ou1", "ou2"}
+	query, args := buildGetResourceServerListByOUIDsQuery(ouIDs, 10, 0, "test-deployment")
+	suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
+	suite.mockDBClient.On("QueryContext", append([]interface{}{context.Background(), query}, args...)...).
+		Return([]map[string]interface{}{
+			{"id": "rs1", "ou_id": "ou2", "name": "Server 1", "description": "", "identifier": "identifier-1"},
+		}, nil)
+
+	servers, err := suite.store.GetResourceServerListByOUIDs(context.Background(), ouIDs, 10, 0)
+
+	suite.NoError(err)
+	suite.Len(servers, 1)
+	suite.Equal("rs1", servers[0].ID)
+	suite.Equal("ou2", servers[0].OUID)
+}
+
+func (suite *ResourceStoreTestSuite) TestGetResourceServerListByOUIDs_QueryError() {
+	ouIDs := []string{"ou1"}
+	query, args := buildGetResourceServerListByOUIDsQuery(ouIDs, 10, 0, "test-deployment")
+	suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
+	suite.mockDBClient.On("QueryContext", append([]interface{}{context.Background(), query}, args...)...).
+		Return(nil, errors.New("query failed"))
+
+	servers, err := suite.store.GetResourceServerListByOUIDs(context.Background(), ouIDs, 10, 0)
+
+	suite.Error(err)
+	suite.Nil(servers)
+}
+
+func (suite *ResourceStoreTestSuite) TestGetResourceServerListByOUIDs_EmptyOUIDs() {
+	servers, err := suite.store.GetResourceServerListByOUIDs(context.Background(), nil, 10, 0)
+
+	suite.NoError(err)
+	suite.Empty(servers)
+	suite.mockDBProvider.AssertNotCalled(suite.T(), "GetConfigDBClient")
+}
+
+func (suite *ResourceStoreTestSuite) TestGetResourceServerListCountByOUIDs() {
+	ouIDs := []string{"ou1", "ou2"}
+	query, args := buildGetResourceServerListCountByOUIDsQuery(ouIDs, "test-deployment")
+	suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
+	suite.mockDBClient.On("QueryContext", append([]interface{}{context.Background(), query}, args...)...).
+		Return([]map[string]interface{}{{"total": int64(3)}}, nil)
+
+	count, err := suite.store.GetResourceServerListCountByOUIDs(context.Background(), ouIDs)
+
+	suite.NoError(err)
+	suite.Equal(3, count)
+}
+
+func (suite *ResourceStoreTestSuite) TestGetResourceServerListCountByOUIDs_EmptyOUIDs() {
+	count, err := suite.store.GetResourceServerListCountByOUIDs(context.Background(), []string{})
+
+	suite.NoError(err)
+	suite.Equal(0, count)
+	suite.mockDBProvider.AssertNotCalled(suite.T(), "GetConfigDBClient")
+}
+
+func (suite *ResourceStoreTestSuite) TestBuildResourceServerListByOUIDsQueries() {
+	query, args := buildGetResourceServerListByOUIDsQuery([]string{"ou1", "ou2"}, 5, 10, "dep")
+	suite.Contains(query.PostgresQuery, "OU_ID IN ($1,$2) AND DEPLOYMENT_ID = $3")
+	suite.Contains(query.PostgresQuery, "LIMIT $4 OFFSET $5")
+	suite.Contains(query.SQLiteQuery, "OU_ID IN (?,?) AND DEPLOYMENT_ID = ?")
+	suite.Equal([]interface{}{"ou1", "ou2", "dep", 5, 10}, args)
+
+	countQuery, countArgs := buildGetResourceServerListCountByOUIDsQuery([]string{"ou1"}, "dep")
+	suite.Contains(countQuery.PostgresQuery, "OU_ID IN ($1) AND DEPLOYMENT_ID = $2")
+	suite.Contains(countQuery.SQLiteQuery, "OU_ID IN (?) AND DEPLOYMENT_ID = ?")
+	suite.Equal([]interface{}{"ou1", "dep"}, countArgs)
+}

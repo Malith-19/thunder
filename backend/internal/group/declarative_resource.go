@@ -50,7 +50,7 @@ func (e *groupExporter) GetAllResourceIDs(ctx context.Context) ([]string, *tidco
 	var ids []string
 
 	for {
-		groups, err := e.service.GetGroupList(ctx, limit, offset, false)
+		groups, err := e.service.GetGroupList(ctx, limit, offset, "", false)
 		if err != nil {
 			return nil, err
 		}

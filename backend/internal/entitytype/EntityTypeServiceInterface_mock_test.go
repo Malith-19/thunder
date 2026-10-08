@@ -573,8 +573,8 @@ func (_c *EntityTypeServiceInterfaceMock_GetEntityTypeByHandle_Call) RunAndRetur
 }
 
 // GetEntityTypeList provides a mock function for the type EntityTypeServiceInterfaceMock
-func (_mock *EntityTypeServiceInterfaceMock) GetEntityTypeList(ctx context.Context, category TypeCategory, limit int, offset int, includeDisplay bool) (*EntityTypeListResponse, *common.ServiceError) {
-	ret := _mock.Called(ctx, category, limit, offset, includeDisplay)
+func (_mock *EntityTypeServiceInterfaceMock) GetEntityTypeList(ctx context.Context, category TypeCategory, limit int, offset int, ouID string, includeDisplay bool) (*EntityTypeListResponse, *common.ServiceError) {
+	ret := _mock.Called(ctx, category, limit, offset, ouID, includeDisplay)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetEntityTypeList")
@@ -582,18 +582,18 @@ func (_mock *EntityTypeServiceInterfaceMock) GetEntityTypeList(ctx context.Conte
 
 	var r0 *EntityTypeListResponse
 	var r1 *common.ServiceError
-	if returnFunc, ok := ret.Get(0).(func(context.Context, TypeCategory, int, int, bool) (*EntityTypeListResponse, *common.ServiceError)); ok {
-		return returnFunc(ctx, category, limit, offset, includeDisplay)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, TypeCategory, int, int, string, bool) (*EntityTypeListResponse, *common.ServiceError)); ok {
+		return returnFunc(ctx, category, limit, offset, ouID, includeDisplay)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, TypeCategory, int, int, bool) *EntityTypeListResponse); ok {
-		r0 = returnFunc(ctx, category, limit, offset, includeDisplay)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, TypeCategory, int, int, string, bool) *EntityTypeListResponse); ok {
+		r0 = returnFunc(ctx, category, limit, offset, ouID, includeDisplay)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*EntityTypeListResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, TypeCategory, int, int, bool) *common.ServiceError); ok {
-		r1 = returnFunc(ctx, category, limit, offset, includeDisplay)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, TypeCategory, int, int, string, bool) *common.ServiceError); ok {
+		r1 = returnFunc(ctx, category, limit, offset, ouID, includeDisplay)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*common.ServiceError)
@@ -612,12 +612,13 @@ type EntityTypeServiceInterfaceMock_GetEntityTypeList_Call struct {
 //   - category TypeCategory
 //   - limit int
 //   - offset int
+//   - ouID string
 //   - includeDisplay bool
-func (_e *EntityTypeServiceInterfaceMock_Expecter) GetEntityTypeList(ctx interface{}, category interface{}, limit interface{}, offset interface{}, includeDisplay interface{}) *EntityTypeServiceInterfaceMock_GetEntityTypeList_Call {
-	return &EntityTypeServiceInterfaceMock_GetEntityTypeList_Call{Call: _e.mock.On("GetEntityTypeList", ctx, category, limit, offset, includeDisplay)}
+func (_e *EntityTypeServiceInterfaceMock_Expecter) GetEntityTypeList(ctx interface{}, category interface{}, limit interface{}, offset interface{}, ouID interface{}, includeDisplay interface{}) *EntityTypeServiceInterfaceMock_GetEntityTypeList_Call {
+	return &EntityTypeServiceInterfaceMock_GetEntityTypeList_Call{Call: _e.mock.On("GetEntityTypeList", ctx, category, limit, offset, ouID, includeDisplay)}
 }
 
-func (_c *EntityTypeServiceInterfaceMock_GetEntityTypeList_Call) Run(run func(ctx context.Context, category TypeCategory, limit int, offset int, includeDisplay bool)) *EntityTypeServiceInterfaceMock_GetEntityTypeList_Call {
+func (_c *EntityTypeServiceInterfaceMock_GetEntityTypeList_Call) Run(run func(ctx context.Context, category TypeCategory, limit int, offset int, ouID string, includeDisplay bool)) *EntityTypeServiceInterfaceMock_GetEntityTypeList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -635,9 +636,13 @@ func (_c *EntityTypeServiceInterfaceMock_GetEntityTypeList_Call) Run(run func(ct
 		if args[3] != nil {
 			arg3 = args[3].(int)
 		}
-		var arg4 bool
+		var arg4 string
 		if args[4] != nil {
-			arg4 = args[4].(bool)
+			arg4 = args[4].(string)
+		}
+		var arg5 bool
+		if args[5] != nil {
+			arg5 = args[5].(bool)
 		}
 		run(
 			arg0,
@@ -645,6 +650,7 @@ func (_c *EntityTypeServiceInterfaceMock_GetEntityTypeList_Call) Run(run func(ct
 			arg2,
 			arg3,
 			arg4,
+			arg5,
 		)
 	})
 	return _c
@@ -655,7 +661,7 @@ func (_c *EntityTypeServiceInterfaceMock_GetEntityTypeList_Call) Return(entityTy
 	return _c
 }
 
-func (_c *EntityTypeServiceInterfaceMock_GetEntityTypeList_Call) RunAndReturn(run func(ctx context.Context, category TypeCategory, limit int, offset int, includeDisplay bool) (*EntityTypeListResponse, *common.ServiceError)) *EntityTypeServiceInterfaceMock_GetEntityTypeList_Call {
+func (_c *EntityTypeServiceInterfaceMock_GetEntityTypeList_Call) RunAndReturn(run func(ctx context.Context, category TypeCategory, limit int, offset int, ouID string, includeDisplay bool) (*EntityTypeListResponse, *common.ServiceError)) *EntityTypeServiceInterfaceMock_GetEntityTypeList_Call {
 	_c.Call.Return(run)
 	return _c
 }

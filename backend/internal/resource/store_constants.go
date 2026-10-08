@@ -4,6 +4,9 @@
 package resource
 
 import (
+	"fmt"
+	"strings"
+
 	dbmodel "github.com/thunder-id/thunderid/internal/system/database/model"
 )
 
@@ -418,3 +421,69 @@ var (
 		        )`,
 	}
 )
+
+// ouIDPlaceholders returns the Postgres and SQLite placeholder lists for an OU_ID IN clause whose
+// values are the first len(ouIDs) arguments.
+func ouIDPlaceholders(ouIDs []string) (postgres, sqlite string) {
+	postgresPlaceholders := make([]string, len(ouIDs))
+	sqlitePlaceholders := make([]string, len(ouIDs))
+	for i := range ouIDs {
+		postgresPlaceholders[i] = fmt.Sprintf("$%d", i+1)
+		sqlitePlaceholders[i] = "?"
+	}
+	return strings.Join(postgresPlaceholders, ","), strings.Join(sqlitePlaceholders, ",")
+}
+
+// buildGetResourceServerListByOUIDsQuery returns the query and args to list, with pagination, the
+// resource servers belonging to any of the given organization units.
+func buildGetResourceServerListByOUIDsQuery(
+	ouIDs []string, limit, offset int, deploymentID string,
+) (dbmodel.DBQuery, []interface{}) {
+	postgres, sqlite := ouIDPlaceholders(ouIDs)
+	n := len(ouIDs)
+	const columns = `SELECT ID, OU_ID, NAME, DESCRIPTION, IDENTIFIER, TYPE, PROPERTIES FROM "RESOURCE_SERVER" `
+	postgresQuery := fmt.Sprintf(columns+
+		`WHERE OU_ID IN (%s) AND DEPLOYMENT_ID = $%d ORDER BY CREATED_AT DESC LIMIT $%d OFFSET $%d`,
+		postgres, n+1, n+2, n+3)
+	sqliteQuery := fmt.Sprintf(columns+
+		`WHERE OU_ID IN (%s) AND DEPLOYMENT_ID = ? ORDER BY CREATED_AT DESC LIMIT ? OFFSET ?`, sqlite)
+
+	args := make([]interface{}, 0, n+3)
+	for _, id := range ouIDs {
+		args = append(args, id)
+	}
+	args = append(args, deploymentID, limit, offset)
+
+	return dbmodel.DBQuery{
+		ID:            "RSQ-RES_MGT-42",
+		Query:         postgresQuery,
+		PostgresQuery: postgresQuery,
+		SQLiteQuery:   sqliteQuery,
+	}, args
+}
+
+// buildGetResourceServerListCountByOUIDsQuery returns the query and args to count the resource
+// servers belonging to any of the given organization units.
+func buildGetResourceServerListCountByOUIDsQuery(
+	ouIDs []string, deploymentID string,
+) (dbmodel.DBQuery, []interface{}) {
+	postgres, sqlite := ouIDPlaceholders(ouIDs)
+	postgresQuery := fmt.Sprintf(
+		`SELECT COUNT(*) as total FROM "RESOURCE_SERVER" WHERE OU_ID IN (%s) AND DEPLOYMENT_ID = $%d`,
+		postgres, len(ouIDs)+1)
+	sqliteQuery := fmt.Sprintf(
+		`SELECT COUNT(*) as total FROM "RESOURCE_SERVER" WHERE OU_ID IN (%s) AND DEPLOYMENT_ID = ?`, sqlite)
+
+	args := make([]interface{}, 0, len(ouIDs)+1)
+	for _, id := range ouIDs {
+		args = append(args, id)
+	}
+	args = append(args, deploymentID)
+
+	return dbmodel.DBQuery{
+		ID:            "RSQ-RES_MGT-43",
+		Query:         postgresQuery,
+		PostgresQuery: postgresQuery,
+		SQLiteQuery:   sqliteQuery,
+	}, args
+}

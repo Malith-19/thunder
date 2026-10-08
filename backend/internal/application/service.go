@@ -38,7 +38,7 @@ type ApplicationServiceInterface interface {
 		ctx context.Context, app *model.ApplicationDTO) (*model.ApplicationDTO, *tidcommon.ServiceError)
 	ValidateApplication(ctx context.Context, app *model.ApplicationDTO) (
 		*model.ApplicationProcessedDTO, *providers.InboundAuthConfigWithSecret, *tidcommon.ServiceError)
-	GetApplicationList(ctx context.Context) (*model.ApplicationListResponse, *tidcommon.ServiceError)
+	GetApplicationList(ctx context.Context, ouID string) (*model.ApplicationListResponse, *tidcommon.ServiceError)
 	GetOAuthApplication(
 		ctx context.Context, clientID string) (*providers.OAuthClient, *tidcommon.ServiceError)
 	GetApplication(ctx context.Context, appID string) (*providers.Application, *tidcommon.ServiceError)
@@ -295,15 +295,33 @@ func (as *applicationService) ValidateApplication(ctx context.Context, app *mode
 
 // GetApplicationList list the applications.
 func (as *applicationService) GetApplicationList(
-	ctx context.Context) (*model.ApplicationListResponse, *tidcommon.ServiceError) {
-	totalResults, entErr := as.entityService.GetEntityListCount(ctx, providers.EntityCategoryApp, nil)
+	ctx context.Context, ouID string) (*model.ApplicationListResponse, *tidcommon.ServiceError) {
+	scope, svcErr := oupkg.ScopeToSubtree(ctx, as.ouService, nil, ouID)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+
+	var totalResults int
+	var entErr error
+	if scope == nil {
+		totalResults, entErr = as.entityService.GetEntityListCount(ctx, providers.EntityCategoryApp, nil)
+	} else {
+		totalResults, entErr = as.entityService.GetEntityListCountByOUIDs(
+			ctx, providers.EntityCategoryApp, scope.IDs, nil)
+	}
 	if entErr != nil {
 		as.logger.Error(ctx, "Failed to count application entities", log.Error(entErr))
 		return nil, &tidcommon.InternalServerError
 	}
 
-	entities, entErr := as.entityService.GetEntityList(
-		ctx, providers.EntityCategoryApp, serverconst.MaxCompositeStoreRecords, 0, nil)
+	var entities []providers.Entity
+	if scope == nil {
+		entities, entErr = as.entityService.GetEntityList(
+			ctx, providers.EntityCategoryApp, serverconst.MaxCompositeStoreRecords, 0, nil)
+	} else {
+		entities, entErr = as.entityService.GetEntityListByOUIDs(
+			ctx, providers.EntityCategoryApp, scope.IDs, serverconst.MaxCompositeStoreRecords, 0, nil)
+	}
 	if entErr != nil {
 		as.logger.Error(ctx, "Failed to list application entities", log.Error(entErr))
 		return nil, &tidcommon.InternalServerError
@@ -2206,6 +2224,7 @@ func buildBasicApplicationResponse(
 	}
 	// Enrich from entity system attributes.
 	if e != nil {
+		resp.OUID = e.OUID
 		var sysAttrs map[string]interface{}
 		if len(e.SystemAttributes) > 0 {
 			_ = json.Unmarshal(e.SystemAttributes, &sysAttrs)

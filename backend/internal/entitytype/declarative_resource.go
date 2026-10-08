@@ -68,7 +68,7 @@ func (e *entityTypeExporter) GetAllResourceIDs(ctx context.Context) ([]string, *
 	ids := []string{}
 
 	for {
-		response, err := e.service.GetEntityTypeList(ctx, e.category, limit, offset, false)
+		response, err := e.service.GetEntityTypeList(ctx, e.category, limit, offset, "", false)
 		if err != nil {
 			return nil, err
 		}

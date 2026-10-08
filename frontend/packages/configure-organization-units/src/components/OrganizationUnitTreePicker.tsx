@@ -3,7 +3,7 @@
 
 import {useQueryClient} from '@tanstack/react-query';
 import {PageLoadingAnimation, QueryErrorNotice, ResourceAvatar} from '@thunderid/components';
-import {useConfig} from '@thunderid/contexts';
+import {useConfig, useProject} from '@thunderid/contexts';
 import {useLogger} from '@thunderid/logger/react';
 import {useThunderID} from '@thunderid/react';
 import {Box, Typography, CircularProgress, TreeView, useTheme} from '@wso2/oxygen-ui';
@@ -219,6 +219,9 @@ interface OrganizationUnitTreePickerProps {
   onItemActivate?: (ouId: string) => void;
   error?: boolean;
   helperText?: string;
+  /**
+   * Organization unit the tree starts at. Defaults to the selected project's root organization unit.
+   */
   rootOuId?: string;
   /**
    * Hides the configured root OU and renders its direct children as the first visible level.
@@ -244,7 +247,7 @@ export default function OrganizationUnitTreePicker({
   onItemActivate = undefined,
   error = false,
   helperText = '',
-  rootOuId = undefined,
+  rootOuId: rootOuIdProp = undefined,
   hideRoot = false,
   maxHeight = 300,
   spacious = false,
@@ -253,6 +256,9 @@ export default function OrganizationUnitTreePicker({
   const theme = useTheme();
   const {t} = useTranslation();
   const logger = useLogger('OrganizationUnitTreePicker');
+  // Within a selected project, organization units outside it are never offered.
+  const {selectedProject} = useProject();
+  const rootOuId = rootOuIdProp ?? selectedProject?.id;
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
   const queryClient = useQueryClient();

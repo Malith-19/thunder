@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import userEvent from '@testing-library/user-event';
+import {ProjectContext, type Project} from '@thunderid/contexts';
 import {render, screen, waitFor} from '@thunderid/test-utils';
 import type {NavigateFunction} from 'react-router';
 import {describe, it, expect, beforeEach, vi} from 'vitest';
@@ -43,6 +44,8 @@ vi.mock('@wso2/oxygen-ui', async (importOriginal) => {
         columns,
         onRowClick = undefined,
         getRowId,
+        paginationModel = undefined,
+        onPaginationModelChange = undefined,
       }: {
         rows: Record<string, unknown>[];
         columns: {
@@ -52,8 +55,18 @@ vi.mock('@wso2/oxygen-ui', async (importOriginal) => {
         }[];
         onRowClick?: (params: {row: Record<string, unknown>}) => void;
         getRowId: (row: Record<string, unknown>) => string;
+        paginationModel?: {page: number; pageSize: number};
+        onPaginationModelChange?: (model: {page: number; pageSize: number}) => void;
       }) => (
         <div role="grid" data-testid="data-grid">
+          <button
+            type="button"
+            onClick={() =>
+              paginationModel && onPaginationModelChange?.({...paginationModel, page: paginationModel.page + 1})
+            }
+          >
+            Next page
+          </button>
           {rows.map((row: Record<string, unknown>) => (
             <div
               key={getRowId(row)}
@@ -175,6 +188,68 @@ describe('RolesList', () => {
     // The real loading indicator is owned by ListingTable.Provider (not testable with this mock).
     expect(screen.getByRole('grid')).toBeInTheDocument();
     expect(screen.queryByRole('row')).not.toBeInTheDocument();
+  });
+
+  it('should scope the roles request to the selected project', () => {
+    vi.mocked(useGetRoles).mockClear();
+    vi.mocked(useGetRoles).mockReturnValue({
+      data: mockRolesData,
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useGetRoles>);
+    const project: Project = {id: 'project-ou-1', handle: 'project-one', name: 'Project One'};
+
+    render(
+      <ProjectContext.Provider
+        value={{projects: [project], selectedProject: project, selectProject: vi.fn(), isLoading: false}}
+      >
+        <RolesList />
+      </ProjectContext.Provider>,
+    );
+
+    expect(vi.mocked(useGetRoles)).toHaveBeenLastCalledWith({limit: 10, offset: 0, ouId: 'project-ou-1'});
+  });
+
+  it('should not scope the roles request when no project is selected', () => {
+    vi.mocked(useGetRoles).mockClear();
+    vi.mocked(useGetRoles).mockReturnValue({
+      data: mockRolesData,
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useGetRoles>);
+
+    renderComponent();
+
+    expect(vi.mocked(useGetRoles)).toHaveBeenLastCalledWith({limit: 10, offset: 0, ouId: undefined});
+  });
+
+  it('should return to the first page when the selected project changes', async () => {
+    const user = userEvent.setup();
+    vi.mocked(useGetRoles).mockClear();
+    vi.mocked(useGetRoles).mockReturnValue({
+      data: mockRolesData,
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useGetRoles>);
+    const projectOne: Project = {id: 'project-ou-1', handle: 'project-one', name: 'Project One'};
+    const projectTwo: Project = {id: 'project-ou-2', handle: 'project-two', name: 'Project Two'};
+    const renderWithProject = (project: Project) => (
+      <ProjectContext.Provider
+        value={{projects: [projectOne, projectTwo], selectedProject: project, selectProject: vi.fn(), isLoading: false}}
+      >
+        <RolesList />
+      </ProjectContext.Provider>
+    );
+
+    const {rerender} = render(renderWithProject(projectOne));
+
+    await user.click(screen.getByRole('button', {name: 'Next page'}));
+    expect(vi.mocked(useGetRoles)).toHaveBeenLastCalledWith({limit: 10, offset: 10, ouId: 'project-ou-1'});
+
+    rerender(renderWithProject(projectTwo));
+
+    expect(vi.mocked(useGetRoles)).toHaveBeenLastCalledWith({limit: 10, offset: 0, ouId: 'project-ou-2'});
+    expect(vi.mocked(useGetRoles)).not.toHaveBeenCalledWith({limit: 10, offset: 10, ouId: 'project-ou-2'});
   });
 
   it('should render error state', () => {

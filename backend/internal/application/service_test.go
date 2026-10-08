@@ -527,13 +527,53 @@ func (suite *ServiceTestSuite) TestGetApplicationList_Success() {
 	mockStore.On("GetInboundClientList", mock.Anything).
 		Return([]inboundmodel.InboundClient{cfg1, cfg2}, nil)
 
-	result, svcErr := service.GetApplicationList(context.Background())
+	result, svcErr := service.GetApplicationList(context.Background(), "")
 
 	assert.NotNil(suite.T(), result)
 	assert.Nil(suite.T(), svcErr)
 	assert.Equal(suite.T(), 2, result.TotalResults)
 	assert.Equal(suite.T(), 2, result.Count)
 	assert.Len(suite.T(), result.Applications, 2)
+}
+
+func (suite *ServiceTestSuite) TestGetApplicationList_ScopedToOUSubtree() {
+	service, mockStore := suite.setupTestService()
+	mockOUService := service.ouService.(*oumock.OrganizationUnitServiceInterfaceMock)
+	mockOUService.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "ou-root").
+		Return([]string{"ou-root", "ou-child"}, nil)
+
+	sysAttrs, _ := json.Marshal(map[string]interface{}{"name": "App 1"})
+	entities := []providers.Entity{
+		{ID: "app1", Category: providers.EntityCategoryApp, OUID: "ou-child", SystemAttributes: sysAttrs},
+	}
+	ep := service.entityService.(*entitymock.EntityServiceInterfaceMock)
+	ep.On("GetEntityListCountByOUIDs", mock.Anything, providers.EntityCategoryApp,
+		[]string{"ou-root", "ou-child"}, mock.Anything).Return(1, nil)
+	ep.On("GetEntityListByOUIDs", mock.Anything, providers.EntityCategoryApp,
+		[]string{"ou-root", "ou-child"}, mock.AnythingOfType("int"), 0, mock.Anything).Return(entities, nil)
+	mockStore.On("GetInboundClientList", mock.Anything).
+		Return([]inboundmodel.InboundClient{{ID: "app1"}}, nil)
+
+	result, svcErr := service.GetApplicationList(context.Background(), "ou-root")
+
+	assert.Nil(suite.T(), svcErr)
+	assert.Equal(suite.T(), 1, result.TotalResults)
+	assert.Len(suite.T(), result.Applications, 1)
+	assert.Equal(suite.T(), "ou-child", result.Applications[0].OUID)
+	ep.AssertNotCalled(suite.T(), "GetEntityList", mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything)
+}
+
+func (suite *ServiceTestSuite) TestGetApplicationList_UnknownOU() {
+	service, _ := suite.setupTestService()
+	mockOUService := service.ouService.(*oumock.OrganizationUnitServiceInterfaceMock)
+	mockOUService.On("GetOrganizationUnitSubtreeIDs", mock.Anything, "missing").
+		Return(([]string)(nil), &ou.ErrorOrganizationUnitNotFound)
+
+	result, svcErr := service.GetApplicationList(context.Background(), "missing")
+
+	assert.Nil(suite.T(), result)
+	assert.Equal(suite.T(), ou.ErrorOrganizationUnitNotFound.Code, svcErr.Code)
 }
 
 func (suite *ServiceTestSuite) TestGetApplicationList_ListError() {
@@ -548,7 +588,7 @@ func (suite *ServiceTestSuite) TestGetApplicationList_ListError() {
 		mock.AnythingOfType("int"), mock.AnythingOfType("int"), mock.Anything).
 		Return(([]providers.Entity)(nil), epErr)
 
-	result, svcErr := service.GetApplicationList(context.Background())
+	result, svcErr := service.GetApplicationList(context.Background(), "")
 
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), svcErr)
@@ -571,7 +611,7 @@ func (suite *ServiceTestSuite) TestGetApplicationList_InboundFetchError() {
 	mockStore.On("GetInboundClientList", mock.Anything).
 		Return(([]inboundmodel.InboundClient)(nil), errors.New("db error"))
 
-	result, svcErr := service.GetApplicationList(context.Background())
+	result, svcErr := service.GetApplicationList(context.Background(), "")
 
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), svcErr)
@@ -4195,7 +4235,7 @@ func (suite *ServiceTestSuite) TestGetApplicationList_CountError() {
 		On("GetEntityListCount", mock.Anything, providers.EntityCategoryApp, mock.Anything).
 		Return(0, errors.New("internal error"))
 
-	result, svcErr := service.GetApplicationList(context.Background())
+	result, svcErr := service.GetApplicationList(context.Background(), "")
 
 	assert.Nil(suite.T(), result)
 	assert.Equal(suite.T(), &tidcommon.InternalServerError, svcErr)
@@ -4218,7 +4258,7 @@ func (suite *ServiceTestSuite) TestGetApplicationList_EntityWithoutInboundClient
 	mockStore.On("GetInboundClientList", mock.Anything).
 		Return([]inboundmodel.InboundClient{}, nil)
 
-	result, svcErr := service.GetApplicationList(context.Background())
+	result, svcErr := service.GetApplicationList(context.Background(), "")
 
 	assert.Nil(suite.T(), svcErr)
 	assert.NotNil(suite.T(), result)

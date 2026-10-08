@@ -59,7 +59,7 @@ func (e *resourceServerExporter) GetAllResourceIDs(ctx context.Context) ([]strin
 	ids := make([]string, 0)
 	offset := 0
 	for {
-		servers, err := e.service.GetResourceServerList(ctx, serverconst.MaxPageSize, offset)
+		servers, err := e.service.GetResourceServerList(ctx, serverconst.MaxPageSize, offset, "")
 		if err != nil {
 			return nil, err
 		}

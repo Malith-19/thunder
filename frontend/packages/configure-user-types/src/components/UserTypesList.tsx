@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {QueryErrorNotice} from '@thunderid/components';
+import {useProject} from '@thunderid/contexts';
 import {useDataGridLocaleText} from '@thunderid/hooks';
 import {useLogger} from '@thunderid/logger/react';
 import {getErrorMessage} from '@thunderid/utils';
@@ -41,7 +42,13 @@ export default function UserTypesList() {
   const routes = useUserTypeRoutes();
   const dataGridLocaleText = useDataGridLocaleText();
 
-  const {data: userTypesData, isLoading, error: userTypesRequestError, refetch} = useGetUserTypes();
+  const {selectedProject} = useProject();
+  const {
+    data: userTypesData,
+    isLoading,
+    error: userTypesRequestError,
+    refetch,
+  } = useGetUserTypes({ouId: selectedProject?.id});
   const deleteUserTypeMutation = useDeleteUserType();
 
   const [selectedUserTypeId, setSelectedUserTypeId] = useState<string | null>(null);

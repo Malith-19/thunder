@@ -93,12 +93,12 @@ func (c *compositeRoleStore) GetRoleList(ctx context.Context, limit, offset int)
 	return roles, nil
 }
 
-// GetRoleListCountByOUID retrieves the total count of unique roles belonging to the given
-// organization unit across both stores.
-func (c *compositeRoleStore) GetRoleListCountByOUID(ctx context.Context, ouID string) (int, error) {
-	capCount := func(fn func(context.Context, string) (int, error)) func() (int, error) {
+// GetRoleListCountByOUIDs retrieves the total count of unique roles belonging to any of the given
+// organization units across both stores.
+func (c *compositeRoleStore) GetRoleListCountByOUIDs(ctx context.Context, ouIDs []string) (int, error) {
+	capCount := func(fn func(context.Context, []string) (int, error)) func() (int, error) {
 		return func() (int, error) {
-			count, err := fn(ctx, ouID)
+			count, err := fn(ctx, ouIDs)
 			if err != nil {
 				return 0, err
 			}
@@ -106,10 +106,10 @@ func (c *compositeRoleStore) GetRoleListCountByOUID(ctx context.Context, ouID st
 		}
 	}
 	roles, limitExceeded, err := declarativeresource.CompositeMergeListHelperWithLimit(
-		capCount(c.dbStore.GetRoleListCountByOUID),
-		capCount(c.fileStore.GetRoleListCountByOUID),
-		func(count int) ([]Role, error) { return c.dbStore.GetRoleListByOUID(ctx, ouID, count, 0) },
-		func(count int) ([]Role, error) { return c.fileStore.GetRoleListByOUID(ctx, ouID, count, 0) },
+		capCount(c.dbStore.GetRoleListCountByOUIDs),
+		capCount(c.fileStore.GetRoleListCountByOUIDs),
+		func(count int) ([]Role, error) { return c.dbStore.GetRoleListByOUIDs(ctx, ouIDs, count, 0) },
+		func(count int) ([]Role, error) { return c.fileStore.GetRoleListByOUIDs(ctx, ouIDs, count, 0) },
 		mergeRoles,
 		serverconst.MaxCompositeStoreRecords+1,
 		0,
@@ -125,14 +125,14 @@ func (c *compositeRoleStore) GetRoleListCountByOUID(ctx context.Context, ouID st
 	return len(roles), nil
 }
 
-// GetRoleListByOUID retrieves roles belonging to the given organization unit from both stores
-// and merges them.
-func (c *compositeRoleStore) GetRoleListByOUID(
-	ctx context.Context, ouID string, limit, offset int,
+// GetRoleListByOUIDs retrieves roles belonging to any of the given organization units from both
+// stores and merges them.
+func (c *compositeRoleStore) GetRoleListByOUIDs(
+	ctx context.Context, ouIDs []string, limit, offset int,
 ) ([]Role, error) {
-	capCount := func(fn func(context.Context, string) (int, error)) func() (int, error) {
+	capCount := func(fn func(context.Context, []string) (int, error)) func() (int, error) {
 		return func() (int, error) {
-			count, err := fn(ctx, ouID)
+			count, err := fn(ctx, ouIDs)
 			if err != nil {
 				return 0, err
 			}
@@ -140,10 +140,10 @@ func (c *compositeRoleStore) GetRoleListByOUID(
 		}
 	}
 	roles, limitExceeded, err := declarativeresource.CompositeMergeListHelperWithLimit(
-		capCount(c.dbStore.GetRoleListCountByOUID),
-		capCount(c.fileStore.GetRoleListCountByOUID),
-		func(count int) ([]Role, error) { return c.dbStore.GetRoleListByOUID(ctx, ouID, count, 0) },
-		func(count int) ([]Role, error) { return c.fileStore.GetRoleListByOUID(ctx, ouID, count, 0) },
+		capCount(c.dbStore.GetRoleListCountByOUIDs),
+		capCount(c.fileStore.GetRoleListCountByOUIDs),
+		func(count int) ([]Role, error) { return c.dbStore.GetRoleListByOUIDs(ctx, ouIDs, count, 0) },
+		func(count int) ([]Role, error) { return c.fileStore.GetRoleListByOUIDs(ctx, ouIDs, count, 0) },
 		mergeRoles,
 		limit,
 		offset,
