@@ -24,7 +24,10 @@ import type {OrganizationUnit} from './organization-unit';
  * };
  * ```
  */
-export type CreateOrganizationUnitRequest = Pick<OrganizationUnit, 'handle' | 'name' | 'description' | 'parent'>;
+export type CreateOrganizationUnitRequest = Pick<
+  OrganizationUnit,
+  'handle' | 'name' | 'description' | 'parent' | 'projectId'
+>;
 
 /**
  * Request body for updating an organization unit.
@@ -68,6 +71,11 @@ export type UpdateOrganizationUnitRequest = Omit<OrganizationUnit, 'id'>;
  * ```
  */
 export interface OrganizationUnitListParams {
+  /**
+   * Lists only the root organization units of this project
+   */
+  projectId?: string;
+
   /**
    * Maximum number of results to return
    * @example 10

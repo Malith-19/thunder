@@ -52,6 +52,10 @@ type EntityServiceInterface interface {
 		ouIDs []string, filters map[string]interface{}) (int, error)
 	GetEntityListByOUIDs(ctx context.Context, category providers.EntityCategory,
 		ouIDs []string, limit, offset int, filters map[string]interface{}) ([]providers.Entity, error)
+	GetEntityListCountByProject(ctx context.Context, category providers.EntityCategory,
+		projectID string) (int, error)
+	GetEntityListByProject(ctx context.Context, category providers.EntityCategory,
+		projectID string, limit, offset int) ([]providers.Entity, error)
 
 	// Bulk
 	ValidateEntityIDs(ctx context.Context, entityIDs []string) ([]string, error)
@@ -425,6 +429,18 @@ func (s *entityService) GetEntityList(ctx context.Context, category providers.En
 func (s *entityService) GetEntityListCountByOUIDs(ctx context.Context, category providers.EntityCategory,
 	ouIDs []string, filters map[string]interface{}) (int, error) {
 	return s.store.GetEntityListCountByOUIDs(ctx, string(category), ouIDs, filters)
+}
+
+// GetEntityListCountByProject retrieves the count of entities of a category in a project.
+func (s *entityService) GetEntityListCountByProject(ctx context.Context, category providers.EntityCategory,
+	projectID string) (int, error) {
+	return s.store.GetEntityListCountByProject(ctx, string(category), projectID)
+}
+
+// GetEntityListByProject retrieves, with pagination, the entities of a category in a project.
+func (s *entityService) GetEntityListByProject(ctx context.Context, category providers.EntityCategory,
+	projectID string, limit, offset int) ([]providers.Entity, error) {
+	return s.store.GetEntityListByProject(ctx, string(category), projectID, limit, offset)
 }
 
 // GetEntityListByOUIDs retrieves a list of entities scoped to OU IDs.

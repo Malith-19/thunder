@@ -31,6 +31,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/limitQueryParam'
         - $ref: '#/components/parameters/offsetQueryParam'
+        - $ref: '#/components/parameters/projectIdQueryParam'
       responses:
         "200":
           description: List of roles
@@ -966,6 +967,14 @@ components:
         type: integer
         minimum: 0
         default: 0
+    projectIdQueryParam:
+      in: query
+      name: projectId
+      required: false
+      description: Lists only the resources that belong to this project.
+      schema:
+        type: string
+        format: uuid
     assigneeTypeQueryParam:
       in: query
       name: type
@@ -1063,6 +1072,10 @@ components:
           type: string
           format: uuid
           description: "ID of the organization unit this role belongs to"
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. Taken from the organization unit when it is in a project; omitted at the organization level.
         ouHandle:
           type: string
           readOnly: true
@@ -1091,6 +1104,10 @@ components:
           type: string
           format: uuid
           description: "ID of the organization unit this role belongs to"
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. Taken from the organization unit when it is in a project; omitted at the organization level.
         ouHandle:
           type: string
           readOnly: true
@@ -1126,6 +1143,10 @@ components:
           type: string
           format: uuid
           description: "ID of the organization unit this role belongs to"
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. Taken from the organization unit when it is in a project; omitted at the organization level.
         permissions:
           type: array
           items:
@@ -1151,6 +1172,10 @@ components:
           type: string
           format: uuid
           description: "ID of the organization unit this role belongs to"
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. Taken from the organization unit when it is in a project; omitted at the organization level.
         permissions:
           type: array
           items:

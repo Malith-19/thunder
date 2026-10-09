@@ -4,17 +4,20 @@
 package user
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
 	"github.com/thunder-id/thunderid/internal/entity"
 	"github.com/thunder-id/thunderid/internal/entitytype"
 	oupkg "github.com/thunder-id/thunderid/internal/ou"
+	"github.com/thunder-id/thunderid/internal/project"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	declarativeresource "github.com/thunder-id/thunderid/internal/system/declarative_resource"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
 	"github.com/thunder-id/thunderid/internal/system/sysauthz"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine/providers"
 )
 
 // Initialize initializes the user service and registers its routes.
@@ -24,9 +27,13 @@ func Initialize(
 	ouService oupkg.OrganizationUnitServiceInterface,
 	entityTypeService entitytype.EntityTypeServiceInterface,
 	authzService sysauthz.SystemAuthorizationServiceInterface,
+	projects project.Registry,
 ) (UserServiceInterface, oupkg.OUUserResolver, declarativeresource.ResourceExporter, error) {
 	// Step 1: Create service with entity service
-	userService := newUserService(authzService, entityService, ouService, entityTypeService)
+	userService := newUserService(authzService, entityService, ouService, entityTypeService, projects)
+	if projects != nil {
+		projects.AddUsageChecker(&projectUsageChecker{entityService: entityService})
+	}
 
 	// Step 2: Load user-specific indexed attributes into the entity store.
 	if err := entityService.LoadIndexedAttributes(getUserIndexedAttributes()); err != nil {
@@ -183,4 +190,15 @@ func registerRoutes(mux *http.ServeMux, userHandler *userHandler) {
 		func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNoContent)
 		}, opts3))
+}
+
+// projectUsageChecker keeps a project from being deleted while users still belong to it.
+type projectUsageChecker struct {
+	entityService entity.EntityServiceInterface
+}
+
+// HasResourcesInProject reports whether any user belongs to the project.
+func (c *projectUsageChecker) HasResourcesInProject(ctx context.Context, projectID string) (bool, error) {
+	count, err := c.entityService.GetEntityListCountByProject(ctx, providers.EntityCategoryUser, projectID)
+	return count > 0, err
 }

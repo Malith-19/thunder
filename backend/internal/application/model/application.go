@@ -16,6 +16,7 @@ import (
 type ApplicationDTO struct {
 	ID          string          `json:"id,omitempty" jsonschema:"Application ID. Auto-generated unique identifier."`
 	OUID        string          `json:"ouId,omitempty" jsonschema:"Organization unit ID. The OU this application belongs to."`
+	ProjectID   string          `json:"projectId,omitempty" jsonschema:"Project ID. The project this application belongs to. Taken from the organization unit when it is in a project."`
 	OUHandle    string          `json:"ouHandle,omitempty" jsonschema:"Organization unit handle. Resolved to an ID by the service layer."`
 	Name        string          `json:"name" jsonschema:"Application name."`
 	Description string          `json:"description,omitempty" jsonschema:"Optional description of the application's purpose or functionality."`
@@ -60,6 +61,7 @@ type BasicApplicationDTO struct {
 type ApplicationProcessedDTO struct {
 	ID          string          `yaml:"id,omitempty"`
 	OUID        string          `yaml:"ouId,omitempty"`
+	ProjectID   string          `yaml:"projectId,omitempty"`
 	Name        string          `yaml:"name,omitempty"`
 	Description string          `yaml:"description,omitempty"`
 	Type        ApplicationType `yaml:"type,omitempty"`
@@ -79,6 +81,7 @@ type ApplicationProcessedDTO struct {
 // ApplicationRequest represents the request structure for creating or updating an application.
 type ApplicationRequest struct {
 	OUID        string          `json:"ouId,omitempty" yaml:"ouId,omitempty"`
+	ProjectID   string          `json:"projectId,omitempty" yaml:"projectId,omitempty"`
 	Name        string          `json:"name" yaml:"name" native:"required,min=1,max=100"`
 	Description string          `json:"description" yaml:"description"`
 	Type        ApplicationType `json:"type,omitempty" yaml:"type,omitempty"`
@@ -100,6 +103,7 @@ type ApplicationRequest struct {
 type ApplicationRequestWithID struct {
 	ID          string          `json:"id" yaml:"id"`
 	OUID        string          `json:"ouId,omitempty" yaml:"ouId,omitempty"`
+	ProjectID   string          `json:"projectId,omitempty" yaml:"projectId,omitempty"`
 	OUHandle    string          `json:"ouHandle,omitempty" yaml:"ouHandle,omitempty"`
 	Name        string          `json:"name" yaml:"name"`
 	Description string          `json:"description" yaml:"description"`
@@ -123,6 +127,7 @@ type ApplicationRequestWithID struct {
 type ApplicationCompleteResponse struct {
 	ID          string          `json:"id,omitempty"`
 	OUID        string          `json:"ouId,omitempty"`
+	ProjectID   string          `json:"projectId,omitempty"`
 	Name        string          `json:"name"`
 	Description string          `json:"description,omitempty"`
 	ClientID    string          `json:"clientId,omitempty"`
@@ -145,6 +150,7 @@ type ApplicationCompleteResponse struct {
 type ApplicationGetResponse struct {
 	ID          string          `json:"id,omitempty"`
 	OUID        string          `json:"ouId,omitempty"`
+	ProjectID   string          `json:"projectId,omitempty"`
 	Name        string          `json:"name"`
 	Description string          `json:"description,omitempty"`
 	ClientID    string          `json:"clientId,omitempty"`
@@ -167,6 +173,8 @@ type ApplicationGetResponse struct {
 // does not embed InboundAuthProfile (which carries Assertion/LoginConsent/etc.).
 type BasicApplicationResponse struct {
 	ID                        string          `json:"id,omitempty" jsonschema:"Application ID."`
+	OUID                      string          `json:"ouId,omitempty" jsonschema:"Organization unit ID."`
+	ProjectID                 string          `json:"projectId,omitempty" jsonschema:"Project ID."`
 	Name                      string          `json:"name" jsonschema:"Application name."`
 	Description               string          `json:"description,omitempty" jsonschema:"Application description."`
 	ClientID                  string          `json:"clientId,omitempty" jsonschema:"OAuth Client ID."`

@@ -55,6 +55,7 @@ type RoleSummaryResponse struct {
 	Description string `json:"description,omitempty"`
 	OUID        string `json:"ouId"`
 	OUHandle    string `json:"ouHandle,omitempty"`
+	ProjectID   string `json:"projectId,omitempty"`
 	IsReadOnly  bool   `json:"isReadOnly"`
 }
 
@@ -65,6 +66,7 @@ type RoleResponse struct {
 	Description string                `json:"description,omitempty"`
 	OUID        string                `json:"ouId"`
 	OUHandle    string                `json:"ouHandle,omitempty"`
+	ProjectID   string                `json:"projectId,omitempty"`
 	Permissions []ResourcePermissions `json:"permissions"`
 }
 
@@ -73,6 +75,7 @@ type CreateRoleRequest struct {
 	Name        string                `json:"name"                  native:"required,min=1,max=100"`
 	Description string                `json:"description,omitempty"`
 	OUID        string                `json:"ouId"                  native:"required"`
+	ProjectID   string                `json:"projectId,omitempty"`
 	Permissions []ResourcePermissions `json:"permissions"`
 	Assignments []AssignmentRequest   `json:"assignments,omitempty"`
 }
@@ -84,6 +87,7 @@ type CreateRoleResponse struct {
 	Description string                `json:"description,omitempty"`
 	OUID        string                `json:"ouId"`
 	OUHandle    string                `json:"ouHandle,omitempty"`
+	ProjectID   string                `json:"projectId,omitempty"`
 	Permissions []ResourcePermissions `json:"permissions"`
 	Assignments []AssignmentResponse  `json:"assignments,omitempty"`
 }
@@ -93,6 +97,7 @@ type UpdateRoleRequest struct {
 	Name        string                `json:"name"                  native:"required,min=1,max=100"`
 	Description string                `json:"description,omitempty"`
 	OUID        string                `json:"ouId"                  native:"required"`
+	ProjectID   string                `json:"projectId,omitempty"`
 	Permissions []ResourcePermissions `json:"permissions"`
 }
 
@@ -134,6 +139,7 @@ type RoleCreationDetail struct {
 	Name        string
 	Description string
 	OUID        string
+	ProjectID   string
 	Permissions []ResourcePermissions
 	Assignments []RoleAssignment
 }
@@ -145,6 +151,7 @@ type RoleWithPermissionsAndAssignments struct {
 	Description string
 	OUID        string
 	OUHandle    string
+	ProjectID   string
 	Permissions []ResourcePermissions
 	Assignments []RoleAssignment
 }
@@ -169,6 +176,7 @@ type Role struct {
 	Description string
 	OUID        string
 	OUHandle    string
+	ProjectID   string
 	IsReadOnly  bool
 }
 
@@ -179,6 +187,7 @@ type RoleWithPermissions struct {
 	Description string
 	OUID        string
 	OUHandle    string
+	ProjectID   string
 	Permissions []ResourcePermissions
 }
 
@@ -187,6 +196,7 @@ type RoleUpdateDetail struct {
 	Name        string
 	Description string
 	OUID        string
+	ProjectID   string
 	Permissions []ResourcePermissions
 }
 

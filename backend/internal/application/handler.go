@@ -53,6 +53,7 @@ func (ah *applicationHandler) HandleApplicationPostRequest(w http.ResponseWriter
 
 	appDTO := model.ApplicationDTO{
 		OUID:        appRequest.OUID,
+		ProjectID:   appRequest.ProjectID,
 		Name:        appRequest.Name,
 		Description: appRequest.Description,
 		InboundAuthProfile: providers.InboundAuthProfile{
@@ -93,6 +94,7 @@ func (ah *applicationHandler) HandleApplicationPostRequest(w http.ResponseWriter
 	returnApp := model.ApplicationCompleteResponse{
 		ID:          createdAppDTO.ID,
 		OUID:        createdAppDTO.OUID,
+		ProjectID:   createdAppDTO.ProjectID,
 		Name:        createdAppDTO.Name,
 		Description: createdAppDTO.Description,
 		InboundAuthProfileReq: inboundmodel.InboundAuthProfileReq{
@@ -142,7 +144,7 @@ func (ah *applicationHandler) HandleApplicationPostRequest(w http.ResponseWriter
 // HandleApplicationListRequest handles the application request.
 func (ah *applicationHandler) HandleApplicationListRequest(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	listResponse, svcErr := ah.service.GetApplicationList(ctx)
+	listResponse, svcErr := ah.service.GetApplicationList(ctx, r.URL.Query().Get("projectId"))
 	if svcErr != nil {
 		ah.handleError(ctx, w, r, svcErr)
 		return
@@ -176,6 +178,7 @@ func (ah *applicationHandler) HandleApplicationGetRequest(w http.ResponseWriter,
 	returnApp := model.ApplicationGetResponse{
 		ID:          appDTO.ID,
 		OUID:        appDTO.OUID,
+		ProjectID:   appDTO.ProjectID,
 		Name:        appDTO.Name,
 		Description: appDTO.Description,
 		InboundAuthProfileReq: inboundmodel.InboundAuthProfileReq{
@@ -323,6 +326,7 @@ func (ah *applicationHandler) HandleApplicationPutRequest(w http.ResponseWriter,
 	updateReqAppDTO := model.ApplicationDTO{
 		ID:          id,
 		OUID:        appRequest.OUID,
+		ProjectID:   appRequest.ProjectID,
 		Name:        appRequest.Name,
 		Description: appRequest.Description,
 		InboundAuthProfile: providers.InboundAuthProfile{
@@ -363,6 +367,7 @@ func (ah *applicationHandler) HandleApplicationPutRequest(w http.ResponseWriter,
 	returnApp := model.ApplicationCompleteResponse{
 		ID:          updatedAppDTO.ID,
 		OUID:        updatedAppDTO.OUID,
+		ProjectID:   updatedAppDTO.ProjectID,
 		Name:        updatedAppDTO.Name,
 		Description: updatedAppDTO.Description,
 		InboundAuthProfileReq: inboundmodel.InboundAuthProfileReq{

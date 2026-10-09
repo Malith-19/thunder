@@ -360,6 +360,7 @@ func matchesOUBasicFilter(ou OrganizationUnitBasic, g *tidcommon.FilterGroup) bo
 		Handle:      ou.Handle,
 		Name:        ou.Name,
 		Description: ou.Description,
+		ProjectID:   ou.ProjectID,
 		CreatedAt:   ou.CreatedAt,
 		UpdatedAt:   ou.UpdatedAt,
 	}
@@ -380,6 +381,8 @@ func evaluateSingleClause(ou *OrganizationUnit, expr *tidcommon.FilterExpression
 		fieldVal = ou.CreatedAt.UTC().Format("2006-01-02T15:04:05Z")
 	case "updatedAt":
 		fieldVal = ou.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z")
+	case "projectId":
+		fieldVal = ou.ProjectID
 	default:
 		return false
 	}

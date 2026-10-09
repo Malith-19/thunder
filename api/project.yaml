@@ -1,0 +1,324 @@
+openapi: 3.0.3
+info:
+  title: Project API
+  version: "1.0"
+  description: |
+    Projects group the resources that make up one product or workload within a deployment.
+
+    A resource belongs to a project by carrying the project's ID in its `projectId` attribute.
+    Organization units, users, applications and roles carry one. A resource without a `projectId`
+    sits at the organization level, outside every project.
+
+    ## How a resource gets its project
+
+    - An organization unit in a project takes everything it owns with it: a child organization unit,
+      and the users, applications and roles it owns, belong to the same project. A request that names
+      another project is rejected.
+    - An organization unit outside every project holds people shared across projects. A resource it
+      owns may join any project, or none.
+
+    ## Authorization
+
+    Every route here requires the **root system permission**. Projects are managed at the
+    organization level.
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: https://{host}:{port}
+    variables:
+      host:
+        default: "localhost"
+      port:
+        default: "8090"
+
+tags:
+  - name: Projects
+    description: Groups of resources that make up one product or workload.
+
+security:
+  - OAuth2: [system]
+
+paths:
+  /projects:
+    get:
+      tags:
+        - Projects
+      summary: List projects
+      parameters:
+        - $ref: '#/components/parameters/limitQueryParam'
+        - $ref: '#/components/parameters/offsetQueryParam'
+      responses:
+        "200":
+          description: One page of projects, ordered by name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectListResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - Projects
+      summary: Create a project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+      responses:
+        "201":
+          description: The created project.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "409":
+          $ref: '#/components/responses/Conflict'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
+  /projects/{id}:
+    parameters:
+      - $ref: '#/components/parameters/idPathParam'
+    get:
+      tags:
+        - Projects
+      summary: Get a project
+      responses:
+        "200":
+          description: The project.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+        - Projects
+      summary: Update a project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+      responses:
+        "200":
+          description: The updated project.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          $ref: '#/components/responses/Conflict'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Projects
+      summary: Delete a project
+      description: |
+        Deletes a project that no organization unit, user, application or role belongs to any more.
+        A project that still has resources is not deleted and the request fails with 409.
+      responses:
+        "204":
+          description: The project was deleted.
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          $ref: '#/components/responses/Conflict'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://localhost:8090/oauth2/authorize
+          tokenUrl: https://localhost:8090/oauth2/token
+          scopes:
+            system: Access to system management APIs
+        clientCredentials:
+          tokenUrl: https://localhost:8090/oauth2/token
+          scopes:
+            system: Access to system management APIs
+
+  parameters:
+    idPathParam:
+      in: path
+      name: id
+      required: true
+      description: The project ID.
+      schema:
+        type: string
+        format: uuid
+    limitQueryParam:
+      in: query
+      name: limit
+      required: false
+      description: Maximum number of records to return.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 30
+    offsetQueryParam:
+      in: query
+      name: offset
+      required: false
+      description: Number of records to skip for pagination.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+  schemas:
+    Project:
+      type: object
+      required: [id, handle, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "01a11954-7e86-7699-bc1c-8e2fa68d2fbe"
+        handle:
+          type: string
+          description: Identifies the project in every environment. Lowercase letters, digits and hyphens.
+          example: "finance"
+        name:
+          type: string
+          example: "Finance"
+        description:
+          type: string
+          example: "Applications and roles of the finance team"
+    ProjectRequest:
+      type: object
+      required: [handle, name]
+      properties:
+        handle:
+          type: string
+          maxLength: 100
+          pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+          example: "finance"
+        name:
+          type: string
+          maxLength: 100
+          example: "Finance"
+        description:
+          type: string
+          example: "Applications and roles of the finance team"
+    ProjectListResponse:
+      type: object
+      required: [totalResults, startIndex, count, projects, links]
+      properties:
+        totalResults:
+          type: integer
+          example: 2
+        startIndex:
+          type: integer
+          example: 1
+        count:
+          type: integer
+          example: 2
+        projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+    Link:
+      type: object
+      properties:
+        href:
+          type: string
+          example: "/projects?offset=30&limit=30"
+        rel:
+          type: string
+          example: "next"
+    I18nMessage:
+      type: object
+      properties:
+        key:
+          type: string
+        defaultValue:
+          type: string
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: "Error code. The prefix identifies the service that produced the error; PRJ for projects."
+          example: "PRJ-1004"
+        message:
+          $ref: '#/components/schemas/I18nMessage'
+        description:
+          $ref: '#/components/schemas/I18nMessage'
+
+  responses:
+    BadRequest:
+      description: The request is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: The request is not authenticated.
+    Forbidden:
+      description: The caller does not hold the root system permission.
+    NotFound:
+      description: No project has the given ID.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: The handle is taken, or the project still has resources.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalServerError:
+      description: The server could not complete the request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

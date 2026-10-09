@@ -21,6 +21,10 @@ export interface UseGetApplicationsParams {
    * Number of records to skip for pagination.
    */
   offset?: number;
+  /**
+   * Lists only the resources that belong to this project.
+   */
+  projectId?: string;
 }
 
 /**
@@ -58,16 +62,19 @@ export interface UseGetApplicationsParams {
 export default function useGetApplications(params?: UseGetApplicationsParams): UseQueryResult<ApplicationListResponse> {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
-  const {limit = 30, offset = 0} = params ?? {};
+  const {limit = 30, offset = 0, projectId} = params ?? {};
 
   return useQuery<ApplicationListResponse>({
-    queryKey: [ApplicationQueryKeys.APPLICATIONS, {limit, offset}],
+    queryKey: [ApplicationQueryKeys.APPLICATIONS, {limit, offset, projectId}],
     queryFn: async (): Promise<ApplicationListResponse> => {
       const serverUrl: string = getServerUrl();
       const queryParams: URLSearchParams = new URLSearchParams({
         limit: limit.toString(),
         offset: offset.toString(),
       });
+      if (projectId) {
+        queryParams.append('projectId', projectId);
+      }
 
       const response: {
         data: ApplicationListResponse;

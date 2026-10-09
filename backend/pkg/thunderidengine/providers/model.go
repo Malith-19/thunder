@@ -696,6 +696,7 @@ type User struct {
 	ID         string          `json:"id,omitempty"`
 	OUID       string          `json:"ouId,omitempty"`
 	OUHandle   string          `json:"ouHandle,omitempty"`
+	ProjectID  string          `json:"projectId,omitempty"`
 	Type       string          `json:"type,omitempty"`
 	Attributes json.RawMessage `json:"attributes,omitempty"`
 	Display    string          `json:"display,omitempty"`
@@ -762,6 +763,7 @@ type Entity struct {
 	State            EntityState     `json:"state,omitempty"`
 	OUID             string          `json:"ouId,omitempty"`
 	OUHandle         string          `json:"ouHandle,omitempty"`
+	ProjectID        string          `json:"projectId,omitempty"`
 	Attributes       json.RawMessage `json:"attributes,omitempty"`
 	SystemAttributes json.RawMessage `json:"systemAttributes,omitempty"`
 	IsReadOnly       bool            `json:"isReadOnly"`
@@ -1191,6 +1193,7 @@ type ValidationRule struct {
 type Application struct {
 	ID          string `yaml:"id,omitempty" json:"id,omitempty" jsonschema:"Application ID. Auto-generated unique identifier."`
 	OUID        string `yaml:"ouId,omitempty" json:"ouId,omitempty" jsonschema:"Organization unit ID. The OU this application belongs to."`
+	ProjectID   string `yaml:"projectId,omitempty" json:"projectId,omitempty" jsonschema:"Project ID. The project this application belongs to."`
 	Name        string `yaml:"name,omitempty" json:"name,omitempty" jsonschema:"Application name."`
 	Description string `yaml:"description,omitempty" json:"description,omitempty" jsonschema:"Optional description of the application's purpose."`
 	Type        string `yaml:"type,omitempty" json:"type,omitempty" jsonschema:"Application type (browser, fullstack, mobile, m2m, mcp, custom)."`

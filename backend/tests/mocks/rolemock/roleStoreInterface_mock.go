@@ -1398,6 +1398,86 @@ func (_c *roleStoreInterfaceMock_GetRoleListByOUID_Call) RunAndReturn(run func(c
 	return _c
 }
 
+// GetRoleListByProject provides a mock function for the type roleStoreInterfaceMock
+func (_mock *roleStoreInterfaceMock) GetRoleListByProject(ctx context.Context, projectID string, limit int, offset int) ([]role.Role, error) {
+	ret := _mock.Called(ctx, projectID, limit, offset)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRoleListByProject")
+	}
+
+	var r0 []role.Role
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, int, int) ([]role.Role, error)); ok {
+		return returnFunc(ctx, projectID, limit, offset)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, int, int) []role.Role); ok {
+		r0 = returnFunc(ctx, projectID, limit, offset)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]role.Role)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, int, int) error); ok {
+		r1 = returnFunc(ctx, projectID, limit, offset)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// roleStoreInterfaceMock_GetRoleListByProject_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRoleListByProject'
+type roleStoreInterfaceMock_GetRoleListByProject_Call struct {
+	*mock.Call
+}
+
+// GetRoleListByProject is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID string
+//   - limit int
+//   - offset int
+func (_e *roleStoreInterfaceMock_Expecter) GetRoleListByProject(ctx interface{}, projectID interface{}, limit interface{}, offset interface{}) *roleStoreInterfaceMock_GetRoleListByProject_Call {
+	return &roleStoreInterfaceMock_GetRoleListByProject_Call{Call: _e.mock.On("GetRoleListByProject", ctx, projectID, limit, offset)}
+}
+
+func (_c *roleStoreInterfaceMock_GetRoleListByProject_Call) Run(run func(ctx context.Context, projectID string, limit int, offset int)) *roleStoreInterfaceMock_GetRoleListByProject_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 int
+		if args[2] != nil {
+			arg2 = args[2].(int)
+		}
+		var arg3 int
+		if args[3] != nil {
+			arg3 = args[3].(int)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *roleStoreInterfaceMock_GetRoleListByProject_Call) Return(roles []role.Role, err error) *roleStoreInterfaceMock_GetRoleListByProject_Call {
+	_c.Call.Return(roles, err)
+	return _c
+}
+
+func (_c *roleStoreInterfaceMock_GetRoleListByProject_Call) RunAndReturn(run func(ctx context.Context, projectID string, limit int, offset int) ([]role.Role, error)) *roleStoreInterfaceMock_GetRoleListByProject_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetRoleListCount provides a mock function for the type roleStoreInterfaceMock
 func (_mock *roleStoreInterfaceMock) GetRoleListCount(ctx context.Context) (int, error) {
 	ret := _mock.Called(ctx)
@@ -1520,6 +1600,72 @@ func (_c *roleStoreInterfaceMock_GetRoleListCountByOUID_Call) Return(n int, err 
 }
 
 func (_c *roleStoreInterfaceMock_GetRoleListCountByOUID_Call) RunAndReturn(run func(ctx context.Context, ouID string) (int, error)) *roleStoreInterfaceMock_GetRoleListCountByOUID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetRoleListCountByProject provides a mock function for the type roleStoreInterfaceMock
+func (_mock *roleStoreInterfaceMock) GetRoleListCountByProject(ctx context.Context, projectID string) (int, error) {
+	ret := _mock.Called(ctx, projectID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRoleListCountByProject")
+	}
+
+	var r0 int
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (int, error)); ok {
+		return returnFunc(ctx, projectID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) int); ok {
+		r0 = returnFunc(ctx, projectID)
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, projectID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// roleStoreInterfaceMock_GetRoleListCountByProject_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRoleListCountByProject'
+type roleStoreInterfaceMock_GetRoleListCountByProject_Call struct {
+	*mock.Call
+}
+
+// GetRoleListCountByProject is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID string
+func (_e *roleStoreInterfaceMock_Expecter) GetRoleListCountByProject(ctx interface{}, projectID interface{}) *roleStoreInterfaceMock_GetRoleListCountByProject_Call {
+	return &roleStoreInterfaceMock_GetRoleListCountByProject_Call{Call: _e.mock.On("GetRoleListCountByProject", ctx, projectID)}
+}
+
+func (_c *roleStoreInterfaceMock_GetRoleListCountByProject_Call) Run(run func(ctx context.Context, projectID string)) *roleStoreInterfaceMock_GetRoleListCountByProject_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *roleStoreInterfaceMock_GetRoleListCountByProject_Call) Return(n int, err error) *roleStoreInterfaceMock_GetRoleListCountByProject_Call {
+	_c.Call.Return(n, err)
+	return _c
+}
+
+func (_c *roleStoreInterfaceMock_GetRoleListCountByProject_Call) RunAndReturn(run func(ctx context.Context, projectID string) (int, error)) *roleStoreInterfaceMock_GetRoleListCountByProject_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -487,8 +487,8 @@ func (_c *RoleServiceInterfaceMock_GetResourceDependencies_Call) RunAndReturn(ru
 }
 
 // GetRoleList provides a mock function for the type RoleServiceInterfaceMock
-func (_mock *RoleServiceInterfaceMock) GetRoleList(ctx context.Context, limit int, offset int) (*role.RoleList, *common.ServiceError) {
-	ret := _mock.Called(ctx, limit, offset)
+func (_mock *RoleServiceInterfaceMock) GetRoleList(ctx context.Context, limit int, offset int, projectID string) (*role.RoleList, *common.ServiceError) {
+	ret := _mock.Called(ctx, limit, offset, projectID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetRoleList")
@@ -496,18 +496,18 @@ func (_mock *RoleServiceInterfaceMock) GetRoleList(ctx context.Context, limit in
 
 	var r0 *role.RoleList
 	var r1 *common.ServiceError
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int) (*role.RoleList, *common.ServiceError)); ok {
-		return returnFunc(ctx, limit, offset)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, string) (*role.RoleList, *common.ServiceError)); ok {
+		return returnFunc(ctx, limit, offset, projectID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int) *role.RoleList); ok {
-		r0 = returnFunc(ctx, limit, offset)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, string) *role.RoleList); ok {
+		r0 = returnFunc(ctx, limit, offset, projectID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*role.RoleList)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, int, int) *common.ServiceError); ok {
-		r1 = returnFunc(ctx, limit, offset)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int, int, string) *common.ServiceError); ok {
+		r1 = returnFunc(ctx, limit, offset, projectID)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*common.ServiceError)
@@ -525,11 +525,12 @@ type RoleServiceInterfaceMock_GetRoleList_Call struct {
 //   - ctx context.Context
 //   - limit int
 //   - offset int
-func (_e *RoleServiceInterfaceMock_Expecter) GetRoleList(ctx interface{}, limit interface{}, offset interface{}) *RoleServiceInterfaceMock_GetRoleList_Call {
-	return &RoleServiceInterfaceMock_GetRoleList_Call{Call: _e.mock.On("GetRoleList", ctx, limit, offset)}
+//   - projectID string
+func (_e *RoleServiceInterfaceMock_Expecter) GetRoleList(ctx interface{}, limit interface{}, offset interface{}, projectID interface{}) *RoleServiceInterfaceMock_GetRoleList_Call {
+	return &RoleServiceInterfaceMock_GetRoleList_Call{Call: _e.mock.On("GetRoleList", ctx, limit, offset, projectID)}
 }
 
-func (_c *RoleServiceInterfaceMock_GetRoleList_Call) Run(run func(ctx context.Context, limit int, offset int)) *RoleServiceInterfaceMock_GetRoleList_Call {
+func (_c *RoleServiceInterfaceMock_GetRoleList_Call) Run(run func(ctx context.Context, limit int, offset int, projectID string)) *RoleServiceInterfaceMock_GetRoleList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -543,10 +544,15 @@ func (_c *RoleServiceInterfaceMock_GetRoleList_Call) Run(run func(ctx context.Co
 		if args[2] != nil {
 			arg2 = args[2].(int)
 		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -557,7 +563,7 @@ func (_c *RoleServiceInterfaceMock_GetRoleList_Call) Return(roleList *role.RoleL
 	return _c
 }
 
-func (_c *RoleServiceInterfaceMock_GetRoleList_Call) RunAndReturn(run func(ctx context.Context, limit int, offset int) (*role.RoleList, *common.ServiceError)) *RoleServiceInterfaceMock_GetRoleList_Call {
+func (_c *RoleServiceInterfaceMock_GetRoleList_Call) RunAndReturn(run func(ctx context.Context, limit int, offset int, projectID string) (*role.RoleList, *common.ServiceError)) *RoleServiceInterfaceMock_GetRoleList_Call {
 	_c.Call.Return(run)
 	return _c
 }

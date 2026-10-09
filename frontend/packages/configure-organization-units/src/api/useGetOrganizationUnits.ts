@@ -45,12 +45,12 @@ export default function useGetOrganizationUnits(
 ): UseQueryResult<OrganizationUnitListResponse> {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
-  const {limit = 30, offset = 0} = params ?? {};
+  const {limit = 30, offset = 0, projectId} = params ?? {};
 
   return useQuery<OrganizationUnitListResponse>({
-    queryKey: [OrganizationUnitQueryKeys.ORGANIZATION_UNITS, {limit, offset}],
+    queryKey: [OrganizationUnitQueryKeys.ORGANIZATION_UNITS, {limit, offset, projectId}],
     queryFn: async (): Promise<OrganizationUnitListResponse> =>
-      fetchOrganizationUnits(http, getServerUrl(), {limit, offset}),
+      fetchOrganizationUnits(http, getServerUrl(), {limit, offset, projectId}),
     enabled,
   });
 }

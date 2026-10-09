@@ -91,6 +91,11 @@ vi.mock('../i18n/I18nProvider', () => ({
   default: ({children}: {children: ReactNode}) => <div data-testid="i18n-provider">{children}</div>,
 }));
 
+// Mock ProjectProvider (used by withProjects)
+vi.mock('../components/projects/ProjectProvider', () => ({
+  default: ({children}: {children: ReactNode}) => children,
+}));
+
 // Mock App component
 vi.mock('../App', () => ({
   default: () => <div data-testid="app">App Component</div>,

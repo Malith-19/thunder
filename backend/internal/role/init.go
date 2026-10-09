@@ -4,6 +4,7 @@
 package role
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/entitytype"
 	"github.com/thunder-id/thunderid/internal/group"
 	oupkg "github.com/thunder-id/thunderid/internal/ou"
+	"github.com/thunder-id/thunderid/internal/project"
 	resourcepkg "github.com/thunder-id/thunderid/internal/resource"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	declarativeresource "github.com/thunder-id/thunderid/internal/system/declarative_resource"
@@ -28,6 +30,7 @@ func Initialize(
 	resourceService resourcepkg.ResourceServiceInterface,
 	entityTypeService entitytype.EntityTypeServiceInterface,
 	authzService sysauthz.SystemAuthorizationServiceInterface,
+	projects project.Registry,
 ) (
 	RoleServiceInterface, RoleAssignmentServiceInterface, oupkg.OURoleResolver,
 	declarativeresource.ResourceExporter, error,
@@ -41,8 +44,12 @@ func Initialize(
 	// Step 2: Create service with store
 	roleService := newRoleService(
 		roleStore, entityService, groupService, ouService, resourceService,
-		transactioner, authzService,
+		transactioner, authzService, projects,
 	)
+
+	if projects != nil {
+		projects.AddUsageChecker(&projectUsageChecker{store: roleStore})
+	}
 
 	// Step 3: Load declarative resources into store (if applicable)
 	if fileStore != nil {
@@ -188,4 +195,15 @@ func registerRoutes(mux *http.ServeMux, roleHandler *roleHandler) {
 		func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNoContent)
 		}, opts3))
+}
+
+// projectUsageChecker keeps a project from being deleted while roles still belong to it.
+type projectUsageChecker struct {
+	store roleStoreInterface
+}
+
+// HasResourcesInProject reports whether any role belongs to the project.
+func (c *projectUsageChecker) HasResourcesInProject(ctx context.Context, projectID string) (bool, error) {
+	count, err := c.store.GetRoleListCountByProject(ctx, projectID)
+	return count > 0, err
 }

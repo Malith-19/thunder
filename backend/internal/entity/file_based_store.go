@@ -207,6 +207,42 @@ func (f *entityFileBasedStore) GetEntityList(ctx context.Context, category strin
 	return applyPagination(entities, limit, offset), nil
 }
 
+// GetEntityListCountByProject retrieves the count of entities of a category in a project.
+func (f *entityFileBasedStore) GetEntityListCountByProject(ctx context.Context,
+	category, projectID string) (int, error) {
+	entities, err := f.entitiesInProject(category, projectID)
+	if err != nil {
+		return 0, err
+	}
+	return len(entities), nil
+}
+
+// GetEntityListByProject retrieves, with pagination, the entities of a category in a project.
+func (f *entityFileBasedStore) GetEntityListByProject(ctx context.Context, category, projectID string,
+	limit, offset int) ([]providers.Entity, error) {
+	entities, err := f.entitiesInProject(category, projectID)
+	if err != nil {
+		return nil, err
+	}
+	return applyPagination(entities, limit, offset), nil
+}
+
+// entitiesInProject returns every entity of a category in a project.
+func (f *entityFileBasedStore) entitiesInProject(category, projectID string) ([]providers.Entity, error) {
+	resources, err := f.listEntityResources()
+	if err != nil {
+		return nil, err
+	}
+
+	entities := make([]providers.Entity, 0)
+	for _, resource := range resources {
+		if string(resource.Entity.Category) == category && resource.Entity.ProjectID == projectID {
+			entities = append(entities, resource.Entity)
+		}
+	}
+	return entities, nil
+}
+
 // GetEntityListCountByOUIDs retrieves the total count of entities by OU IDs.
 func (f *entityFileBasedStore) GetEntityListCountByOUIDs(ctx context.Context, category string,
 	ouIDs []string, filters map[string]interface{}) (int, error) {

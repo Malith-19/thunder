@@ -53,7 +53,7 @@ func (suite *RoleHandlerTestSuite) TestHandleRoleListRequest_Success() {
 		Links: []utils.Link{},
 	}
 
-	suite.mockService.On("GetRoleList", mock.Anything, 10, 0).Return(expectedResponse, nil)
+	suite.mockService.On("GetRoleList", mock.Anything, 10, 0, mock.Anything).Return(expectedResponse, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/roles?limit=10&offset=0", nil)
 	w := httptest.NewRecorder()
@@ -78,7 +78,7 @@ func (suite *RoleHandlerTestSuite) TestHandleRoleListRequest_DefaultPagination()
 		Links:        []utils.Link{},
 	}
 
-	suite.mockService.On("GetRoleList", mock.Anything, 30, 0).Return(expectedResponse, nil)
+	suite.mockService.On("GetRoleList", mock.Anything, 30, 0, mock.Anything).Return(expectedResponse, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/roles", nil)
 	w := httptest.NewRecorder()
@@ -89,7 +89,7 @@ func (suite *RoleHandlerTestSuite) TestHandleRoleListRequest_DefaultPagination()
 }
 
 func (suite *RoleHandlerTestSuite) TestHandleRoleListRequest_ServiceError() {
-	suite.mockService.On("GetRoleList", mock.Anything, 10, 0).Return(nil, &ErrorInvalidLimit)
+	suite.mockService.On("GetRoleList", mock.Anything, 10, 0, mock.Anything).Return(nil, &ErrorInvalidLimit)
 
 	req := httptest.NewRequest(http.MethodGet, "/roles?limit=10&offset=0", nil)
 	w := httptest.NewRecorder()

@@ -14,20 +14,21 @@ import (
 var (
 	// queryCreateRole creates a new role.
 	queryCreateRole = dbmodel.DBQuery{
-		ID:    "RLQ-ROLE_MGT-01",
-		Query: `INSERT INTO "ROLE" (ID, OU_ID, NAME, DESCRIPTION, DEPLOYMENT_ID) VALUES ($1, $2, $3, $4, $5)`,
+		ID: "RLQ-ROLE_MGT-01",
+		Query: `INSERT INTO "ROLE" (ID, OU_ID, NAME, DESCRIPTION, PROJECT_ID, DEPLOYMENT_ID) ` +
+			`VALUES ($1, $2, $3, $4, $5, $6)`,
 	}
 
 	// queryGetRoleByID retrieves a role by ID.
 	queryGetRoleByID = dbmodel.DBQuery{
 		ID:    "RLQ-ROLE_MGT-02",
-		Query: `SELECT ID, OU_ID, NAME, DESCRIPTION FROM "ROLE" WHERE ID = $1 AND DEPLOYMENT_ID = $2`,
+		Query: `SELECT ID, OU_ID, PROJECT_ID, NAME, DESCRIPTION FROM "ROLE" WHERE ID = $1 AND DEPLOYMENT_ID = $2`,
 	}
 
 	// queryGetRoleList retrieves a list of roles with pagination.
 	queryGetRoleList = dbmodel.DBQuery{
 		ID: "RLQ-ROLE_MGT-03",
-		Query: `SELECT ID, OU_ID, NAME, DESCRIPTION FROM "ROLE" ` +
+		Query: `SELECT ID, OU_ID, PROJECT_ID, NAME, DESCRIPTION FROM "ROLE" ` +
 			`WHERE DEPLOYMENT_ID = $3 ORDER BY CREATED_AT DESC LIMIT $1 OFFSET $2`,
 	}
 
@@ -39,8 +40,9 @@ var (
 
 	// queryUpdateRole updates a role.
 	queryUpdateRole = dbmodel.DBQuery{
-		ID:    "RLQ-ROLE_MGT-05",
-		Query: `UPDATE "ROLE" SET OU_ID = $1, NAME = $2, DESCRIPTION = $3 WHERE ID = $4 AND DEPLOYMENT_ID = $5`,
+		ID: "RLQ-ROLE_MGT-05",
+		Query: `UPDATE "ROLE" SET OU_ID = $1, NAME = $2, DESCRIPTION = $3, PROJECT_ID = $4 ` +
+			`WHERE ID = $5 AND DEPLOYMENT_ID = $6`,
 	}
 
 	// queryDeleteRole deletes a role.
@@ -162,7 +164,7 @@ var (
 	// queryGetRoleListByOUID retrieves a list of roles belonging to an organization unit with pagination.
 	queryGetRoleListByOUID = dbmodel.DBQuery{
 		ID: "RLQ-ROLE_MGT-23",
-		Query: `SELECT ID, OU_ID, NAME, DESCRIPTION FROM "ROLE" ` +
+		Query: `SELECT ID, OU_ID, PROJECT_ID, NAME, DESCRIPTION FROM "ROLE" ` +
 			`WHERE OU_ID = $1 AND DEPLOYMENT_ID = $4 ORDER BY CREATED_AT DESC LIMIT $2 OFFSET $3`,
 	}
 
@@ -170,6 +172,19 @@ var (
 	queryGetRoleListCountByOUID = dbmodel.DBQuery{
 		ID:    "RLQ-ROLE_MGT-24",
 		Query: `SELECT COUNT(*) as total FROM "ROLE" WHERE OU_ID = $1 AND DEPLOYMENT_ID = $2`,
+	}
+
+	// queryGetRoleListByProject retrieves a list of roles belonging to a project with pagination.
+	queryGetRoleListByProject = dbmodel.DBQuery{
+		ID: "RLQ-ROLE_MGT-30",
+		Query: `SELECT ID, OU_ID, PROJECT_ID, NAME, DESCRIPTION FROM "ROLE" ` +
+			`WHERE PROJECT_ID = $1 AND DEPLOYMENT_ID = $4 ORDER BY CREATED_AT DESC LIMIT $2 OFFSET $3`,
+	}
+
+	// queryGetRoleListCountByProject retrieves the total count of roles belonging to a project.
+	queryGetRoleListCountByProject = dbmodel.DBQuery{
+		ID:    "RLQ-ROLE_MGT-31",
+		Query: `SELECT COUNT(*) as total FROM "ROLE" WHERE PROJECT_ID = $1 AND DEPLOYMENT_ID = $2`,
 	}
 )
 
@@ -192,7 +207,7 @@ func buildGetRolesByNamesQuery(names []string, deploymentID string) (dbmodel.DBQ
 	args[len(names)] = deploymentID
 
 	deploymentPlaceholder := fmt.Sprintf("$%d", len(names)+1)
-	baseQuery := `SELECT ID, OU_ID, NAME, DESCRIPTION FROM "ROLE" WHERE NAME IN (%s) AND DEPLOYMENT_ID = %s`
+	baseQuery := `SELECT ID, OU_ID, PROJECT_ID, NAME, DESCRIPTION FROM "ROLE" WHERE NAME IN (%s) AND DEPLOYMENT_ID = %s`
 	postgresQuery := fmt.Sprintf(baseQuery, strings.Join(postgresPlaceholders, ","), deploymentPlaceholder)
 	sqliteQuery := fmt.Sprintf(baseQuery, strings.Join(sqlitePlaceholders, ","), "?")
 

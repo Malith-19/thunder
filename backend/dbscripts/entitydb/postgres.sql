@@ -6,6 +6,7 @@ CREATE TABLE "ORGANIZATION_UNIT" (
     HANDLE          VARCHAR(100)        NOT NULL,
     NAME            VARCHAR(100)        NOT NULL,
     DESCRIPTION     VARCHAR(255),
+    PROJECT_ID      VARCHAR(36),
     METADATA         JSONB,
     CREATED_AT      TIMESTAMPTZ NOT NULL,
     UPDATED_AT      TIMESTAMPTZ NOT NULL,
@@ -15,6 +16,9 @@ CREATE TABLE "ORGANIZATION_UNIT" (
 -- Composite index for handle-based OU lookups
 CREATE INDEX idx_ou_handle_parent ON "ORGANIZATION_UNIT" (DEPLOYMENT_ID, HANDLE, PARENT_ID);
 
+-- Lists organization units by project
+CREATE INDEX idx_ou_project ON "ORGANIZATION_UNIT" (DEPLOYMENT_ID, PROJECT_ID);
+
 -- Table to store Entities (unified identity principals: users, applications, agents)
 CREATE TABLE "ENTITY" (
     DEPLOYMENT_ID       VARCHAR(255) NOT NULL,
@@ -23,6 +27,7 @@ CREATE TABLE "ENTITY" (
     TYPE                VARCHAR(100) NOT NULL,
     STATE               VARCHAR(50)  NOT NULL,
     OU_ID               VARCHAR(36)  NOT NULL,
+    PROJECT_ID          VARCHAR(36),
     ATTRIBUTES          JSONB,
     SYSTEM_ATTRIBUTES   JSONB,
     CREDENTIALS         JSONB,
@@ -31,6 +36,9 @@ CREATE TABLE "ENTITY" (
     UPDATED_AT          TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (DEPLOYMENT_ID, ID)
 );
+
+-- Lists entities by project
+CREATE INDEX idx_entity_project ON "ENTITY" (DEPLOYMENT_ID, CATEGORY, PROJECT_ID);
 
 -- Composite index for category-based entity listing
 CREATE INDEX idx_entity_category_deployment ON "ENTITY" (DEPLOYMENT_ID, CATEGORY);

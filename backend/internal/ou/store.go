@@ -192,6 +192,7 @@ func (s *organizationUnitStore) CreateOrganizationUnit(ctx context.Context, ou O
 		ou.Name,
 		ou.Description,
 		string(ouMetadataBytes),
+		nullableProjectID(ou.ProjectID),
 		s.scope(ctx),
 		ou.CreatedAt,
 		ou.UpdatedAt,
@@ -388,6 +389,7 @@ func (s *organizationUnitStore) UpdateOrganizationUnit(ctx context.Context, ou O
 		ou.Name,
 		ou.Description,
 		string(ouMetadataBytes),
+		nullableProjectID(ou.ProjectID),
 		ou.UpdatedAt,
 		s.scope(ctx),
 	)
@@ -530,6 +532,8 @@ func buildOrganizationUnitBasicFromResultRow(
 		}
 	}
 
+	projectID, _ := row["project_id"].(string)
+
 	ouMetadataData, err := parseOUMetadata(row)
 	if err != nil {
 		return OrganizationUnitBasic{}, fmt.Errorf("failed to parse OU Metadata: %w", err)
@@ -555,6 +559,7 @@ func buildOrganizationUnitBasicFromResultRow(
 		Handle:      handle,
 		Name:        name,
 		Description: description,
+		ProjectID:   projectID,
 		LogoURL:     logoURL,
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
@@ -665,6 +670,7 @@ func buildOrganizationUnitFromResultRow(
 		Name:                      ou.Name,
 		Description:               ou.Description,
 		Parent:                    parentID,
+		ProjectID:                 ou.ProjectID,
 		ThemeID:                   themeID,
 		LayoutID:                  layoutID,
 		AuthFlowID:                authFlowID,
@@ -681,6 +687,15 @@ func buildOrganizationUnitFromResultRow(
 		CreatedAt:                 createdAt,
 		UpdatedAt:                 updatedAt,
 	}, nil
+}
+
+// nullableProjectID stores an organization unit outside every project as NULL rather than as an
+// empty string, so listing by project never matches it.
+func nullableProjectID(projectID string) interface{} {
+	if projectID == "" {
+		return nil
+	}
+	return projectID
 }
 
 // parseTimeField parses a time field from the database result.

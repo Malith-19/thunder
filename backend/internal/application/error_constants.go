@@ -659,4 +659,18 @@ var (
 			DefaultValue: "The client does not satisfy the Client ID Metadata Document rules",
 		},
 	}
+	// ErrorProjectChangeNotAllowed is the error returned when an update moves an application to
+	// another project.
+	ErrorProjectChangeNotAllowed = tidcommon.ServiceError{
+		Type: tidcommon.ClientErrorType,
+		Code: "APP-1051",
+		Error: tidcommon.I18nMessage{
+			Key:          "error.applicationservice.project_change_not_allowed",
+			DefaultValue: "Project cannot be changed",
+		},
+		ErrorDescription: tidcommon.I18nMessage{
+			Key:          "error.applicationservice.project_change_not_allowed_description",
+			DefaultValue: "An application stays in the project it was created in",
+		},
+	}
 )

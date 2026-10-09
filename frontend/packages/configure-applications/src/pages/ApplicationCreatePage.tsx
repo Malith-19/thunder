@@ -21,7 +21,7 @@ import {
 } from '@thunderid/configure-organization-units';
 import {isRowEmpty, useGetCorsConfig, useUpdateCorsConfig} from '@thunderid/configure-settings';
 import {useGetUserTypes} from '@thunderid/configure-user-types';
-import {useToast} from '@thunderid/contexts';
+import {useToast, useProject} from '@thunderid/contexts';
 import {DefaultTheme, useGetTheme, type Theme} from '@thunderid/design';
 import {useTemplateLiteralResolver} from '@thunderid/hooks';
 import {useLogger} from '@thunderid/logger/react';
@@ -64,6 +64,7 @@ import resolveApplicationType from '../utils/resolveApplicationType';
 import resolveCreationFlow from '../utils/resolveCreationFlow';
 
 export default function ApplicationCreatePage(): JSX.Element {
+  const {selectedProject} = useProject();
   const routes = useApplicationRoutes();
   const {t} = useTranslation();
   const {showToast} = useToast();
@@ -642,6 +643,7 @@ export default function ApplicationCreatePage(): JSX.Element {
       ...(hostingUrl && {url: hostingUrl}),
       ...(finalAuthFlowId && {authFlowId: finalAuthFlowId}),
       ...(effectiveOuId && {ouId: effectiveOuId}),
+      ...(selectedProject && {projectId: selectedProject.id}),
       ...(applicationType && {type: applicationType}),
       ...(finalTemplateId && {template: finalTemplateId}),
       ...(includesDesign && {

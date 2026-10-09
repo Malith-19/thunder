@@ -58,7 +58,7 @@ func TestOUStore_ValidateOrganizationUnitForUserType(t *testing.T) {
 
 	setupParentCheckError := func(t *testing.T, errCode string) (*userService, testMocks) {
 		parentOU := "0a08d914-d223-48c2-8939-55d719739a17"
-		ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+		ouServiceMock := newUserOUServiceMock(t)
 		ouServiceMock.On("IsOrganizationUnitExists",
 			mock.Anything, "d9e12416-58d3-4c17-a4e4-cc4d96122598").
 			Return(true, (*tidcommon.ServiceError)(nil)).
@@ -115,7 +115,7 @@ func TestOUStore_ValidateOrganizationUnitForUserType(t *testing.T) {
 			userType: testUserType,
 			ouID:     "4d8b40d6-3a17-4c19-9a94-5866df9b6bf5",
 			setup: func(t *testing.T) (*userService, testMocks) {
-				ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+				ouServiceMock := newUserOUServiceMock(t)
 				ouServiceMock.On("IsOrganizationUnitExists",
 					mock.Anything, "4d8b40d6-3a17-4c19-9a94-5866df9b6bf5").
 					Return(false, (*tidcommon.ServiceError)(nil)).
@@ -134,7 +134,7 @@ func TestOUStore_ValidateOrganizationUnitForUserType(t *testing.T) {
 			userType: testUserType,
 			ouID:     "6c8f5afd-8884-4ea0-a317-3d8579346d86",
 			setup: func(t *testing.T) (*userService, testMocks) {
-				ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+				ouServiceMock := newUserOUServiceMock(t)
 				ouServiceMock.On("IsOrganizationUnitExists",
 					mock.Anything, "6c8f5afd-8884-4ea0-a317-3d8579346d86").Return(false, &tidcommon.ServiceError{
 					Type: tidcommon.ClientErrorType,
@@ -154,7 +154,7 @@ func TestOUStore_ValidateOrganizationUnitForUserType(t *testing.T) {
 			userType: testUserType,
 			ouID:     "8d0c2f4e-8bb1-40bc-a0e1-ca5c4aacff63",
 			setup: func(t *testing.T) (*userService, testMocks) {
-				ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+				ouServiceMock := newUserOUServiceMock(t)
 				ouServiceMock.On("IsOrganizationUnitExists",
 					mock.Anything, "8d0c2f4e-8bb1-40bc-a0e1-ca5c4aacff63").Return(false, &tidcommon.ServiceError{
 					Type: tidcommon.ClientErrorType,
@@ -175,7 +175,7 @@ func TestOUStore_ValidateOrganizationUnitForUserType(t *testing.T) {
 			ouID:     "f4e7c7b2-0b11-46a4-83be-4b43a7f69c7e",
 			setup: func(t *testing.T) (*userService, testMocks) {
 				parentOU := "a88cbecc-53a3-4c3e-958f-7ee4bf2d7a28"
-				ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+				ouServiceMock := newUserOUServiceMock(t)
 				ouServiceMock.On("IsOrganizationUnitExists",
 					mock.Anything, "f4e7c7b2-0b11-46a4-83be-4b43a7f69c7e").
 					Return(true, (*tidcommon.ServiceError)(nil)).
@@ -209,7 +209,7 @@ func TestOUStore_ValidateOrganizationUnitForUserType(t *testing.T) {
 			ouID:     "1b5c7208-0d6f-4d5d-8fb9-6e8573549533",
 			setup: func(t *testing.T) (*userService, testMocks) {
 				parentOU := "c7e99c3b-e563-4c47-981f-1f7f755c8c68"
-				ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+				ouServiceMock := newUserOUServiceMock(t)
 				ouServiceMock.On("IsOrganizationUnitExists",
 					mock.Anything, "1b5c7208-0d6f-4d5d-8fb9-6e8573549533").
 					Return(true, (*tidcommon.ServiceError)(nil)).
@@ -258,7 +258,7 @@ func TestOUStore_ValidateOrganizationUnitForUserType(t *testing.T) {
 			userType: testUserType,
 			ouID:     "e5c3aa8a-d7df-46f8-9f3f-bb3245c95d7c",
 			setup: func(t *testing.T) (*userService, testMocks) {
-				ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+				ouServiceMock := newUserOUServiceMock(t)
 				ouServiceMock.On("IsOrganizationUnitExists",
 					mock.Anything, "e5c3aa8a-d7df-46f8-9f3f-bb3245c95d7c").
 					Return(true, (*tidcommon.ServiceError)(nil)).
@@ -311,7 +311,7 @@ func TestUserService_GetUsersByPath_HandlesOUServiceErrors(t *testing.T) {
 		{
 			name: "ReturnsInvalidHandlePathWhenResolverFails",
 			setup: func(t *testing.T) *userService {
-				ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+				ouServiceMock := newUserOUServiceMock(t)
 				ouServiceMock.
 					On("GetOrganizationUnitByPath", mock.Anything, "root").
 					Return(oupkg.OrganizationUnit{}, &tidcommon.ServiceError{
@@ -329,7 +329,7 @@ func TestUserService_GetUsersByPath_HandlesOUServiceErrors(t *testing.T) {
 		{
 			name: "ReturnsInvalidLimitWhenListingUsersFails",
 			setup: func(t *testing.T) *userService {
-				ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+				ouServiceMock := newUserOUServiceMock(t)
 				ouServiceMock.
 					On("GetOrganizationUnitByPath", mock.Anything, "root").
 					Return(oupkg.OrganizationUnit{ID: "ou-id"}, (*tidcommon.ServiceError)(nil)).
@@ -365,7 +365,7 @@ func TestUserService_GetUsersByPath_HandlesOUServiceErrors(t *testing.T) {
 }
 
 func TestUserService_CreateUserByPath_HandlesOUServiceErrors(t *testing.T) {
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	ouServiceMock.
 		On("GetOrganizationUnitByPath", mock.Anything, "root/engineering").
 		Return(oupkg.OrganizationUnit{}, &tidcommon.ServiceError{
@@ -387,7 +387,7 @@ func TestUserService_CreateUserByPath_HandlesOUServiceErrors(t *testing.T) {
 }
 
 func TestUserService_CreateUser_CallsCreateEntity(t *testing.T) {
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	ouServiceMock.On("IsOrganizationUnitExists", mock.Anything, testOrgID).
 		Return(true, (*tidcommon.ServiceError)(nil)).
 		Once()
@@ -432,7 +432,7 @@ func TestUserService_CreateUser_CallsCreateEntity(t *testing.T) {
 }
 
 func TestUserService_CreateUser_UUIDGenerationError(t *testing.T) {
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	ouServiceMock.On("IsOrganizationUnitExists", mock.Anything, testOrgID).
 		Return(true, (*tidcommon.ServiceError)(nil)).Once()
 
@@ -460,7 +460,7 @@ func TestUserService_CreateUser_UUIDGenerationError(t *testing.T) {
 func TestUserService_CreateUser_PropagatesStoreError(t *testing.T) {
 	storeErr := errors.New("store failure")
 
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	ouServiceMock.On("IsOrganizationUnitExists", mock.Anything, testOrgID).
 		Return(true, (*tidcommon.ServiceError)(nil)).
 		Once()
@@ -839,7 +839,7 @@ func TestUserService_GetUser_WithIncludeDisplay(t *testing.T) {
 	mockSchema.On("GetDisplayAttributesByHandles", mock.Anything, mock.Anything, []string{"employee"}).
 		Return(map[string]string{"employee": "email"}, nil).Once()
 
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	ouServiceMock.On("GetOrganizationUnitHandlesByIDs", mock.Anything, []string{testOrgID}).
 		Return(map[string]string{testOrgID: "test-ou"}, nil).Once()
 
@@ -900,7 +900,7 @@ func TestUserService_UpdateUser(t *testing.T) {
 		Attributes: updatedUser.Attributes,
 	}, nil).Once()
 
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	ouServiceMock.On("IsOrganizationUnitExists", mock.Anything, testOrgID).
 		Return(true, (*tidcommon.ServiceError)(nil)).
 		Once()
@@ -938,7 +938,7 @@ func TestUserService_UpdateUser_RejectsCredentialAttributes(t *testing.T) {
 
 	storeMock := entitymock.NewEntityServiceInterfaceMock(t)
 	storeMock.On("IsEntityDeclarative", mock.Anything, mock.Anything).Return(false, nil).Maybe()
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	entityTypeMock := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
 
 	storeMock.On("GetEntity", mock.Anything, userID).
@@ -1225,7 +1225,7 @@ func TestUserService_UpdateUser_ErrorPaths(t *testing.T) {
 
 			storeMock := entitymock.NewEntityServiceInterfaceMock(t)
 			storeMock.On("IsEntityDeclarative", mock.Anything, mock.Anything).Return(false, nil).Maybe()
-			ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+			ouServiceMock := newUserOUServiceMock(t)
 			entityTypeMock := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
 			if tt.setupMocks != nil {
 				tt.setupMocks(storeMock, ouServiceMock, entityTypeMock)
@@ -1432,7 +1432,7 @@ func TestUserService_UpdateUser_AuthzBranches(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			storeMock := entitymock.NewEntityServiceInterfaceMock(t)
 			storeMock.On("IsEntityDeclarative", mock.Anything, mock.Anything).Return(false, nil).Maybe()
-			ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+			ouServiceMock := newUserOUServiceMock(t)
 			entityTypeMock := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
 			authzMock := sysauthzmock.NewSystemAuthorizationServiceInterfaceMock(t)
 			// The existing user always lives in existingOU.
@@ -1514,7 +1514,7 @@ func TestUserService_UpdateUser_RejectsCredentialInMixedAttributes(t *testing.T)
 
 	storeMock := entitymock.NewEntityServiceInterfaceMock(t)
 	storeMock.On("IsEntityDeclarative", mock.Anything, mock.Anything).Return(false, nil).Maybe()
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	entityTypeMock := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
 
 	storeMock.On("GetEntity", mock.Anything, userID).
@@ -1565,7 +1565,7 @@ func TestUserService_GetUserList(t *testing.T) {
 		authzService:  newAllowAllAuthz(t),
 	}
 
-	resp, err := service.GetUserList(context.Background(), limit, offset, filters, false)
+	resp, err := service.GetUserList(context.Background(), limit, offset, "", filters, false)
 	require.Nil(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, 5, resp.TotalResults)
@@ -1595,7 +1595,7 @@ func TestUserService_GetUserList_ScopedByOUIDs(t *testing.T) {
 		authzService:  authzMock,
 	}
 
-	resp, err := service.GetUserList(context.Background(), limit, offset, filters, false)
+	resp, err := service.GetUserList(context.Background(), limit, offset, "", filters, false)
 	require.Nil(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, 3, resp.TotalResults)
@@ -1616,7 +1616,7 @@ func TestUserService_GetUserList_EmptyOUIDs(t *testing.T) {
 		authzService:  authzMock,
 	}
 
-	resp, err := service.GetUserList(context.Background(), limit, offset, filters, false)
+	resp, err := service.GetUserList(context.Background(), limit, offset, "", filters, false)
 	require.Nil(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, 0, resp.TotalResults)
@@ -1769,7 +1769,7 @@ func TestUserService_CRUD_ErrorCases(t *testing.T) {
 }
 
 func TestUserService_GetUsersByPath(t *testing.T) {
-	mockOU := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	mockOU := newUserOUServiceMock(t)
 	service := &userService{ouService: mockOU, authzService: newAllowAllAuthz(t)}
 	ctx := context.Background()
 
@@ -1788,7 +1788,7 @@ func TestUserService_GetUsersByPath(t *testing.T) {
 }
 
 func TestUserService_GetUsersByPath_WithIncludeDisplay(t *testing.T) {
-	mockOU := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	mockOU := newUserOUServiceMock(t)
 	mockStore := entitymock.NewEntityServiceInterfaceMock(t)
 	mockSchema := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
 	service := &userService{
@@ -1822,7 +1822,7 @@ func TestUserService_GetUsersByPath_WithIncludeDisplay(t *testing.T) {
 }
 
 func TestUserService_GetUsersByPath_WithIncludeDisplay_BatchFetchError(t *testing.T) {
-	mockOU := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	mockOU := newUserOUServiceMock(t)
 	mockStore := entitymock.NewEntityServiceInterfaceMock(t)
 	service := &userService{
 		ouService:     mockOU,
@@ -1852,7 +1852,7 @@ func TestUserService_GetUsersByPath_WithIncludeDisplay_BatchFetchError(t *testin
 }
 
 func TestNewFunctions(t *testing.T) {
-	svc := newUserService(nil, nil, nil, nil)
+	svc := newUserService(nil, nil, nil, nil, nil)
 	require.NotNil(t, svc)
 
 	handler := newUserHandler(svc)
@@ -1879,7 +1879,7 @@ func TestUserService_Validation_EdgeCases(t *testing.T) {
 func TestUserService_MoreErrorCases(t *testing.T) {
 	storeMock := &entitymock.EntityServiceInterfaceMock{}
 	storeMock.On("IsEntityDeclarative", mock.Anything, mock.Anything).Return(false, nil).Maybe()
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	entityTypeMock := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
 	authzMock := newAllowAllAuthz(t)
 	service := &userService{
@@ -1966,7 +1966,7 @@ func TestUserService_CreateUser_EntityErrors(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+			ouServiceMock := newUserOUServiceMock(t)
 			ouServiceMock.On("IsOrganizationUnitExists", mock.Anything, testOrgID).
 				Return(true, (*tidcommon.ServiceError)(nil)).Once()
 
@@ -2036,7 +2036,7 @@ func TestUserService_UpdateUser_SchemaNotFound(t *testing.T) {
 			OUID: testOrgID, Type: testUserType,
 		}, nil).Once()
 
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	ouServiceMock.On("IsOrganizationUnitExists", mock.Anything, testOrgID).
 		Return(true, (*tidcommon.ServiceError)(nil)).Once()
 
@@ -2225,7 +2225,7 @@ func TestUserService_GetUserList_ErrorCases(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			svc := tc.setup(t)
-			resp, err := svc.GetUserList(context.Background(), limit, offset, filters, false)
+			resp, err := svc.GetUserList(context.Background(), limit, offset, "", filters, false)
 			require.Nil(t, resp)
 			require.NotNil(t, err)
 			require.Equal(t, tc.wantErrCode, err.Code)
@@ -2252,7 +2252,7 @@ func TestUserService_GetUsersByPath_AuthzChecks(t *testing.T) {
 		{
 			name: "AuthzDenied_ReturnsUnauthorized",
 			setup: func(t *testing.T) *userService {
-				ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+				ouServiceMock := newUserOUServiceMock(t)
 				ouServiceMock.On("GetOrganizationUnitByPath", mock.Anything, "root").
 					Return(oupkg.OrganizationUnit{ID: ouID}, (*tidcommon.ServiceError)(nil)).Once()
 
@@ -2270,7 +2270,7 @@ func TestUserService_GetUsersByPath_AuthzChecks(t *testing.T) {
 		{
 			name: "AuthzServiceError_ReturnsInternalServerError",
 			setup: func(t *testing.T) *userService {
-				ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+				ouServiceMock := newUserOUServiceMock(t)
 				ouServiceMock.On("GetOrganizationUnitByPath", mock.Anything, "root").
 					Return(oupkg.OrganizationUnit{ID: ouID}, (*tidcommon.ServiceError)(nil)).Once()
 
@@ -3405,7 +3405,7 @@ func TestUserService_GetUserList_WithIncludeDisplay(t *testing.T) {
 	schemaMock.On("GetDisplayAttributesByHandles", mock.Anything, mock.Anything, []string{"employee"}).
 		Return(map[string]string{"employee": "name"}, (*tidcommon.ServiceError)(nil)).Once()
 
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	ouServiceMock.On("GetOrganizationUnitHandlesByIDs", mock.Anything,
 		mock.MatchedBy(func(ids []string) bool {
 			if len(ids) != 2 {
@@ -3423,7 +3423,7 @@ func TestUserService_GetUserList_WithIncludeDisplay(t *testing.T) {
 		authzService:      newAllowAllAuthz(t),
 	}
 
-	resp, err := service.GetUserList(context.Background(), limit, offset, filters, true)
+	resp, err := service.GetUserList(context.Background(), limit, offset, "", filters, true)
 	require.Nil(t, err)
 	require.NotNil(t, resp)
 	require.Len(t, resp.Users, 2)
@@ -3436,7 +3436,7 @@ func TestUserService_GetUserList_WithIncludeDisplay(t *testing.T) {
 // TestResolveUserOUHandle_OUHandleResolved verifies that when only ou_handle is set,
 // it is resolved to ou_id via the OU service.
 func TestResolveUserOUHandle_OUHandleResolved(t *testing.T) {
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	ouServiceMock.On("GetOrganizationUnitByPath", mock.Anything, "default").
 		Return(oupkg.OrganizationUnit{ID: "ou-resolved"}, (*tidcommon.ServiceError)(nil)).Once()
 
@@ -3464,7 +3464,7 @@ func TestResolveUserOUHandle_OUIDAlreadySet(t *testing.T) {
 // TestResolveUserOUHandle_BothProvided verifies that when both ou_id and ou_handle are
 // provided, ou_id is retained and the OU service is never called.
 func TestResolveUserOUHandle_BothProvided(t *testing.T) {
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 
 	svc := &userService{ouService: ouServiceMock}
 	u := &providers.User{ID: "u1", OUID: "ou-direct", OUHandle: "default"}
@@ -3479,7 +3479,7 @@ func TestResolveUserOUHandle_BothProvided(t *testing.T) {
 // TestResolveUserOUHandle_OUHandleNotFound verifies that a not-found response from the OU
 // service is surfaced as ErrorInvalidRequestFormat.
 func TestResolveUserOUHandle_OUHandleNotFound(t *testing.T) {
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	ouServiceMock.On("GetOrganizationUnitByPath", mock.Anything, "missing").
 		Return(oupkg.OrganizationUnit{}, &oupkg.ErrorOrganizationUnitNotFound).Once()
 
@@ -3535,7 +3535,7 @@ func TestUserService_GetUser_DisplayOUHandleError(t *testing.T) {
 	mockSchema.On("GetDisplayAttributesByHandles", mock.Anything, mock.Anything, []string{"employee"}).
 		Return(map[string]string{"employee": "email"}, (*tidcommon.ServiceError)(nil)).Once()
 
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	ouServiceMock.On("GetOrganizationUnitHandlesByIDs", mock.Anything, []string{testOrgID}).
 		Return(map[string]string(nil), &tidcommon.InternalServerError).Once()
 
@@ -3604,7 +3604,7 @@ func TestUserService_DeleteUser_NotFoundOnDelete(t *testing.T) {
 // TestPopulateOUHandles_HandleResolutionError verifies that populateOUHandles returns early
 // without setting handles when the OU service fails.
 func TestPopulateOUHandles_HandleResolutionError(t *testing.T) {
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	ouServiceMock.On("GetOrganizationUnitHandlesByIDs", mock.Anything, []string{testOrgID}).
 		Return(map[string]string(nil), &tidcommon.InternalServerError).Once()
 
@@ -3619,7 +3619,7 @@ func TestPopulateOUHandles_HandleResolutionError(t *testing.T) {
 // type service yields an internal server error after the OU existence check passes.
 func TestValidateOrganizationUnitForUserType_NilEntityTypeService(t *testing.T) {
 	ouID := "2b4f9c1e-2222-4c19-9a94-5866df9b6bf5"
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	ouServiceMock.On("IsOrganizationUnitExists", mock.Anything, ouID).
 		Return(true, (*tidcommon.ServiceError)(nil)).Once()
 
@@ -3634,7 +3634,7 @@ func TestValidateOrganizationUnitForUserType_NilEntityTypeService(t *testing.T) 
 // entity type service error yields an internal server error.
 func TestValidateOrganizationUnitForUserType_EntityTypeLookupError(t *testing.T) {
 	ouID := "3c5fa02d-3333-4ea0-a317-3d8579346d86"
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	ouServiceMock.On("IsOrganizationUnitExists", mock.Anything, ouID).
 		Return(true, (*tidcommon.ServiceError)(nil)).Once()
 
@@ -3653,7 +3653,7 @@ func TestValidateOrganizationUnitForUserType_EntityTypeLookupError(t *testing.T)
 // response yields an internal server error.
 func TestValidateOrganizationUnitForUserType_NilEntityType(t *testing.T) {
 	ouID := "4d60b13e-4444-4ea0-a317-3d8579346d86"
-	ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	ouServiceMock := newUserOUServiceMock(t)
 	ouServiceMock.On("IsOrganizationUnitExists", mock.Anything, ouID).
 		Return(true, (*tidcommon.ServiceError)(nil)).Once()
 
@@ -3922,4 +3922,12 @@ func TestGetUserMetadata_GetEntityTypeSchemaError(t *testing.T) {
 	require.Nil(t, schema)
 	require.NotNil(t, svcErr)
 	require.Equal(t, entitytype.ErrorEntityTypeNotFound.Code, svcErr.Code)
+}
+
+// newUserOUServiceMock returns an OU service mock that resolves any organization unit as one outside
+// every project, which is what creating or updating a user looks up to find the user's project.
+func newUserOUServiceMock(t *testing.T) *oumock.OrganizationUnitServiceInterfaceMock {
+	m := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+	m.On("GetOrganizationUnit", mock.Anything, mock.Anything).Maybe().Return(oupkg.OrganizationUnit{}, nil)
+	return m
 }

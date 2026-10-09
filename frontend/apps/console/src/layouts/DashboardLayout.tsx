@@ -40,6 +40,7 @@ import {
 import {useEffect, useMemo, useState, type JSX, type ReactNode} from 'react';
 import {useTranslation} from 'react-i18next';
 import {Link as NavigateLink, Outlet, useLocation, useNavigate} from 'react-router';
+import ProjectSwitcher from '../components/projects/ProjectSwitcher';
 import RouteConfig from '../configs/RouteConfig';
 
 const ICON_BUTTON_SX = {
@@ -376,6 +377,7 @@ export default function DashboardLayout({collapseSidebar = false}: DashboardLayo
           </Header.Brand>
           <Header.Spacer />
           <Header.Actions>
+            <ProjectSwitcher />
             <ColorSchemeToggle />
             <Divider orientation="vertical" flexItem sx={{mx: 1, display: {xs: 'none', sm: 'block'}}} />
             <User>

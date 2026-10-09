@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"path"
 	"sort"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/entity"
 	"github.com/thunder-id/thunderid/internal/entitytype"
 	oupkg "github.com/thunder-id/thunderid/internal/ou"
+	"github.com/thunder-id/thunderid/internal/project"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/resourcedependency"
@@ -31,7 +33,7 @@ const loggerComponentName = "UserService"
 
 // UserServiceInterface defines the interface for the user service.
 type UserServiceInterface interface {
-	GetUserList(ctx context.Context, limit, offset int,
+	GetUserList(ctx context.Context, limit, offset int, projectID string,
 		filters map[string]interface{}, includeDisplay bool) (*UserListResponse, *tidcommon.ServiceError)
 	GetUsersByPath(ctx context.Context, handlePath string, limit, offset int,
 		filters map[string]interface{}, includeDisplay bool) (*UserListResponse, *tidcommon.ServiceError)
@@ -57,6 +59,7 @@ type UserServiceInterface interface {
 
 // userService is the default implementation of the UserServiceInterface.
 type userService struct {
+	projects           project.ExistenceChecker
 	authzService       sysauthz.SystemAuthorizationServiceInterface
 	entityService      entity.EntityServiceInterface
 	ouService          oupkg.OrganizationUnitServiceInterface
@@ -71,8 +74,10 @@ func newUserService(
 	entityService entity.EntityServiceInterface,
 	ouService oupkg.OrganizationUnitServiceInterface,
 	entityTypeService entitytype.EntityTypeServiceInterface,
+	projects project.ExistenceChecker,
 ) UserServiceInterface {
 	return &userService{
+		projects:          projects,
 		authzService:      authzService,
 		entityService:     entityService,
 		ouService:         ouService,
@@ -82,7 +87,7 @@ func newUserService(
 }
 
 // GetUserList retrieves a list of users with pagination and filtering.
-func (us *userService) GetUserList(ctx context.Context, limit, offset int,
+func (us *userService) GetUserList(ctx context.Context, limit, offset int, projectID string,
 	filters map[string]interface{}, includeDisplay bool) (*UserListResponse, *tidcommon.ServiceError) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, loggerComponentName))
 
@@ -97,6 +102,10 @@ func (us *userService) GetUserList(ctx context.Context, limit, offset int,
 		logger.Error(ctx, "Failed to resolve accessible resources for listing users",
 			log.Any("error", svcErr))
 		return nil, &tidcommon.InternalServerError
+	}
+
+	if projectID != "" {
+		return us.listUsersByProject(ctx, projectID, accessible, limit, offset, includeDisplay, logger)
 	}
 
 	// Unfiltered path: system-level caller — return all users.
@@ -130,6 +139,48 @@ func (us *userService) listAllUsers(
 	}
 
 	return buildUserListResponse(users, totalCount, limit, offset, utils.DisplayQueryParam(includeDisplay)), nil
+}
+
+// listUsersByProject retrieves the users of a project. A caller limited to some organization units
+// sees only the project's users in those units.
+func (us *userService) listUsersByProject(
+	ctx context.Context, projectID string, accessible *sysauthz.AccessibleResources, limit, offset int,
+	includeDisplay bool, logger *log.Logger,
+) (*UserListResponse, *tidcommon.ServiceError) {
+	totalCount, err := us.entityService.GetEntityListCountByProject(ctx, providers.EntityCategoryUser, projectID)
+	if err != nil {
+		return nil, logErrorAndReturnServerError(ctx, logger, "Failed to get user list count", err)
+	}
+
+	entities, err := us.entityService.GetEntityListByProject(
+		ctx, providers.EntityCategoryUser, projectID, limit, offset)
+	if err != nil {
+		return nil, logErrorAndReturnServerError(ctx, logger, "Failed to get user list", err)
+	}
+
+	if !accessible.AllAllowed {
+		allowed := make(map[string]struct{}, len(accessible.IDs))
+		for _, id := range accessible.IDs {
+			allowed[id] = struct{}{}
+		}
+		visible := make([]providers.Entity, 0, len(entities))
+		for _, e := range entities {
+			if _, ok := allowed[e.OUID]; ok {
+				visible = append(visible, e)
+			}
+		}
+		entities = visible
+		totalCount = len(visible)
+	}
+
+	users := entitiesToUsers(entities)
+	if includeDisplay {
+		us.populateUserDisplayNames(ctx, users, logger)
+		us.populateOUHandles(ctx, users, logger)
+	}
+
+	return buildUserListResponse(users, totalCount, limit, offset,
+		utils.DisplayQueryParam(includeDisplay)+"&projectId="+url.QueryEscape(projectID)), nil
 }
 
 // listUsersByOUIDs retrieves users scoped to the given organization unit IDs.
@@ -324,6 +375,10 @@ func (us *userService) CreateUser(
 			logger.Error(ctx, "Failed to generate UUID", log.Error(err))
 			return nil, &tidcommon.InternalServerError
 		}
+	}
+
+	if svcErr := us.resolveUserProject(ctx, user); svcErr != nil {
+		return nil, svcErr
 	}
 
 	e := userToEntity(user)
@@ -585,6 +640,10 @@ func (us *userService) UpdateUser(
 				}
 			}
 		}
+	}
+
+	if svcErr := us.resolveUserProject(ctx, user); svcErr != nil {
+		return nil, svcErr
 	}
 
 	e := userToEntity(user)
@@ -1271,5 +1330,23 @@ func (us *userService) ResolveUserOUHandle(
 		}
 		user.OUID = ou.ID
 	}
+	return nil
+}
+
+// resolveUserProject sets the project a user belongs to from the request and the user's
+// organization unit.
+func (us *userService) resolveUserProject(ctx context.Context, user *providers.User) *tidcommon.ServiceError {
+	ou, svcErr := us.ouService.GetOrganizationUnit(ctx, user.OUID)
+	if svcErr != nil {
+		if svcErr.Code == oupkg.ErrorOrganizationUnitNotFound.Code {
+			return &ErrorOrganizationUnitNotFound
+		}
+		return &tidcommon.InternalServerError
+	}
+	projectID, svcErr := project.ResolveProjectID(ctx, us.projects, user.ProjectID, ou.ProjectID)
+	if svcErr != nil {
+		return svcErr
+	}
+	user.ProjectID = projectID
 	return nil
 }

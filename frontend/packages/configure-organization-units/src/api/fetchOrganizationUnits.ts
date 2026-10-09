@@ -14,17 +14,21 @@ import type {OrganizationUnitListResponse} from '../models/responses';
  * @param params - Pagination parameters
  * @param params.limit - Maximum number of records to return
  * @param params.offset - Number of records to skip
+ * @param params.projectId - Lists only the root organization units of this project
  * @returns The organization unit list response
  */
 export default async function fetchOrganizationUnits(
   http: {request: (...args: never[]) => Promise<{data: OrganizationUnitListResponse}>},
   serverUrl: string,
-  params: {limit: number; offset: number},
+  params: {limit: number; offset: number; projectId?: string},
 ): Promise<OrganizationUnitListResponse> {
   const queryParams = new URLSearchParams({
     limit: String(params.limit),
     offset: String(params.offset),
   });
+  if (params.projectId) {
+    queryParams.append('filter', `projectId eq "${params.projectId}"`);
+  }
 
   const response: {data: OrganizationUnitListResponse} = await http.request({
     url: `${serverUrl}/organization-units?${queryParams.toString()}`,

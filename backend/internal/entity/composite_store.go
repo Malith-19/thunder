@@ -223,6 +223,44 @@ func (c *entityCompositeStore) GetEntityListByOUIDs(ctx context.Context, categor
 	return entities, nil
 }
 
+// GetEntityListCountByProject retrieves the count of entities of a category in a project from both
+// stores.
+func (c *entityCompositeStore) GetEntityListCountByProject(ctx context.Context,
+	category, projectID string) (int, error) {
+	entities, err := c.GetEntityListByProject(ctx, category, projectID, serverconst.MaxCompositeStoreRecords, 0)
+	if err != nil {
+		return 0, err
+	}
+	return len(entities), nil
+}
+
+// GetEntityListByProject retrieves, with pagination, the entities of a category in a project from
+// both stores.
+func (c *entityCompositeStore) GetEntityListByProject(ctx context.Context, category, projectID string,
+	limit, offset int) ([]providers.Entity, error) {
+	entities, limitExceeded, err := declarativeresource.CompositeMergeListHelperWithLimit(
+		func() (int, error) { return c.dbStore.GetEntityListCountByProject(ctx, category, projectID) },
+		func() (int, error) { return c.fileStore.GetEntityListCountByProject(ctx, category, projectID) },
+		func(count int) ([]providers.Entity, error) {
+			return c.dbStore.GetEntityListByProject(ctx, category, projectID, count, 0)
+		},
+		func(count int) ([]providers.Entity, error) {
+			return c.fileStore.GetEntityListByProject(ctx, category, projectID, count, 0)
+		},
+		mergeAndDeduplicateEntities,
+		limit,
+		offset,
+		serverconst.MaxCompositeStoreRecords,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if limitExceeded {
+		return nil, errResultLimitExceededInCompositeMode
+	}
+	return entities, nil
+}
+
 // ValidateEntityIDs checks if all provided entity IDs exist in either store.
 func (c *entityCompositeStore) ValidateEntityIDs(ctx context.Context, entityIDs []string) ([]string, error) {
 	invalidIDs := make([]string, 0)

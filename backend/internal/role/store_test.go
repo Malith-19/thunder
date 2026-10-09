@@ -439,7 +439,7 @@ func (suite *RoleStoreTestSuite) TestCreateRole() {
 			setupMocks: func() {
 				suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryCreateRole, "role1", "ou1", "Test Role",
-					"Test Description", testDeploymentID).Return(int64(1), nil)
+					"Test Description", nil, testDeploymentID).Return(int64(1), nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryCreateRolePermission, "role1", "rs1",
 					"perm1", testDeploymentID).Return(int64(1), nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryCreateRolePermission, "role1", "rs1",
@@ -465,7 +465,7 @@ func (suite *RoleStoreTestSuite) TestCreateRole() {
 			setupMocks: func() {
 				suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryCreateRole, "role1", "ou1", "Test Role",
-					"Test Description", testDeploymentID).Return(int64(1), nil)
+					"Test Description", nil, testDeploymentID).Return(int64(1), nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryCreateRolePermission, "role1", "rs1",
 					"perm1", testDeploymentID).Return(int64(1), nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryCreateRolePermission, "role1", "rs2",
@@ -489,7 +489,7 @@ func (suite *RoleStoreTestSuite) TestCreateRole() {
 				execError := errors.New("insert failed")
 				suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryCreateRole, "role1", "ou1", "Test Role",
-					"Test Description", testDeploymentID).Return(int64(0), execError)
+					"Test Description", nil, testDeploymentID).Return(int64(0), execError)
 			},
 			shouldErr: true,
 			checkError: func(err error) bool {
@@ -513,7 +513,7 @@ func (suite *RoleStoreTestSuite) TestCreateRole() {
 				permError := errors.New("permission insert failed")
 				suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryCreateRole, "role1", "ou1", "Test Role",
-					"Test Description", testDeploymentID).Return(int64(1), nil)
+					"Test Description", nil, testDeploymentID).Return(int64(1), nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryCreateRolePermission, "role1", "rs1",
 					"perm1", testDeploymentID).Return(int64(0), permError)
 			},
@@ -537,7 +537,7 @@ func (suite *RoleStoreTestSuite) TestCreateRole() {
 				assignError := errors.New("assignment insert failed")
 				suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryCreateRole, "role1", "ou1", "Test Role",
-					"Test Description", testDeploymentID).Return(int64(1), nil)
+					"Test Description", nil, testDeploymentID).Return(int64(1), nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryCreateRoleAssignment, "role1",
 					assigneeTypeEntity, "user1", testDeploymentID).
 					Return(int64(0), assignError)
@@ -1009,7 +1009,7 @@ func (suite *RoleStoreTestSuite) TestUpdateRole() {
 			setupMocks: func() {
 				suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryUpdateRole, "ou1", "Updated Role",
-					"Updated Description", "role1", testDeploymentID).
+					"Updated Description", nil, "role1", testDeploymentID).
 					Return(int64(1), nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryDeleteRolePermissions, "role1",
 					testDeploymentID).
@@ -1032,7 +1032,7 @@ func (suite *RoleStoreTestSuite) TestUpdateRole() {
 			setupMocks: func() {
 				suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryUpdateRole, "ou1", "Updated Role",
-					"Updated Description", "nonexistent", testDeploymentID).
+					"Updated Description", nil, "nonexistent", testDeploymentID).
 					Return(int64(0), nil)
 			},
 			shouldErr:    true,
@@ -1053,7 +1053,7 @@ func (suite *RoleStoreTestSuite) TestUpdateRole() {
 			setupMocks: func() {
 				suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryUpdateRole, "ou1", "Updated Role",
-					"Updated Description", "role1", testDeploymentID).
+					"Updated Description", nil, "role1", testDeploymentID).
 					Return(int64(1), nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryDeleteRolePermissions, "role1",
 					testDeploymentID).
@@ -1080,7 +1080,7 @@ func (suite *RoleStoreTestSuite) TestUpdateRole() {
 				deleteError := errors.New("delete permissions failed")
 				suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryUpdateRole, "ou1", "Updated Role",
-					"Updated Description", "role1", testDeploymentID).
+					"Updated Description", nil, "role1", testDeploymentID).
 					Return(int64(1), nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryDeleteRolePermissions, "role1",
 					testDeploymentID).
@@ -1104,7 +1104,7 @@ func (suite *RoleStoreTestSuite) TestUpdateRole() {
 				addError := errors.New("add permissions failed")
 				suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryUpdateRole, "ou1", "Updated Role",
-					"Updated Description", "role1", testDeploymentID).Return(int64(1), nil)
+					"Updated Description", nil, "role1", testDeploymentID).Return(int64(1), nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryDeleteRolePermissions, "role1",
 					testDeploymentID).Return(int64(1), nil)
 				suite.mockDBClient.On("ExecuteContext", mock.Anything, queryCreateRolePermission, "role1", "rs1",

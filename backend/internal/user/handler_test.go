@@ -437,7 +437,7 @@ func TestHandleUserListRequest_Success(t *testing.T) {
 		TotalResults: 10,
 		Users:        []providers.User{{ID: "user-1"}},
 	}
-	mockSvc.On("GetUserList", mock.Anything, 10, 0, mock.Anything, false).Return(expectedResp, nil)
+	mockSvc.On("GetUserList", mock.Anything, 10, 0, mock.Anything, mock.Anything, false).Return(expectedResp, nil)
 
 	handler := newUserHandler(mockSvc)
 	req := httptest.NewRequest(http.MethodGet, "/users?limit=10&offset=0", nil)
@@ -457,7 +457,7 @@ func TestHandleUserListRequest_WithIncludeDisplay(t *testing.T) {
 		TotalResults: 1,
 		Users:        []providers.User{{ID: "user-1", Display: "Alice"}},
 	}
-	mockSvc.On("GetUserList", mock.Anything, 10, 0, mock.Anything, true).Return(expectedResp, nil)
+	mockSvc.On("GetUserList", mock.Anything, 10, 0, mock.Anything, mock.Anything, true).Return(expectedResp, nil)
 
 	handler := newUserHandler(mockSvc)
 	req := httptest.NewRequest(http.MethodGet, "/users?limit=10&offset=0&include=display", nil)
@@ -478,7 +478,7 @@ func TestHandleUserListRequest_WithInvalidIncludeParam(t *testing.T) {
 		Users:        []providers.User{{ID: "user-1"}},
 	}
 	// Invalid include value should be treated as no include (includeDisplay=false).
-	mockSvc.On("GetUserList", mock.Anything, 10, 0, mock.Anything, false).Return(expectedResp, nil)
+	mockSvc.On("GetUserList", mock.Anything, 10, 0, mock.Anything, mock.Anything, false).Return(expectedResp, nil)
 
 	handler := newUserHandler(mockSvc)
 	req := httptest.NewRequest(http.MethodGet, "/users?limit=10&offset=0&include=invalid", nil)
@@ -682,7 +682,7 @@ func TestHandleUserListRequest_InvalidParams(t *testing.T) {
 func TestHandleUserListRequest_WithFilter(t *testing.T) {
 	mockSvc := NewUserServiceInterfaceMock(t)
 	expectedResp := &UserListResponse{TotalResults: 1}
-	mockSvc.On("GetUserList", mock.Anything, mock.Anything, mock.Anything,
+	mockSvc.On("GetUserList", mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 		mock.MatchedBy(func(m map[string]interface{}) bool {
 			return m["username"] == "alice"
 		}), false).Return(expectedResp, nil)
@@ -699,7 +699,7 @@ func TestHandleUserListRequest_WithFilter(t *testing.T) {
 func TestHandleUserListRequest_WithFilter_Unquoted(t *testing.T) {
 	mockSvc := NewUserServiceInterfaceMock(t)
 	expectedResp := &UserListResponse{TotalResults: 1}
-	mockSvc.On("GetUserList", mock.Anything, mock.Anything, mock.Anything,
+	mockSvc.On("GetUserList", mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 		mock.MatchedBy(func(m map[string]interface{}) bool {
 			return m["age"] == int64(30)
 		}), false).Return(expectedResp, nil)
@@ -814,7 +814,7 @@ func TestHandleUserDeleteRequest_ErrorCases(t *testing.T) {
 
 func TestHandleUserListRequest_ServiceError(t *testing.T) {
 	mockSvc := NewUserServiceInterfaceMock(t)
-	mockSvc.On("GetUserList", mock.Anything, 10, 0, mock.Anything, false).
+	mockSvc.On("GetUserList", mock.Anything, 10, 0, mock.Anything, mock.Anything, false).
 		Return(nil, &tidcommon.InternalServerError).Once()
 
 	handler := newUserHandler(mockSvc)

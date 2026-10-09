@@ -60,7 +60,7 @@ func (s *ApplicationExporterTestSuite) TestGetAllResourceIDs_Success() {
 		},
 	}
 
-	s.mockService.EXPECT().GetApplicationList(mock.Anything).Return(expectedApps, nil)
+	s.mockService.EXPECT().GetApplicationList(mock.Anything, "").Return(expectedApps, nil)
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
 
@@ -76,7 +76,7 @@ func (s *ApplicationExporterTestSuite) TestGetAllResourceIDs_Error() {
 		Error: tidcommon.I18nMessage{DefaultValue: "test error"},
 	}
 
-	s.mockService.EXPECT().GetApplicationList(mock.Anything).Return(nil, serviceError)
+	s.mockService.EXPECT().GetApplicationList(mock.Anything, "").Return(nil, serviceError)
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
 
@@ -89,7 +89,7 @@ func (s *ApplicationExporterTestSuite) TestGetAllResourceIDs_EmptyList() {
 		Applications: []model.BasicApplicationResponse{},
 	}
 
-	s.mockService.EXPECT().GetApplicationList(mock.Anything).Return(expectedApps, nil)
+	s.mockService.EXPECT().GetApplicationList(mock.Anything, "").Return(expectedApps, nil)
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
 

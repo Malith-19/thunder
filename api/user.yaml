@@ -37,6 +37,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/limitQueryParam'
         - $ref: '#/components/parameters/offsetQueryParam'
+        - $ref: '#/components/parameters/projectIdQueryParam'
         - $ref: '#/components/parameters/filterParam'
         - $ref: '#/components/parameters/includeQueryParam'
       responses:
@@ -1945,6 +1946,14 @@ components:
         type: integer
         minimum: 0
         default: 0
+    projectIdQueryParam:
+      in: query
+      name: projectId
+      required: false
+      description: Lists only the resources that belong to this project.
+      schema:
+        type: string
+        format: uuid
     includeQueryParam:
       in: query
       name: include
@@ -2057,6 +2066,10 @@ components:
         ouId:
           type: string
           format: uuid
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. Taken from the organization unit when it is in a project; omitted at the organization level.
         ouHandle:
           type: string
           readOnly: true
@@ -2176,6 +2189,10 @@ components:
           type: string
           format: uuid
           description: "The organization unit ID where the user will be created"
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. Taken from the organization unit when it is in a project; omitted at the organization level.
         type:
           type: string
           description: "The handle of the user type"
@@ -2192,6 +2209,10 @@ components:
           type: string
           format: uuid
           description: "The organization unit ID where the user belongs"
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. Taken from the organization unit when it is in a project; omitted at the organization level.
         type:
           type: string
           description: "The handle of the user type"

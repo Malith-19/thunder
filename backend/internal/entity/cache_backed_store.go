@@ -196,6 +196,16 @@ func (s *cacheBackedEntityStore) GetEntityListCountByOUIDs(ctx context.Context,
 	return s.store.GetEntityListCountByOUIDs(ctx, category, ouIDs, filters)
 }
 
+func (s *cacheBackedEntityStore) GetEntityListCountByProject(ctx context.Context,
+	category, projectID string) (int, error) {
+	return s.store.GetEntityListCountByProject(ctx, category, projectID)
+}
+
+func (s *cacheBackedEntityStore) GetEntityListByProject(ctx context.Context,
+	category, projectID string, limit, offset int) ([]providers.Entity, error) {
+	return s.store.GetEntityListByProject(ctx, category, projectID, limit, offset)
+}
+
 func (s *cacheBackedEntityStore) GetEntityListByOUIDs(ctx context.Context,
 	category string, ouIDs []string, limit, offset int,
 	filters map[string]interface{}) ([]providers.Entity, error) {

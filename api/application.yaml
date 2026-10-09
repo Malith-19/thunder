@@ -32,6 +32,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/limitQueryParam'
         - $ref: '#/components/parameters/offsetQueryParam'
+        - $ref: '#/components/parameters/projectIdQueryParam'
       responses:
         "200":
           description: List of applications
@@ -747,6 +748,14 @@ components:
       schema:
         type: integer
         default: 0
+    projectIdQueryParam:
+      in: query
+      name: projectId
+      required: false
+      description: Lists only the resources that belong to this project.
+      schema:
+        type: string
+        format: uuid
 
   schemas:
     ApplicationRequest:
@@ -757,6 +766,10 @@ components:
           type: string
           description: The ID of the organization unit this application belongs to.
           example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. Taken from the organization unit when it is in a project; omitted at the organization level.
         name:
           type: string
           description: The name of the application.
@@ -903,6 +916,10 @@ components:
           type: string
           description: The ID of the organization unit this application belongs to.
           example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. Taken from the organization unit when it is in a project; omitted at the organization level.
         name:
           type: string
           description: The name of the application.
@@ -1045,6 +1062,10 @@ components:
           type: string
           description: The ID of the organization unit this application belongs to.
           example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. Taken from the organization unit when it is in a project; omitted at the organization level.
         name:
           type: string
           description: The name of the application.

@@ -19,6 +19,7 @@ import (
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	oauthutils "github.com/thunder-id/thunderid/internal/oauth/oauth2/utils"
 	oupkg "github.com/thunder-id/thunderid/internal/ou"
+	"github.com/thunder-id/thunderid/internal/project"
 	"github.com/thunder-id/thunderid/internal/serverconfig"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
@@ -38,7 +39,7 @@ type ApplicationServiceInterface interface {
 		ctx context.Context, app *model.ApplicationDTO) (*model.ApplicationDTO, *tidcommon.ServiceError)
 	ValidateApplication(ctx context.Context, app *model.ApplicationDTO) (
 		*model.ApplicationProcessedDTO, *providers.InboundAuthConfigWithSecret, *tidcommon.ServiceError)
-	GetApplicationList(ctx context.Context) (*model.ApplicationListResponse, *tidcommon.ServiceError)
+	GetApplicationList(ctx context.Context, projectID string) (*model.ApplicationListResponse, *tidcommon.ServiceError)
 	GetOAuthApplication(
 		ctx context.Context, clientID string) (*providers.OAuthClient, *tidcommon.ServiceError)
 	GetApplication(ctx context.Context, appID string) (*providers.Application, *tidcommon.ServiceError)
@@ -65,6 +66,7 @@ type artifactLifetimeResolver func(client *providers.OAuthClient) time.Duration
 
 // ApplicationService is the default implementation of the ApplicationServiceInterface.
 type applicationService struct {
+	projects             project.ExistenceChecker
 	logger               *log.Logger
 	inboundClientService inboundclient.InboundClientServiceInterface
 	entityService        entity.EntityServiceInterface
@@ -85,8 +87,10 @@ func newApplicationService(
 	cryptoSvc providers.RuntimeCryptoProvider,
 	serverConfigSvc serverconfig.ServerConfigService,
 	artifactLifetime artifactLifetimeResolver,
+	projects project.ExistenceChecker,
 ) ApplicationServiceInterface {
 	return &applicationService{
+		projects:             projects,
 		logger:               log.GetLogger().With(log.String(log.LoggerKeyComponentName, "ApplicationService")),
 		inboundClientService: inboundClientSvc,
 		entityService:        entityService,
@@ -295,15 +299,27 @@ func (as *applicationService) ValidateApplication(ctx context.Context, app *mode
 
 // GetApplicationList list the applications.
 func (as *applicationService) GetApplicationList(
-	ctx context.Context) (*model.ApplicationListResponse, *tidcommon.ServiceError) {
-	totalResults, entErr := as.entityService.GetEntityListCount(ctx, providers.EntityCategoryApp, nil)
+	ctx context.Context, projectID string) (*model.ApplicationListResponse, *tidcommon.ServiceError) {
+	var totalResults int
+	var entErr error
+	if projectID == "" {
+		totalResults, entErr = as.entityService.GetEntityListCount(ctx, providers.EntityCategoryApp, nil)
+	} else {
+		totalResults, entErr = as.entityService.GetEntityListCountByProject(ctx, providers.EntityCategoryApp, projectID)
+	}
 	if entErr != nil {
 		as.logger.Error(ctx, "Failed to count application entities", log.Error(entErr))
 		return nil, &tidcommon.InternalServerError
 	}
 
-	entities, entErr := as.entityService.GetEntityList(
-		ctx, providers.EntityCategoryApp, serverconst.MaxCompositeStoreRecords, 0, nil)
+	var entities []providers.Entity
+	if projectID == "" {
+		entities, entErr = as.entityService.GetEntityList(
+			ctx, providers.EntityCategoryApp, serverconst.MaxCompositeStoreRecords, 0, nil)
+	} else {
+		entities, entErr = as.entityService.GetEntityListByProject(
+			ctx, providers.EntityCategoryApp, projectID, serverconst.MaxCompositeStoreRecords, 0)
+	}
 	if entErr != nil {
 		as.logger.Error(ctx, "Failed to list application entities", log.Error(entErr))
 		return nil, &tidcommon.InternalServerError
@@ -411,6 +427,10 @@ func (as *applicationService) UpdateApplication(ctx context.Context, appID strin
 
 	if svcErr != nil {
 		return nil, svcErr
+	}
+	// An application stays in the project it was created in.
+	if existingApp != nil && app.ProjectID != existingApp.ProjectID {
+		return nil, &ErrorProjectChangeNotAllowed
 	}
 
 	processedDTO := as.buildProcessedDTOForUpdate(appID, app, inboundAuthConfig)
@@ -1143,6 +1163,7 @@ func toProcessedDTO(
 	// Extract identity fields from entity system attributes.
 	if e != nil {
 		dto.OUID = e.OUID
+		dto.ProjectID = e.ProjectID
 		var sysAttrs map[string]interface{}
 		if len(e.SystemAttributes) > 0 {
 			_ = json.Unmarshal(e.SystemAttributes, &sysAttrs)
@@ -1293,6 +1314,7 @@ func buildAppEntity(appID string, app *model.ApplicationDTO, clientID string, pl
 		Type:             "application",
 		State:            providers.EntityStateActive,
 		OUID:             app.OUID,
+		ProjectID:        app.ProjectID,
 		SystemAttributes: sysAttrsJSON,
 	}
 	return e, sysCredsJSON, nil
@@ -1415,9 +1437,15 @@ func (as *applicationService) validateApplicationFields(
 	if app.OUID == "" {
 		return &ErrorInvalidRequestFormat
 	}
-	if exists, err := as.ouService.IsOrganizationUnitExists(ctx, app.OUID); err != nil || !exists {
+	ou, ouErr := as.ouService.GetOrganizationUnit(ctx, app.OUID)
+	if ouErr != nil {
 		return &ErrorInvalidRequestFormat
 	}
+	projectID, svcErr := project.ResolveProjectID(ctx, as.projects, app.ProjectID, ou.ProjectID)
+	if svcErr != nil {
+		return svcErr
+	}
+	app.ProjectID = projectID
 
 	if app.URL != "" && !sysutils.IsValidURI(app.URL) {
 		return &ErrorInvalidApplicationURL
@@ -2115,6 +2143,7 @@ func buildApplicationResponse(dto *model.ApplicationProcessedDTO) *providers.App
 	application := &providers.Application{
 		ID:          dto.ID,
 		OUID:        dto.OUID,
+		ProjectID:   dto.ProjectID,
 		Name:        dto.Name,
 		Description: dto.Description,
 		InboundAuthProfile: providers.InboundAuthProfile{
@@ -2205,6 +2234,8 @@ func buildBasicApplicationResponse(
 	}
 	// Enrich from entity system attributes.
 	if e != nil {
+		resp.OUID = e.OUID
+		resp.ProjectID = e.ProjectID
 		var sysAttrs map[string]interface{}
 		if len(e.SystemAttributes) > 0 {
 			_ = json.Unmarshal(e.SystemAttributes, &sysAttrs)
@@ -2231,6 +2262,7 @@ func buildBaseApplicationProcessedDTO(appID string, app *model.ApplicationDTO,
 	return &model.ApplicationProcessedDTO{
 		ID:          appID,
 		OUID:        app.OUID,
+		ProjectID:   app.ProjectID,
 		Name:        app.Name,
 		Description: app.Description,
 		InboundAuthProfile: providers.InboundAuthProfile{
@@ -2320,6 +2352,7 @@ func buildReturnApplicationDTO(
 	returnApp := &model.ApplicationDTO{
 		ID:          appID,
 		OUID:        app.OUID,
+		ProjectID:   app.ProjectID,
 		Name:        app.Name,
 		Description: app.Description,
 		InboundAuthProfile: providers.InboundAuthProfile{

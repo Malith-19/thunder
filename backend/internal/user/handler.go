@@ -63,7 +63,8 @@ func (uh *userHandler) HandleUserListRequest(w http.ResponseWriter, r *http.Requ
 	includeDisplay := r.URL.Query().Get(sysutils.QueryParamInclude) == sysutils.IncludeValueDisplay
 
 	// Get the user list using the user service.
-	userListResponse, svcErr := uh.userService.GetUserList(ctx, limit, offset, filters, includeDisplay)
+	userListResponse, svcErr := uh.userService.GetUserList(
+		ctx, limit, offset, r.URL.Query().Get("projectId"), filters, includeDisplay)
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
 		return
@@ -100,6 +101,7 @@ func (uh *userHandler) HandleUserPostRequest(w http.ResponseWriter, r *http.Requ
 
 	user := &providers.User{
 		OUID:       createRequest.OUID,
+		ProjectID:  createRequest.ProjectID,
 		Type:       createRequest.Type,
 		Attributes: createRequest.Attributes,
 	}

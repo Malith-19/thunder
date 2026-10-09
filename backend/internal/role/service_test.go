@@ -91,7 +91,7 @@ func (suite *RoleServiceTestSuite) SetupTest() {
 		suite.mockOUService,
 		suite.mockResourceService,
 		suite.transactioner,
-		newAllowAllRoleAuthz(suite.T()),
+		newAllowAllRoleAuthz(suite.T()), nil,
 	)
 }
 
@@ -112,7 +112,7 @@ func (suite *RoleServiceTestSuite) TestGetRoleList_Success() {
 	suite.mockOUService.On("GetOrganizationUnitHandlesByIDs", mock.Anything,
 		[]string{"ou1"}).Return(map[string]string{"ou1": "default"}, nil)
 
-	result, err := suite.service.GetRoleList(context.Background(), 10, 0)
+	result, err := suite.service.GetRoleList(context.Background(), 10, 0, "")
 
 	suite.Nil(err)
 	suite.NotNil(result)
@@ -142,7 +142,7 @@ func (suite *RoleServiceTestSuite) TestGetRoleList_InvalidPagination() {
 
 	for _, tc := range testCases {
 		suite.T().Run(tc.name, func(t *testing.T) {
-			result, err := suite.service.GetRoleList(context.Background(), tc.limit, tc.offset)
+			result, err := suite.service.GetRoleList(context.Background(), tc.limit, tc.offset, "")
 			suite.Nil(result)
 			suite.NotNil(err)
 			suite.Equal(tc.errCode, err.Code)
@@ -176,7 +176,7 @@ func (suite *RoleServiceTestSuite) TestGetRoleList_StoreErrors() {
 		suite.Run(tc.name, func() {
 			tc.mockSetup()
 
-			result, err := suite.service.GetRoleList(context.Background(), 10, 0)
+			result, err := suite.service.GetRoleList(context.Background(), 10, 0, "")
 
 			suite.Nil(result)
 			suite.NotNil(err)
@@ -195,7 +195,7 @@ func (suite *RoleServiceTestSuite) TestGetRoleList_OUHandlesError() {
 	suite.mockOUService.On("GetOrganizationUnitHandlesByIDs", mock.Anything,
 		[]string{"ou1"}).Return(nil, &tidcommon.ServiceError{Code: "INTERNAL_ERROR"})
 
-	result, err := suite.service.GetRoleList(context.Background(), 10, 0)
+	result, err := suite.service.GetRoleList(context.Background(), 10, 0, "")
 
 	suite.Nil(err)
 	suite.NotNil(result)

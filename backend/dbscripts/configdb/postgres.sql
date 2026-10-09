@@ -25,6 +25,7 @@ CREATE TABLE "ROLE" (
     OU_ID               VARCHAR(36) NOT NULL,
     NAME                VARCHAR(50) NOT NULL,
     DESCRIPTION         VARCHAR(255),
+    PROJECT_ID          VARCHAR(36),
     CREATED_AT          TIMESTAMPTZ DEFAULT NOW(),
     UPDATED_AT          TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT unique_role_ou_name UNIQUE (OU_ID, NAME, DEPLOYMENT_ID),
@@ -33,6 +34,9 @@ CREATE TABLE "ROLE" (
 
 -- Composite index for deployment + OU lookups (supports UNIQUE constraint checks)
 CREATE INDEX idx_role_ou_deployment ON "ROLE" (DEPLOYMENT_ID, OU_ID);
+
+-- Lists roles by project
+CREATE INDEX idx_role_project ON "ROLE" (DEPLOYMENT_ID, PROJECT_ID);
 
 -- Table to store Role permissions
 CREATE TABLE "ROLE_PERMISSION" (
@@ -587,4 +591,19 @@ CREATE TABLE "NOTIFICATION_TEMPLATE" (
     UPDATED_AT    TIMESTAMPTZ  DEFAULT NOW(),
     PRIMARY KEY (DEPLOYMENT_ID, ID),
     UNIQUE (DEPLOYMENT_ID, CHANNEL, HANDLE)
+);
+
+-- Projects group the resources of one product or workload. A resource belongs to a project by
+-- carrying its ID in a nullable PROJECT_ID column; a resource without one sits at the organization
+-- level, outside every project.
+CREATE TABLE "PROJECT" (
+    DEPLOYMENT_ID VARCHAR(255) NOT NULL,
+    ID            VARCHAR(36)  NOT NULL,
+    HANDLE        VARCHAR(100) NOT NULL,
+    NAME          VARCHAR(100) NOT NULL,
+    DESCRIPTION   VARCHAR(255),
+    CREATED_AT    TIMESTAMPTZ  DEFAULT NOW(),
+    UPDATED_AT    TIMESTAMPTZ  DEFAULT NOW(),
+    PRIMARY KEY (DEPLOYMENT_ID, ID),
+    CONSTRAINT unique_project_handle UNIQUE (DEPLOYMENT_ID, HANDLE)
 );

@@ -15,6 +15,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/entity"
 	"github.com/thunder-id/thunderid/internal/group"
 	oupkg "github.com/thunder-id/thunderid/internal/ou"
+	"github.com/thunder-id/thunderid/internal/project"
 	resourcepkg "github.com/thunder-id/thunderid/internal/resource"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/system/log"
@@ -28,7 +29,7 @@ const loggerComponentName = "RoleMgtService"
 
 // RoleServiceInterface defines the interface for the role service.
 type RoleServiceInterface interface {
-	GetRoleList(ctx context.Context, limit, offset int) (*RoleList, *tidcommon.ServiceError)
+	GetRoleList(ctx context.Context, limit, offset int, projectID string) (*RoleList, *tidcommon.ServiceError)
 	CreateRole(ctx context.Context, role RoleCreationDetail) (
 		*RoleWithPermissionsAndAssignments, *tidcommon.ServiceError)
 	GetRoleWithPermissions(ctx context.Context, id string) (*RoleWithPermissions, *tidcommon.ServiceError)
@@ -57,6 +58,7 @@ type RoleServiceInterface interface {
 
 // roleService is the default implementation of the RoleServiceInterface.
 type roleService struct {
+	projects        project.ExistenceChecker
 	roleStore       roleStoreInterface
 	entityService   entity.EntityServiceInterface
 	groupService    group.GroupServiceInterface
@@ -75,8 +77,10 @@ func newRoleService(
 	resourceService resourcepkg.ResourceServiceInterface,
 	transactioner providers.Transactioner,
 	authzService sysauthz.SystemAuthorizationServiceInterface,
+	projects project.ExistenceChecker,
 ) RoleServiceInterface {
 	return &roleService{
+		projects:        projects,
 		roleStore:       roleStore,
 		entityService:   entityService,
 		groupService:    groupService,
@@ -88,14 +92,22 @@ func newRoleService(
 }
 
 // GetRoleList retrieves a list of roles.
-func (rs *roleService) GetRoleList(ctx context.Context, limit, offset int) (*RoleList, *tidcommon.ServiceError) {
+func (rs *roleService) GetRoleList(
+	ctx context.Context, limit, offset int, projectID string,
+) (*RoleList, *tidcommon.ServiceError) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, loggerComponentName))
 
 	if err := validatePaginationParams(limit, offset); err != nil {
 		return nil, err
 	}
 
-	totalCount, err := rs.roleStore.GetRoleListCount(ctx)
+	var totalCount int
+	var err error
+	if projectID == "" {
+		totalCount, err = rs.roleStore.GetRoleListCount(ctx)
+	} else {
+		totalCount, err = rs.roleStore.GetRoleListCountByProject(ctx, projectID)
+	}
 	if err != nil {
 		if errors.Is(err, errResultLimitExceededInCompositeMode) {
 			return nil, &ResultLimitExceededInCompositeMode
@@ -104,7 +116,12 @@ func (rs *roleService) GetRoleList(ctx context.Context, limit, offset int) (*Rol
 		return nil, &tidcommon.InternalServerError
 	}
 
-	roles, err := rs.roleStore.GetRoleList(ctx, limit, offset)
+	var roles []Role
+	if projectID == "" {
+		roles, err = rs.roleStore.GetRoleList(ctx, limit, offset)
+	} else {
+		roles, err = rs.roleStore.GetRoleListByProject(ctx, projectID, limit, offset)
+	}
 	if err != nil {
 		if errors.Is(err, errResultLimitExceededInCompositeMode) {
 			return nil, &ResultLimitExceededInCompositeMode
@@ -210,6 +227,12 @@ func (rs *roleService) CreateRole(
 		return nil, &ErrorRoleNameConflict
 	}
 
+	projectID, svcErr := project.ResolveProjectID(ctx, rs.projects, role.ProjectID, ou.ProjectID)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+	role.ProjectID = projectID
+
 	id := role.ID
 	if id == "" {
 		id, err = utils.GenerateUUIDv7()
@@ -235,6 +258,7 @@ func (rs *roleService) CreateRole(
 		Description: role.Description,
 		OUID:        role.OUID,
 		OUHandle:    ou.Handle,
+		ProjectID:   role.ProjectID,
 		Permissions: role.Permissions,
 		Assignments: responseAssignments,
 	}
@@ -388,6 +412,12 @@ func (rs *roleService) UpdateRoleWithPermissions(
 		return nil, &ErrorRoleNameConflict
 	}
 
+	projectID, svcErr := project.ResolveProjectID(ctx, rs.projects, role.ProjectID, ou.ProjectID)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+	role.ProjectID = projectID
+
 	err = rs.transactioner.Transact(ctx, func(txCtx context.Context) error {
 		return rs.roleStore.UpdateRole(txCtx, id, role)
 	})
@@ -404,6 +434,7 @@ func (rs *roleService) UpdateRoleWithPermissions(
 		Description: role.Description,
 		OUID:        role.OUID,
 		OUHandle:    ou.Handle,
+		ProjectID:   role.ProjectID,
 		Permissions: role.Permissions,
 	}, nil
 }

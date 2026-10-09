@@ -318,6 +318,11 @@ export interface Application {
   ouId?: string;
 
   /**
+   * Project this application belongs to
+   */
+  projectId?: string;
+
+  /**
    * Assertion configuration
    * Defines how assertions are generated for this application.
    */

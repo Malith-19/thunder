@@ -246,6 +246,47 @@ var (
 			DefaultValue: "The userOnboardingFlowId does not reference an existing user onboarding flow",
 		},
 	}
+	// ErrorInvalidProject is the error returned when projectId does not reference an existing project.
+	ErrorInvalidProject = tidcommon.ServiceError{
+		Type: tidcommon.ClientErrorType,
+		Code: "OU-1020",
+		Error: tidcommon.I18nMessage{
+			Key:          "error.ouservice.invalid_project",
+			DefaultValue: "Invalid project",
+		},
+		ErrorDescription: tidcommon.I18nMessage{
+			Key:          "error.ouservice.invalid_project_description",
+			DefaultValue: "The projectId does not reference an existing project",
+		},
+	}
+	// ErrorProjectMismatch is the error returned when a child organization unit names a project other
+	// than its parent's.
+	ErrorProjectMismatch = tidcommon.ServiceError{
+		Type: tidcommon.ClientErrorType,
+		Code: "OU-1021",
+		Error: tidcommon.I18nMessage{
+			Key:          "error.ouservice.project_mismatch",
+			DefaultValue: "Project does not match the parent",
+		},
+		ErrorDescription: tidcommon.I18nMessage{
+			Key:          "error.ouservice.project_mismatch_description",
+			DefaultValue: "A child organization unit belongs to the same project as its parent",
+		},
+	}
+	// ErrorProjectChangeNotAllowed is the error returned when an update moves an organization unit to
+	// another project.
+	ErrorProjectChangeNotAllowed = tidcommon.ServiceError{
+		Type: tidcommon.ClientErrorType,
+		Code: "OU-1022",
+		Error: tidcommon.I18nMessage{
+			Key:          "error.ouservice.project_change_not_allowed",
+			DefaultValue: "Project cannot be changed",
+		},
+		ErrorDescription: tidcommon.I18nMessage{
+			Key:          "error.ouservice.project_change_not_allowed_description",
+			DefaultValue: "An organization unit stays in the project it was created in",
+		},
+	}
 )
 
 // Error variables

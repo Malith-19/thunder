@@ -93,6 +93,7 @@ type ConfigurableOUService interface {
 	SetOUGroupResolver(resolver OUGroupResolver)
 	SetOURoleResolver(resolver OURoleResolver)
 	SetOUFlowResolver(resolver ouFlowResolver)
+	SetProjectResolver(resolver ProjectResolver)
 	SetDependencyRegistry(r resourcedependency.Registry)
 	GetResourceDependencies(
 		ctx context.Context, resourceType, id string) ([]resourcedependency.ResourceDependency, error)
@@ -107,6 +108,7 @@ type organizationUnitService struct {
 	groupResolver      OUGroupResolver
 	roleResolver       OURoleResolver
 	flowResolver       ouFlowResolver
+	projectResolver    ProjectResolver
 	dependencyRegistry resourcedependency.Registry
 }
 
@@ -116,6 +118,11 @@ func (ous *organizationUnitService) SetOUUserResolver(resolver OUUserResolver) {
 
 // SetDependencyRegistry injects the dependency registry. Called by servicemanager after the
 // provider services are initialized to avoid a cyclic import.
+// SetProjectResolver installs what validates the project an organization unit belongs to.
+func (ous *organizationUnitService) SetProjectResolver(resolver ProjectResolver) {
+	ous.projectResolver = resolver
+}
+
 func (ous *organizationUnitService) SetDependencyRegistry(r resourcedependency.Registry) {
 	ous.dependencyRegistry = r
 }
@@ -352,6 +359,12 @@ func (ous *organizationUnitService) CreateOrganizationUnit(
 			return errors.New("validation error")
 		}
 
+		projectID, svcErr := ous.resolveProjectID(txCtx, request.ProjectID, request.Parent)
+		if svcErr != nil {
+			capturedSvcErr = svcErr
+			return errors.New("validation error")
+		}
+
 		conflict, err := ous.ouStore.CheckOrganizationUnitNameConflict(txCtx, request.Name, request.Parent)
 		if err != nil {
 			return err
@@ -385,6 +398,7 @@ func (ous *organizationUnitService) CreateOrganizationUnit(
 			Name:                      request.Name,
 			Description:               request.Description,
 			Parent:                    request.Parent,
+			ProjectID:                 projectID,
 			ThemeID:                   request.ThemeID,
 			LayoutID:                  request.LayoutID,
 			AuthFlowID:                request.AuthFlowID,
@@ -667,6 +681,22 @@ func (ous *organizationUnitService) updateOUInternal(
 		return OrganizationUnit{}, err
 	}
 
+	// An organization unit stays in the project it was created in. Moving it would leave its users,
+	// applications and roles behind in the old one.
+	if request.ProjectID != "" && request.ProjectID != existingOU.ProjectID {
+		return OrganizationUnit{}, &ErrorProjectChangeNotAllowed
+	}
+	if request.Parent != nil {
+		parentOU, err := ous.ouStore.GetOrganizationUnit(ctx, *request.Parent)
+		if err != nil {
+			logger.Error(ctx, "Failed to get parent organization unit", log.Error(err))
+			return OrganizationUnit{}, &tidcommon.InternalServerError
+		}
+		if parentOU.ProjectID != existingOU.ProjectID {
+			return OrganizationUnit{}, &ErrorProjectMismatch
+		}
+	}
+
 	parentChanged := !stringPtrEqual(existingOU.Parent, request.Parent)
 
 	var nameConflict bool
@@ -702,6 +732,7 @@ func (ous *organizationUnitService) updateOUInternal(
 		Name:                      request.Name,
 		Description:               request.Description,
 		Parent:                    request.Parent,
+		ProjectID:                 existingOU.ProjectID,
 		ThemeID:                   request.ThemeID,
 		LayoutID:                  request.LayoutID,
 		AuthFlowID:                request.AuthFlowID,
@@ -728,6 +759,42 @@ func (ous *organizationUnitService) updateOUInternal(
 		return OrganizationUnit{}, &tidcommon.InternalServerError
 	}
 	return updatedOU, nil
+}
+
+// resolveProjectID returns the project a new organization unit belongs to. A child always belongs to
+// its parent's project, so the requested project is only a choice for a root organization unit; for a
+// child it must be empty or match the parent's.
+func (ous *organizationUnitService) resolveProjectID(
+	ctx context.Context, requested string, parent *string,
+) (string, *tidcommon.ServiceError) {
+	if parent != nil {
+		parentOU, err := ous.ouStore.GetOrganizationUnit(ctx, *parent)
+		if err != nil {
+			if errors.Is(err, ErrOrganizationUnitNotFound) {
+				return "", &ErrorParentOrganizationUnitNotFound
+			}
+			return "", &tidcommon.InternalServerError
+		}
+		if requested != "" && requested != parentOU.ProjectID {
+			return "", &ErrorProjectMismatch
+		}
+		return parentOU.ProjectID, nil
+	}
+
+	if requested == "" {
+		return "", nil
+	}
+	if ous.projectResolver == nil {
+		return "", &ErrorInvalidProject
+	}
+	exists, svcErr := ous.projectResolver.IsProjectExists(ctx, requested)
+	if svcErr != nil {
+		return "", svcErr
+	}
+	if !exists {
+		return "", &ErrorInvalidProject
+	}
+	return requested, nil
 }
 
 // DeleteOrganizationUnit deletes an organization unit.

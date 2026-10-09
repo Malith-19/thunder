@@ -1468,6 +1468,10 @@ components:
           type: string
           format: uuid
           nullable: true
+        projectId:
+          type: string
+          format: uuid
+          description: Project the organization unit belongs to. A child organization unit always belongs to its parent's project.
         themeId:
           type: string
           format: uuid
@@ -1714,6 +1718,10 @@ components:
           format: uuid
           nullable: true
 
+        projectId:
+          type: string
+          format: uuid
+          description: Project the organization unit belongs to. A child organization unit always belongs to its parent's project.
     UpdateOrganizationUnitRequest:
       allOf:
         - $ref: '#/components/schemas/CreateOrganizationUnitRequest'

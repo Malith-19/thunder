@@ -156,7 +156,8 @@ func (suite *ServiceTestSuite) setupTestService() (
 		Maybe().Return(nil)
 	mockStore.On("ResolveInboundAuthProfileHandles", mock.Anything, mock.Anything).Maybe().Return(nil)
 	mockOUService := oumock.NewOrganizationUnitServiceInterfaceMock(suite.T())
-	mockOUService.On("IsOrganizationUnitExists", mock.Anything, mock.Anything).Maybe().Return(true, nil)
+	mockOUService.On("GetOrganizationUnit", mock.Anything, mock.Anything).Maybe().
+		Return(ou.OrganizationUnit{}, nil)
 	service := &applicationService{
 		logger:               log.GetLogger().With(log.String(log.LoggerKeyComponentName, "ApplicationService")),
 		inboundClientService: mockStore,
@@ -527,7 +528,7 @@ func (suite *ServiceTestSuite) TestGetApplicationList_Success() {
 	mockStore.On("GetInboundClientList", mock.Anything).
 		Return([]inboundmodel.InboundClient{cfg1, cfg2}, nil)
 
-	result, svcErr := service.GetApplicationList(context.Background())
+	result, svcErr := service.GetApplicationList(context.Background(), "")
 
 	assert.NotNil(suite.T(), result)
 	assert.Nil(suite.T(), svcErr)
@@ -548,7 +549,7 @@ func (suite *ServiceTestSuite) TestGetApplicationList_ListError() {
 		mock.AnythingOfType("int"), mock.AnythingOfType("int"), mock.Anything).
 		Return(([]providers.Entity)(nil), epErr)
 
-	result, svcErr := service.GetApplicationList(context.Background())
+	result, svcErr := service.GetApplicationList(context.Background(), "")
 
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), svcErr)
@@ -571,7 +572,7 @@ func (suite *ServiceTestSuite) TestGetApplicationList_InboundFetchError() {
 	mockStore.On("GetInboundClientList", mock.Anything).
 		Return(([]inboundmodel.InboundClient)(nil), errors.New("db error"))
 
-	result, svcErr := service.GetApplicationList(context.Background())
+	result, svcErr := service.GetApplicationList(context.Background(), "")
 
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), svcErr)
@@ -4195,7 +4196,7 @@ func (suite *ServiceTestSuite) TestGetApplicationList_CountError() {
 		On("GetEntityListCount", mock.Anything, providers.EntityCategoryApp, mock.Anything).
 		Return(0, errors.New("internal error"))
 
-	result, svcErr := service.GetApplicationList(context.Background())
+	result, svcErr := service.GetApplicationList(context.Background(), "")
 
 	assert.Nil(suite.T(), result)
 	assert.Equal(suite.T(), &tidcommon.InternalServerError, svcErr)
@@ -4218,7 +4219,7 @@ func (suite *ServiceTestSuite) TestGetApplicationList_EntityWithoutInboundClient
 	mockStore.On("GetInboundClientList", mock.Anything).
 		Return([]inboundmodel.InboundClient{}, nil)
 
-	result, svcErr := service.GetApplicationList(context.Background())
+	result, svcErr := service.GetApplicationList(context.Background(), "")
 
 	assert.Nil(suite.T(), svcErr)
 	assert.NotNil(suite.T(), result)

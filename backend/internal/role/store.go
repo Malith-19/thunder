@@ -24,6 +24,8 @@ type roleStoreInterface interface {
 	GetRoleList(ctx context.Context, limit, offset int) ([]Role, error)
 	GetRoleListCountByOUID(ctx context.Context, ouID string) (int, error)
 	GetRoleListByOUID(ctx context.Context, ouID string, limit, offset int) ([]Role, error)
+	GetRoleListCountByProject(ctx context.Context, projectID string) (int, error)
+	GetRoleListByProject(ctx context.Context, projectID string, limit, offset int) ([]Role, error)
 	CreateRole(ctx context.Context, id string, role RoleCreationDetail) error
 	GetRole(ctx context.Context, id string) (RoleWithPermissions, error)
 	GetRolesByNames(ctx context.Context, names []string) ([]Role, error)
@@ -144,6 +146,21 @@ func (s *roleStore) GetRoleListCountByOUID(ctx context.Context, ouID string) (in
 	return parseCountResult(countResults)
 }
 
+// GetRoleListCountByProject retrieves the total count of roles belonging to the given project.
+func (s *roleStore) GetRoleListCountByProject(ctx context.Context, projectID string) (int, error) {
+	dbClient, err := s.getConfigDBClient()
+	if err != nil {
+		return 0, err
+	}
+
+	countResults, err := dbClient.QueryContext(ctx, queryGetRoleListCountByProject, projectID, s.scope(ctx))
+	if err != nil {
+		return 0, fmt.Errorf("failed to execute count query: %w", err)
+	}
+
+	return parseCountResult(countResults)
+}
+
 // GetRoleListByOUID retrieves roles belonging to the given organization unit with pagination.
 func (s *roleStore) GetRoleListByOUID(ctx context.Context, ouID string, limit, offset int) ([]Role, error) {
 	dbClient, err := s.getConfigDBClient()
@@ -152,6 +169,30 @@ func (s *roleStore) GetRoleListByOUID(ctx context.Context, ouID string, limit, o
 	}
 
 	results, err := dbClient.QueryContext(ctx, queryGetRoleListByOUID, ouID, limit, offset, s.scope(ctx))
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute role list query: %w", err)
+	}
+
+	roles := make([]Role, 0)
+	for _, row := range results {
+		role, err := buildRoleBasicInfoFromResultRow(row)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build role from result row: %w", err)
+		}
+		roles = append(roles, role)
+	}
+
+	return roles, nil
+}
+
+// GetRoleListByProject retrieves roles belonging to the given project with pagination.
+func (s *roleStore) GetRoleListByProject(ctx context.Context, projectID string, limit, offset int) ([]Role, error) {
+	dbClient, err := s.getConfigDBClient()
+	if err != nil {
+		return nil, err
+	}
+
+	results, err := dbClient.QueryContext(ctx, queryGetRoleListByProject, projectID, limit, offset, s.scope(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute role list query: %w", err)
 	}
@@ -181,6 +222,7 @@ func (s *roleStore) CreateRole(ctx context.Context, id string, role RoleCreation
 		role.OUID,
 		role.Name,
 		role.Description,
+		nullableProjectID(role.ProjectID),
 		s.scope(ctx),
 	)
 	if err != nil {
@@ -234,6 +276,7 @@ func (s *roleStore) GetRole(ctx context.Context, id string) (RoleWithPermissions
 		Name:        roleBasicInfo.Name,
 		Description: roleBasicInfo.Description,
 		OUID:        roleBasicInfo.OUID,
+		ProjectID:   roleBasicInfo.ProjectID,
 		Permissions: permissions,
 	}, nil
 }
@@ -383,6 +426,7 @@ func (s *roleStore) UpdateRole(ctx context.Context, id string, role RoleUpdateDe
 		role.OUID,
 		role.Name,
 		role.Description,
+		nullableProjectID(role.ProjectID),
 		id,
 		s.scope(ctx),
 	)
@@ -575,12 +619,24 @@ func buildRoleBasicInfoFromResultRow(row map[string]interface{}) (Role, error) {
 		return Role{}, err
 	}
 
+	projectID, _ := row["project_id"].(string)
+
 	return Role{
 		ID:          fields[0],
 		Name:        fields[1],
 		Description: fields[2],
 		OUID:        fields[3],
+		ProjectID:   projectID,
 	}, nil
+}
+
+// nullableProjectID stores a role outside every project as NULL rather than as an empty string, so
+// listing by project never matches it.
+func nullableProjectID(projectID string) interface{} {
+	if projectID == "" {
+		return nil
+	}
+	return projectID
 }
 
 // addPermissionsToRole adds a list of permissions to a role.

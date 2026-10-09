@@ -50,7 +50,7 @@ func (e *roleExporter) GetAllResourceIDs(ctx context.Context) ([]string, *tidcom
 	ids := []string{}
 
 	for {
-		roles, err := e.service.GetRoleList(ctx, limit, offset)
+		roles, err := e.service.GetRoleList(ctx, limit, offset, "")
 		if err != nil {
 			return nil, err
 		}
@@ -99,6 +99,7 @@ func (e *roleExporter) GetResourceByID(
 		Name:        roleWithPermissions.Name,
 		Description: roleWithPermissions.Description,
 		OUID:        roleWithPermissions.OUID,
+		ProjectID:   roleWithPermissions.ProjectID,
 		Permissions: perms,
 		Assignments: assignments,
 	}
@@ -178,6 +179,7 @@ type roleDeclarativeResource struct {
 	Description string                      `yaml:"description,omitempty"`
 	OUID        string                      `yaml:"ouId,omitempty"`
 	OUHandle    string                      `yaml:"ouHandle,omitempty"`
+	ProjectID   string                      `yaml:"projectId,omitempty"`
 	Permissions []roleDeclarativePermission `yaml:"permissions"`
 	Assignments []RoleAssignment            `yaml:"assignments,omitempty"`
 }
@@ -212,6 +214,7 @@ func parseToRole(data []byte) (*RoleWithPermissionsAndAssignments, error) {
 		Description: roleResource.Description,
 		OUID:        roleResource.OUID,
 		OUHandle:    roleResource.OUHandle,
+		ProjectID:   roleResource.ProjectID,
 		Permissions: permissions,
 		Assignments: roleResource.Assignments,
 	}

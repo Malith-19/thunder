@@ -96,32 +96,23 @@ func (c *compositeRoleStore) GetRoleList(ctx context.Context, limit, offset int)
 // GetRoleListCountByOUID retrieves the total count of unique roles belonging to the given
 // organization unit across both stores.
 func (c *compositeRoleStore) GetRoleListCountByOUID(ctx context.Context, ouID string) (int, error) {
-	capCount := func(fn func(context.Context, string) (int, error)) func() (int, error) {
-		return func() (int, error) {
-			count, err := fn(ctx, ouID)
-			if err != nil {
-				return 0, err
-			}
-			return min(count, serverconst.MaxCompositeStoreRecords), nil
-		}
-	}
-	roles, limitExceeded, err := declarativeresource.CompositeMergeListHelperWithLimit(
-		capCount(c.dbStore.GetRoleListCountByOUID),
-		capCount(c.fileStore.GetRoleListCountByOUID),
-		func(count int) ([]Role, error) { return c.dbStore.GetRoleListByOUID(ctx, ouID, count, 0) },
-		func(count int) ([]Role, error) { return c.fileStore.GetRoleListByOUID(ctx, ouID, count, 0) },
-		mergeRoles,
-		serverconst.MaxCompositeStoreRecords+1,
-		0,
-		serverconst.MaxCompositeStoreRecords,
-	)
+	roles, err := c.mergedRoleList(ctx, ouID, c.dbStore.GetRoleListCountByOUID, c.fileStore.GetRoleListCountByOUID,
+		c.dbStore.GetRoleListByOUID, c.fileStore.GetRoleListByOUID, serverconst.MaxCompositeStoreRecords+1, 0)
 	if err != nil {
 		return 0, err
 	}
-	if limitExceeded {
-		return 0, errResultLimitExceededInCompositeMode
-	}
+	return len(roles), nil
+}
 
+// GetRoleListCountByProject retrieves the total count of unique roles belonging to the given
+// project across both stores.
+func (c *compositeRoleStore) GetRoleListCountByProject(ctx context.Context, projectID string) (int, error) {
+	roles, err := c.mergedRoleList(ctx, projectID, c.dbStore.GetRoleListCountByProject,
+		c.fileStore.GetRoleListCountByProject, c.dbStore.GetRoleListByProject, c.fileStore.GetRoleListByProject,
+		serverconst.MaxCompositeStoreRecords+1, 0)
+	if err != nil {
+		return 0, err
+	}
 	return len(roles), nil
 }
 
@@ -130,9 +121,32 @@ func (c *compositeRoleStore) GetRoleListCountByOUID(ctx context.Context, ouID st
 func (c *compositeRoleStore) GetRoleListByOUID(
 	ctx context.Context, ouID string, limit, offset int,
 ) ([]Role, error) {
+	return c.mergedRoleList(ctx, ouID, c.dbStore.GetRoleListCountByOUID, c.fileStore.GetRoleListCountByOUID,
+		c.dbStore.GetRoleListByOUID, c.fileStore.GetRoleListByOUID, limit, offset)
+}
+
+// GetRoleListByProject retrieves roles belonging to the given project from both stores
+// and merges them.
+func (c *compositeRoleStore) GetRoleListByProject(
+	ctx context.Context, projectID string, limit, offset int,
+) ([]Role, error) {
+	return c.mergedRoleList(ctx, projectID, c.dbStore.GetRoleListCountByProject,
+		c.fileStore.GetRoleListCountByProject, c.dbStore.GetRoleListByProject, c.fileStore.GetRoleListByProject,
+		limit, offset)
+}
+
+// mergedRoleList merges one page of the roles both stores hold under key, an organization unit or a
+// project ID. Each store's count is capped at the composite limit so an oversized store is reported
+// rather than read in full.
+func (c *compositeRoleStore) mergedRoleList(
+	ctx context.Context, key string,
+	countDB, countFile func(context.Context, string) (int, error),
+	listDB, listFile func(context.Context, string, int, int) ([]Role, error),
+	limit, offset int,
+) ([]Role, error) {
 	capCount := func(fn func(context.Context, string) (int, error)) func() (int, error) {
 		return func() (int, error) {
-			count, err := fn(ctx, ouID)
+			count, err := fn(ctx, key)
 			if err != nil {
 				return 0, err
 			}
@@ -140,10 +154,10 @@ func (c *compositeRoleStore) GetRoleListByOUID(
 		}
 	}
 	roles, limitExceeded, err := declarativeresource.CompositeMergeListHelperWithLimit(
-		capCount(c.dbStore.GetRoleListCountByOUID),
-		capCount(c.fileStore.GetRoleListCountByOUID),
-		func(count int) ([]Role, error) { return c.dbStore.GetRoleListByOUID(ctx, ouID, count, 0) },
-		func(count int) ([]Role, error) { return c.fileStore.GetRoleListByOUID(ctx, ouID, count, 0) },
+		capCount(countDB),
+		capCount(countFile),
+		func(count int) ([]Role, error) { return listDB(ctx, key, count, 0) },
+		func(count int) ([]Role, error) { return listFile(ctx, key, count, 0) },
 		mergeRoles,
 		limit,
 		offset,

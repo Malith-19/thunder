@@ -13,6 +13,8 @@ export interface CreateRoleRequest {
   description?: string;
   /** ID of the organization unit this role belongs to */
   ouId: string;
+  /** ID of the project this role belongs to */
+  projectId?: string;
   /** Optional initial permissions */
   permissions?: ResourcePermissions[];
   /** Optional initial assignments */
@@ -49,6 +51,8 @@ export interface RoleListParams {
   limit?: number;
   /** Number of records to skip */
   offset?: number;
+  /** Lists only the roles that belong to this project */
+  projectId?: string;
 }
 
 /**

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {QueryErrorNotice, ResourceAvatar, getInitials} from '@thunderid/components';
+import {useProject} from '@thunderid/contexts';
 import {useDataGridLocaleText} from '@thunderid/hooks';
 import {useLogger} from '@thunderid/logger/react';
 import {IconButton, Tooltip, Typography, ListingTable, DataGrid} from '@wso2/oxygen-ui';
@@ -22,7 +23,8 @@ export default function UsersList() {
   const dataGridLocaleText = useDataGridLocaleText();
   const routes = useUserRoutes();
 
-  const {data: userData, isLoading, error, refetch} = useGetUsers();
+  const {selectedProject} = useProject();
+  const {data: userData, isLoading, error, refetch} = useGetUsers({projectId: selectedProject?.id});
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);

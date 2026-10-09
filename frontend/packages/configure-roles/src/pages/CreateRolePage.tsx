@@ -7,6 +7,7 @@ import {
   useGetOrganizationUnit,
   useHasMultipleOUs,
 } from '@thunderid/configure-organization-units';
+import {useProject} from '@thunderid/contexts';
 import {useLogger} from '@thunderid/logger/react';
 import {getErrorMessage} from '@thunderid/utils';
 import {Box, Button, CircularProgress, Alert} from '@wso2/oxygen-ui';
@@ -24,6 +25,7 @@ import type {CreateRoleRequest} from '../models/requests';
 import {RoleCreateFlowStep} from '../models/role-create-flow';
 
 export default function CreateRolePage(): JSX.Element {
+  const {selectedProject} = useProject();
   const navigate = useNavigate();
   const {t} = useTranslation('roles');
   const logger = useLogger('CreateRolePage');
@@ -119,6 +121,7 @@ export default function CreateRolePage(): JSX.Element {
     const requestData: CreateRoleRequest = {
       name: trimmedName,
       ouId: selectedOuId,
+      ...(selectedProject && {projectId: selectedProject.id}),
       ...(permissions.length > 0 ? {permissions} : {}),
     };
 

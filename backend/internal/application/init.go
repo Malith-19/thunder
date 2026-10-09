@@ -13,6 +13,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/entity"
 	"github.com/thunder-id/thunderid/internal/inboundclient"
 	oupkg "github.com/thunder-id/thunderid/internal/ou"
+	"github.com/thunder-id/thunderid/internal/project"
 	"github.com/thunder-id/thunderid/internal/serverconfig"
 	"github.com/thunder-id/thunderid/internal/sharing"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
@@ -34,10 +35,15 @@ func Initialize(
 	serverConfigSvc serverconfig.ServerConfigService,
 	artifactLifetime artifactLifetimeResolver,
 	sharingService sharing.SharingServiceInterface,
+	projects project.Registry,
 ) (ApplicationServiceInterface, declarativeresource.ResourceExporter, error) {
 	appService := newApplicationService(
 		inboundClient, entityService, ouService, i18nService, cryptoSvc, serverConfigSvc, artifactLifetime,
+		projects,
 	)
+	if projects != nil {
+		projects.AddUsageChecker(&projectUsageChecker{entityService: entityService})
+	}
 
 	// Registered before declarative resources load, because loading seeds the sharing policies those
 	// files declare and the framework refuses a type it does not know.
@@ -110,4 +116,15 @@ func registerRoutes(mux *http.ServeMux, appHandler *applicationHandler) {
 		func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNoContent)
 		}, opts2))
+}
+
+// projectUsageChecker keeps a project from being deleted while applications still belong to it.
+type projectUsageChecker struct {
+	entityService entity.EntityServiceInterface
+}
+
+// HasResourcesInProject reports whether any application belongs to the project.
+func (c *projectUsageChecker) HasResourcesInProject(ctx context.Context, projectID string) (bool, error) {
+	count, err := c.entityService.GetEntityListCountByProject(ctx, providers.EntityCategoryApp, projectID)
+	return count > 0, err
 }

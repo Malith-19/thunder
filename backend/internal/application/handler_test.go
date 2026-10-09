@@ -347,7 +347,7 @@ func (suite *HandlerTestSuite) TestHandleApplicationListRequest_Success() {
 		},
 	}
 
-	mockService.On("GetApplicationList", mock.Anything).Return(expectedList, nil)
+	mockService.On("GetApplicationList", mock.Anything, mock.Anything).Return(expectedList, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/applications", nil)
 	w := httptest.NewRecorder()
@@ -390,7 +390,7 @@ func (suite *HandlerTestSuite) TestHandleApplicationListRequest_WithTemplate() {
 		},
 	}
 
-	mockService.On("GetApplicationList", mock.Anything).Return(expectedList, nil)
+	mockService.On("GetApplicationList", mock.Anything, mock.Anything).Return(expectedList, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/applications", nil)
 	w := httptest.NewRecorder()
@@ -415,7 +415,7 @@ func (suite *HandlerTestSuite) TestHandleApplicationListRequest_ServiceError() {
 
 	svcErr := &tidcommon.InternalServerError
 
-	mockService.On("GetApplicationList", mock.Anything).Return(nil, svcErr)
+	mockService.On("GetApplicationList", mock.Anything, mock.Anything).Return(nil, svcErr)
 
 	req := httptest.NewRequest(http.MethodGet, "/applications", nil)
 	w := httptest.NewRecorder()
@@ -1674,7 +1674,7 @@ func (suite *HandlerTestSuite) TestHandleApplicationListRequest_EncodeResponseEr
 		Count:        1,
 	}
 
-	mockService.On("GetApplicationList", mock.Anything).Return(listResponse, nil)
+	mockService.On("GetApplicationList", mock.Anything, mock.Anything).Return(listResponse, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/applications", nil)
 	w := &failingResponseWriter{failOnce: true}

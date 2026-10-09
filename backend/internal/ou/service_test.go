@@ -2824,10 +2824,10 @@ func (suite *OrganizationUnitServiceTestSuite) TestOUService_UpdateOrganizationU
 		store.On("IsOrganizationUnitExists", mock.Anything, parentID).
 			Return(true, nil).
 			Once()
-		// checkCircularDependency walks up from parent
+		// checkCircularDependency walks up from parent, and the project check reads the parent.
 		store.On("GetOrganizationUnit", mock.Anything, parentID).
 			Return(OrganizationUnit{ID: parentID, Parent: nil}, nil).
-			Once()
+			Twice()
 		store.On("UpdateOrganizationUnit", mock.Anything, mock.MatchedBy(func(ou OrganizationUnit) bool {
 			return ou.ID == testOUID && ou.Description == "updated" && *ou.Parent == parentID
 		})).
@@ -2870,10 +2870,10 @@ func (suite *OrganizationUnitServiceTestSuite) TestOUService_UpdateOrganizationU
 		store.On("IsOrganizationUnitExists", mock.Anything, parentID).
 			Return(true, nil).
 			Once()
-		// checkCircularDependency walks up from parent
+		// checkCircularDependency walks up from parent, and the project check reads the parent.
 		store.On("GetOrganizationUnit", mock.Anything, parentID).
 			Return(OrganizationUnit{ID: parentID, Parent: nil}, nil).
-			Once()
+			Twice()
 		store.On("CheckOrganizationUnitNameConflict", mock.Anything, "Finance", mock.MatchedBy(func(p *string) bool {
 			return p != nil && *p == parentID
 		})).

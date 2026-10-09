@@ -219,7 +219,7 @@ func (suite *ServiceTestSuite) TestListUsers_Success() {
 	mockUserTypeService.On(
 		"GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, 100, 0, false,
 	).Return(makeEntityTypeListPage(), (*tidcommon.ServiceError)(nil))
-	mockUserService.On("GetUserList", mock.Anything, 20, 0, (map[string]interface{})(nil), false).
+	mockUserService.On("GetUserList", mock.Anything, 20, 0, mock.Anything, (map[string]interface{})(nil), false).
 		Return(&user.UserListResponse{
 			TotalResults: 1,
 			Users:        []providers.User{internalUser},
@@ -262,7 +262,7 @@ func (suite *ServiceTestSuite) TestListUsers_UnresolvableUserType_ReturnsBareRes
 	mockUserTypeService.On(
 		"GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, 100, 0, false,
 	).Return(makeEntityTypeListPage(), (*tidcommon.ServiceError)(nil))
-	mockUserService.On("GetUserList", mock.Anything, 20, 0, (map[string]interface{})(nil), false).
+	mockUserService.On("GetUserList", mock.Anything, 20, 0, mock.Anything, (map[string]interface{})(nil), false).
 		Return(&user.UserListResponse{
 			TotalResults: 2,
 			Users:        []providers.User{ghostUser, goodUser},
@@ -300,7 +300,7 @@ func (suite *ServiceTestSuite) TestListUsers_ServiceError() {
 	service := newSCIMUsersService(
 		mockUserService, mockUserTypeService, testSCIMConfig)
 
-	mockUserService.On("GetUserList", mock.Anything, 20, 0, (map[string]interface{})(nil), false).
+	mockUserService.On("GetUserList", mock.Anything, 20, 0, mock.Anything, (map[string]interface{})(nil), false).
 		Return((*user.UserListResponse)(nil), &user.ErrorUserNotFound)
 
 	resp, err := service.ListUsers(context.Background(), 1, 20, nil, testBaseURL)
@@ -320,7 +320,7 @@ func (suite *ServiceTestSuite) TestListUsers_ExplicitZeroCountReturnsNoResources
 		mockUserService, mockUserTypeService, testSCIMConfig)
 
 	mockUserService.On("GetUserList",
-		mock.Anything, 1, 0, (map[string]interface{})(nil), false).
+		mock.Anything, 1, 0, mock.Anything, (map[string]interface{})(nil), false).
 		Return(&user.UserListResponse{TotalResults: 5, Users: []providers.User{{ID: "user-1", Type: "employee"}}},
 			(*tidcommon.ServiceError)(nil))
 
@@ -1995,7 +1995,7 @@ func (suite *ServiceTestSuite) TestListUsers_CoreUserTypeIDUnset_ResolvesCoreTyp
 
 	first, second := newCoreResolutionUser(), newCoreResolutionUser()
 	second.ID = "user-2"
-	mockUserService.On("GetUserList", mock.Anything, 20, 0, (map[string]interface{})(nil), false).
+	mockUserService.On("GetUserList", mock.Anything, 20, 0, mock.Anything, (map[string]interface{})(nil), false).
 		Return(&user.UserListResponse{TotalResults: 2, Users: []providers.User{first, second}},
 			(*tidcommon.ServiceError)(nil))
 	mockUserTypeService.On("GetEntityTypeByHandle", mock.Anything, entitytype.TypeCategoryUser, testUserTypeEmployee).

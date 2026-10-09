@@ -363,6 +363,14 @@ func InitSystemPermissions(handle string) {
 		{"PUT /secrets/**", p.Root},
 		{"DELETE /secrets/**", p.Root},
 
+		// Project APIs. Projects are managed at the organization level, so the whole surface requires
+		// root. This matches the default for an unlisted path, and says so rather than relying on it.
+		{"GET /projects", p.Root},
+		{"POST /projects", p.Root},
+		{"GET /projects/**", p.Root},
+		{"PUT /projects/**", p.Root},
+		{"DELETE /projects/**", p.Root},
+
 		// Notification template APIs. The {channel} segment is matched by "*"; item sub-paths by "**".
 		// Collection rules are listed before the "**" rules so first-match-wins picks them for the list.
 		{"GET /notification-templates/*/templates", p.NotificationTemplateView},

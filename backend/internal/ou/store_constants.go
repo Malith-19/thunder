@@ -19,6 +19,7 @@ var ouFilterableColumns = map[string]string{
 	"description": "DESCRIPTION",
 	"createdAt":   "CREATED_AT",
 	"updatedAt":   "UPDATED_AT",
+	"projectId":   "PROJECT_ID",
 }
 
 // ouTextColumns is the set of ORGANIZATION_UNIT columns that hold free-form text.
@@ -121,7 +122,7 @@ func buildRootOUCountQuery(g *tidcommon.FilterGroup) (dbmodel.DBQuery, []interfa
 // buildRootOUListQuery constructs the paginated root-OU list query with an optional filter group.
 // Args order: limit=$1, offset=$2, deploymentID=$3 [, filterArgs...]
 func buildRootOUListQuery(g *tidcommon.FilterGroup) (dbmodel.DBQuery, []interface{}, error) {
-	query := `SELECT OU_ID, HANDLE, NAME, DESCRIPTION, PARENT_ID, METADATA, CREATED_AT, UPDATED_AT ` +
+	query := `SELECT OU_ID, HANDLE, NAME, DESCRIPTION, PARENT_ID, METADATA, PROJECT_ID, CREATED_AT, UPDATED_AT ` +
 		`FROM "ORGANIZATION_UNIT" ` +
 		`WHERE PARENT_ID IS NULL AND DEPLOYMENT_ID = $3`
 
@@ -160,7 +161,8 @@ func buildChildrenOUCountQuery(g *tidcommon.FilterGroup) (dbmodel.DBQuery, []int
 // buildChildrenOUListQuery constructs the paginated child-OU list query with an optional filter group.
 // Args order: parentID=$1, limit=$2, offset=$3, deploymentID=$4 [, filterArgs...]
 func buildChildrenOUListQuery(g *tidcommon.FilterGroup) (dbmodel.DBQuery, []interface{}, error) {
-	query := `SELECT OU_ID, HANDLE, NAME, DESCRIPTION, METADATA, CREATED_AT, UPDATED_AT FROM "ORGANIZATION_UNIT" ` +
+	query := `SELECT OU_ID, HANDLE, NAME, DESCRIPTION, METADATA, PROJECT_ID, CREATED_AT, UPDATED_AT ` +
+		`FROM "ORGANIZATION_UNIT" ` +
 		`WHERE PARENT_ID = $1 AND DEPLOYMENT_ID = $4`
 
 	filterArgs := []interface{}{}
@@ -182,16 +184,16 @@ var (
 	queryCreateOrganizationUnit = dbmodel.DBQuery{
 		ID: "OUQ-OU_MGT-03",
 		Query: `INSERT INTO "ORGANIZATION_UNIT" (
-			OU_ID, PARENT_ID, HANDLE, NAME, DESCRIPTION, METADATA, DEPLOYMENT_ID, CREATED_AT, UPDATED_AT
+			OU_ID, PARENT_ID, HANDLE, NAME, DESCRIPTION, METADATA, PROJECT_ID, DEPLOYMENT_ID, CREATED_AT, UPDATED_AT
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 		)`,
 	}
 
 	// queryGetOrganizationUnitByID is the query to get an organization unit by id.
 	queryGetOrganizationUnitByID = dbmodel.DBQuery{
 		ID: "OUQ-OU_MGT-04",
-		Query: `SELECT OU_ID, PARENT_ID, HANDLE, NAME, DESCRIPTION, METADATA, CREATED_AT, UPDATED_AT
+		Query: `SELECT OU_ID, PARENT_ID, HANDLE, NAME, DESCRIPTION, METADATA, PROJECT_ID, CREATED_AT, UPDATED_AT
 		FROM "ORGANIZATION_UNIT"
 		WHERE OU_ID = $1 AND DEPLOYMENT_ID = $2`,
 	}
@@ -199,7 +201,7 @@ var (
 	// queryGetRootOrganizationUnitByHandle is the query to get a root organization unit by handle.
 	queryGetRootOrganizationUnitByHandle = dbmodel.DBQuery{
 		ID: "OUQ-OU_MGT-05",
-		Query: `SELECT OU_ID, PARENT_ID, HANDLE, NAME, DESCRIPTION, METADATA, CREATED_AT, UPDATED_AT
+		Query: `SELECT OU_ID, PARENT_ID, HANDLE, NAME, DESCRIPTION, METADATA, PROJECT_ID, CREATED_AT, UPDATED_AT
 		FROM "ORGANIZATION_UNIT"
 		WHERE HANDLE = $1 AND PARENT_ID IS NULL AND DEPLOYMENT_ID = $2`,
 	}
@@ -207,7 +209,7 @@ var (
 	// queryGetOrganizationUnitByHandle is the query to get an organization unit by handle and parent.
 	queryGetOrganizationUnitByHandle = dbmodel.DBQuery{
 		ID: "OUQ-OU_MGT-06",
-		Query: `SELECT OU_ID, PARENT_ID, HANDLE, NAME, DESCRIPTION, METADATA, CREATED_AT, UPDATED_AT
+		Query: `SELECT OU_ID, PARENT_ID, HANDLE, NAME, DESCRIPTION, METADATA, PROJECT_ID, CREATED_AT, UPDATED_AT
 		FROM "ORGANIZATION_UNIT"
 		WHERE HANDLE = $1 AND PARENT_ID = $2 AND DEPLOYMENT_ID = $3`,
 	}
@@ -222,8 +224,8 @@ var (
 	queryUpdateOrganizationUnit = dbmodel.DBQuery{
 		ID: "OUQ-OU_MGT-08",
 		Query: `UPDATE "ORGANIZATION_UNIT" SET PARENT_ID = $2, HANDLE = $3, NAME = $4, DESCRIPTION = $5, ` +
-			`METADATA = $6, UPDATED_AT = $7 ` +
-			`WHERE OU_ID = $1 AND DEPLOYMENT_ID = $8`,
+			`METADATA = $6, PROJECT_ID = $7, UPDATED_AT = $8 ` +
+			`WHERE OU_ID = $1 AND DEPLOYMENT_ID = $9`,
 	}
 
 	// queryDeleteOrganizationUnit is the query to delete an organization unit.
@@ -288,10 +290,10 @@ func buildGetOrganizationUnitsByIDsQuery(ids []string) dbmodel.DBQuery {
 
 	return dbmodel.DBQuery{
 		ID: "OUQ-OU_MGT-21",
-		PostgresQuery: `SELECT OU_ID, HANDLE, NAME, DESCRIPTION, METADATA, CREATED_AT, UPDATED_AT ` +
+		PostgresQuery: `SELECT OU_ID, HANDLE, NAME, DESCRIPTION, METADATA, PROJECT_ID, CREATED_AT, UPDATED_AT ` +
 			`FROM "ORGANIZATION_UNIT" ` +
 			`WHERE OU_ID IN (` + pgInClause + `) AND DEPLOYMENT_ID = ` + deploymentIDParam + ` ORDER BY NAME`,
-		SQLiteQuery: `SELECT OU_ID, HANDLE, NAME, DESCRIPTION, METADATA, CREATED_AT, UPDATED_AT ` +
+		SQLiteQuery: `SELECT OU_ID, HANDLE, NAME, DESCRIPTION, METADATA, PROJECT_ID, CREATED_AT, UPDATED_AT ` +
 			`FROM "ORGANIZATION_UNIT" ` +
 			`WHERE OU_ID IN (` + sqliteInClause + `) AND DEPLOYMENT_ID = ? ORDER BY NAME`,
 	}
