@@ -130,9 +130,9 @@ func (s *FlowMgtServiceTestSuite) TestListFlows_Success() {
 	expectedFlows := []BasicFlowDefinition{
 		{ID: "flow1", Handle: "test-handle", Name: "Flow 1", FlowType: providers.FlowTypeAuthentication},
 	}
-	s.mockStore.EXPECT().ListFlows(mock.Anything, 30, 0, "").Return(expectedFlows, 1, nil)
+	s.mockStore.EXPECT().ListFlows(mock.Anything, 30, 0, "", "").Return(expectedFlows, 1, nil)
 
-	result, err := s.service.ListFlows(context.Background(), 30, 0, "")
+	result, err := s.service.ListFlows(context.Background(), 30, 0, "", "")
 
 	s.Nil(err)
 	s.NotNil(result)
@@ -142,62 +142,62 @@ func (s *FlowMgtServiceTestSuite) TestListFlows_Success() {
 }
 
 func (s *FlowMgtServiceTestSuite) TestListFlows_DefaultLimit() {
-	s.mockStore.EXPECT().ListFlows(mock.Anything, defaultPageSize, 0, "").Return([]BasicFlowDefinition{}, 0, nil)
+	s.mockStore.EXPECT().ListFlows(mock.Anything, defaultPageSize, 0, "", "").Return([]BasicFlowDefinition{}, 0, nil)
 
-	result, err := s.service.ListFlows(context.Background(), 0, 0, "")
+	result, err := s.service.ListFlows(context.Background(), 0, 0, "", "")
 
 	s.Nil(err)
 	s.NotNil(result)
 }
 
 func (s *FlowMgtServiceTestSuite) TestListFlows_MaxLimitExceeded() {
-	s.mockStore.EXPECT().ListFlows(mock.Anything, maxPageSize, 0, "").Return([]BasicFlowDefinition{}, 0, nil)
+	s.mockStore.EXPECT().ListFlows(mock.Anything, maxPageSize, 0, "", "").Return([]BasicFlowDefinition{}, 0, nil)
 
-	result, err := s.service.ListFlows(context.Background(), 1000, 0, "")
+	result, err := s.service.ListFlows(context.Background(), 1000, 0, "", "")
 
 	s.Nil(err)
 	s.NotNil(result)
 }
 
 func (s *FlowMgtServiceTestSuite) TestListFlows_NegativeOffset() {
-	s.mockStore.EXPECT().ListFlows(mock.Anything, 30, 0, "").Return([]BasicFlowDefinition{}, 0, nil)
+	s.mockStore.EXPECT().ListFlows(mock.Anything, 30, 0, "", "").Return([]BasicFlowDefinition{}, 0, nil)
 
-	result, err := s.service.ListFlows(context.Background(), 30, -10, "")
+	result, err := s.service.ListFlows(context.Background(), 30, -10, "", "")
 
 	s.Nil(err)
 	s.NotNil(result)
 }
 
 func (s *FlowMgtServiceTestSuite) TestListFlows_WithFlowType() {
-	s.mockStore.EXPECT().ListFlows(mock.Anything, 30, 0, string(providers.FlowTypeAuthentication)).
+	s.mockStore.EXPECT().ListFlows(mock.Anything, 30, 0, string(providers.FlowTypeAuthentication), "").
 		Return([]BasicFlowDefinition{}, 0, nil)
 
-	result, err := s.service.ListFlows(context.Background(), 30, 0, providers.FlowTypeAuthentication)
+	result, err := s.service.ListFlows(context.Background(), 30, 0, providers.FlowTypeAuthentication, "")
 
 	s.Nil(err)
 	s.NotNil(result)
 }
 
 func (s *FlowMgtServiceTestSuite) TestListFlows_InvalidFlowType() {
-	result, err := s.service.ListFlows(context.Background(), 30, 0, "invalid")
+	result, err := s.service.ListFlows(context.Background(), 30, 0, "invalid", "")
 
 	s.Nil(result)
 	s.Equal(&ErrorInvalidFlowType, err)
 }
 
 func (s *FlowMgtServiceTestSuite) TestListFlows_StoreError() {
-	s.mockStore.EXPECT().ListFlows(mock.Anything, 30, 0, "").Return(nil, 0, errors.New("db error"))
+	s.mockStore.EXPECT().ListFlows(mock.Anything, 30, 0, "", "").Return(nil, 0, errors.New("db error"))
 
-	result, err := s.service.ListFlows(context.Background(), 30, 0, "")
+	result, err := s.service.ListFlows(context.Background(), 30, 0, "", "")
 
 	s.Nil(result)
 	s.Equal(&tidcommon.InternalServerError, err)
 }
 
 func (s *FlowMgtServiceTestSuite) TestListFlows_PaginationLinks() {
-	s.mockStore.EXPECT().ListFlows(mock.Anything, 10, 20, "").Return([]BasicFlowDefinition{}, 100, nil)
+	s.mockStore.EXPECT().ListFlows(mock.Anything, 10, 20, "", "").Return([]BasicFlowDefinition{}, 100, nil)
 
-	result, err := s.service.ListFlows(context.Background(), 10, 20, "")
+	result, err := s.service.ListFlows(context.Background(), 10, 20, "", "")
 
 	s.Nil(err)
 	s.NotNil(result)
@@ -206,9 +206,9 @@ func (s *FlowMgtServiceTestSuite) TestListFlows_PaginationLinks() {
 }
 
 func (s *FlowMgtServiceTestSuite) TestListFlows_PaginationLinksFirstPage() {
-	s.mockStore.EXPECT().ListFlows(mock.Anything, 10, 0, "").Return([]BasicFlowDefinition{}, 100, nil)
+	s.mockStore.EXPECT().ListFlows(mock.Anything, 10, 0, "", "").Return([]BasicFlowDefinition{}, 100, nil)
 
-	result, err := s.service.ListFlows(context.Background(), 10, 0, "")
+	result, err := s.service.ListFlows(context.Background(), 10, 0, "", "")
 
 	s.Nil(err)
 	s.NotNil(result)
@@ -217,9 +217,9 @@ func (s *FlowMgtServiceTestSuite) TestListFlows_PaginationLinksFirstPage() {
 }
 
 func (s *FlowMgtServiceTestSuite) TestListFlows_PaginationLinksLastPage() {
-	s.mockStore.EXPECT().ListFlows(mock.Anything, 10, 90, "").Return([]BasicFlowDefinition{}, 100, nil)
+	s.mockStore.EXPECT().ListFlows(mock.Anything, 10, 90, "", "").Return([]BasicFlowDefinition{}, 100, nil)
 
-	result, err := s.service.ListFlows(context.Background(), 10, 90, "")
+	result, err := s.service.ListFlows(context.Background(), 10, 90, "", "")
 
 	s.Nil(err)
 	s.NotNil(result)

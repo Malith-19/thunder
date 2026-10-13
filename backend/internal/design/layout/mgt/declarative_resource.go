@@ -50,7 +50,7 @@ func (e *layoutExporter) GetAllResourceIDs(ctx context.Context) ([]string, *tidc
 	offset := 0
 
 	for {
-		layoutList, err := e.service.GetLayoutList(ctx, pageSize, offset)
+		layoutList, err := e.service.GetLayoutList(ctx, pageSize, offset, "")
 		if err != nil {
 			return nil, err
 		}
@@ -183,6 +183,7 @@ func parseToLayout(data []byte) (*Layout, error) {
 		Layout:      layoutJSON,
 		CreatedAt:   "",
 		UpdatedAt:   "",
+		ProjectID:   layoutRequest.ProjectID,
 	}
 
 	return layout, nil

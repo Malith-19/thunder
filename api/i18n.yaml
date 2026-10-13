@@ -36,6 +36,8 @@ paths:
       summary: List all languages
       description: Returns a list of all language tags that have translations in the system.
       operationId: listLanguages
+      parameters:
+        - $ref: '#/components/parameters/projectIdQueryParam'
       responses:
         "200":
           description: List of language tags
@@ -322,6 +324,14 @@ paths:
       summary: Clear all translations for a language
       description: Removes all custom translations for the language.
       operationId: deleteTranslations
+      parameters:
+        - name: projectId
+          in: query
+          description: Clears only the translations of the language that belong to this project.
+          required: false
+          schema:
+            type: string
+            format: uuid
       responses:
         "204":
           description: Custom translations cleared
@@ -669,6 +679,15 @@ components:
             system: Access to system management APIs
 
   parameters:
+    projectIdQueryParam:
+      name: projectId
+      in: query
+      description: Lists only the languages that have translations in this project. Omit to list them all.
+      required: false
+      schema:
+        type: string
+        format: uuid
+
     languagePathParam:
       name: language
       in: path
@@ -744,6 +763,10 @@ components:
           type: string
           description: Translated value.
           example: Usuario no encontrado
+        projectId:
+          type: string
+          format: uuid
+          description: ID of the project the translation belongs to.
 
     SetTranslationRequest:
       type: object
@@ -757,6 +780,12 @@ components:
           minLength: 1
           maxLength: 4096
           example: Usuario no encontrado
+        projectId:
+          type: string
+          format: uuid
+          description: >-
+            ID of the project the translation belongs to. On the control plane it defaults to the default
+            project; on the data plane it is kept as a label.
 
     LanguageTranslationsResponse:
       type: object
@@ -808,6 +837,12 @@ components:
             errors:
               user.not_found: Usuario no encontrado
               invalid.input: Entrada inválida
+        projectId:
+          type: string
+          format: uuid
+          description: >-
+            ID of the project the translations belong to. On the control plane it defaults to the default
+            project; on the data plane it is kept as a label.
 
     I18nMessage:
       type: object

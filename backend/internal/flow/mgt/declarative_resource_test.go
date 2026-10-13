@@ -184,7 +184,7 @@ func (s *DeclarativeResourceTestSuite) TestFlowGraphExporter_GetAllResourceIDs()
 	}
 
 	// Use providers.FlowType to match the service interface type
-	mockService.EXPECT().ListFlows(mock.Anything, 10000, 0, providers.FlowType("")).Return(listResponse, nil)
+	mockService.EXPECT().ListFlows(mock.Anything, 10000, 0, providers.FlowType(""), "").Return(listResponse, nil)
 
 	exporter := newFlowGraphExporter(mockService)
 	ids, err := exporter.GetAllResourceIDs(context.Background())
@@ -204,7 +204,7 @@ func (s *DeclarativeResourceTestSuite) TestFlowGraphExporter_GetAllResourceIDs_E
 		Error: tidcommon.I18nMessage{DefaultValue: "test error"},
 	}
 
-	mockService.EXPECT().ListFlows(mock.Anything, 10000, 0, providers.FlowType("")).Return(nil, expectedError)
+	mockService.EXPECT().ListFlows(mock.Anything, 10000, 0, providers.FlowType(""), "").Return(nil, expectedError)
 
 	exporter := newFlowGraphExporter(mockService)
 	ids, err := exporter.GetAllResourceIDs(context.Background())
@@ -222,7 +222,7 @@ func (s *DeclarativeResourceTestSuite) TestFlowGraphExporter_GetAllResourceIDs_E
 		Count: 0,
 	}
 
-	mockService.EXPECT().ListFlows(mock.Anything, 10000, 0, providers.FlowType("")).Return(listResponse, nil)
+	mockService.EXPECT().ListFlows(mock.Anything, 10000, 0, providers.FlowType(""), "").Return(listResponse, nil)
 
 	exporter := newFlowGraphExporter(mockService)
 	ids, err := exporter.GetAllResourceIDs(context.Background())
@@ -426,7 +426,7 @@ func (s *DeclarativeResourceTestSuite) TestFileBasedStore_ListFlows() {
 		require.NoError(s.T(), err)
 	}
 
-	flows, count, err := store.ListFlows(context.Background(), 10, 0, "")
+	flows, count, err := store.ListFlows(context.Background(), 10, 0, "", "")
 	require.NoError(s.T(), err)
 
 	assert.Equal(s.T(), 3, count)
@@ -530,7 +530,7 @@ func (s *DeclarativeResourceTestSuite) TestFlowGraphExporterIntegration() {
 		Count: 1,
 	}
 
-	mockService.EXPECT().ListFlows(mock.Anything, 10000, 0, providers.FlowType("")).Return(listResponse, nil)
+	mockService.EXPECT().ListFlows(mock.Anything, 10000, 0, providers.FlowType(""), "").Return(listResponse, nil)
 	mockService.EXPECT().GetFlow(mock.Anything, "flow-001").Return(flow, nil)
 
 	exporter := newFlowGraphExporter(mockService)

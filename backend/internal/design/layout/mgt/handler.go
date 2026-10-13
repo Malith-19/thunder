@@ -43,7 +43,8 @@ func (lh *layoutMgtHandler) HandleLayoutListRequest(w http.ResponseWriter, r *ht
 		return
 	}
 
-	layoutList, svcErr := lh.layoutMgtService.GetLayoutList(ctx, limit, offset)
+	projectID := r.URL.Query().Get(sysutils.QueryParamProjectID)
+	layoutList, svcErr := lh.layoutMgtService.GetLayoutList(ctx, limit, offset, projectID)
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
 		return
@@ -59,6 +60,7 @@ func (lh *layoutMgtHandler) HandleLayoutListRequest(w http.ResponseWriter, r *ht
 			CreatedAt:   layout.CreatedAt,
 			UpdatedAt:   layout.UpdatedAt,
 			IsReadOnly:  layout.IsReadOnly,
+			ProjectID:   layout.ProjectID,
 		})
 	}
 
@@ -92,6 +94,7 @@ func (lh *layoutMgtHandler) HandleLayoutPostRequest(w http.ResponseWriter, r *ht
 		DisplayName: createRequest.DisplayName,
 		Description: createRequest.Description,
 		Layout:      createRequest.Layout,
+		ProjectID:   createRequest.ProjectID,
 	})
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
@@ -107,6 +110,7 @@ func (lh *layoutMgtHandler) HandleLayoutPostRequest(w http.ResponseWriter, r *ht
 		CreatedAt:   createdLayout.CreatedAt,
 		UpdatedAt:   createdLayout.UpdatedAt,
 		IsReadOnly:  createdLayout.IsReadOnly,
+		ProjectID:   createdLayout.ProjectID,
 	}
 
 	sysutils.WriteSuccessResponse(ctx, w, http.StatusCreated, layoutResponse)
@@ -134,6 +138,7 @@ func (lh *layoutMgtHandler) HandleLayoutGetRequest(w http.ResponseWriter, r *htt
 		CreatedAt:   layout.CreatedAt,
 		UpdatedAt:   layout.UpdatedAt,
 		IsReadOnly:  layout.IsReadOnly,
+		ProjectID:   layout.ProjectID,
 	}
 
 	sysutils.WriteSuccessResponse(ctx, w, http.StatusOK, layoutResponse)
@@ -166,6 +171,7 @@ func (lh *layoutMgtHandler) HandleLayoutPutRequest(w http.ResponseWriter, r *htt
 		CreatedAt:   updatedLayout.CreatedAt,
 		UpdatedAt:   updatedLayout.UpdatedAt,
 		IsReadOnly:  updatedLayout.IsReadOnly,
+		ProjectID:   updatedLayout.ProjectID,
 	}
 
 	sysutils.WriteSuccessResponse(ctx, w, http.StatusOK, layoutResponse)

@@ -21,6 +21,7 @@ type connectionExportModel struct {
 	Type        string `yaml:"type"                  json:"type"`
 	Name        string `yaml:"name"                  json:"name"`
 	Description string `yaml:"description,omitempty" json:"description,omitempty"`
+	ProjectID   string `yaml:"projectId,omitempty"   json:"projectId,omitempty"`
 
 	// IdP-backed vendor fields (google, github, oidc, oauth).
 	ClientID              string   `yaml:"clientId,omitempty"              json:"clientId,omitempty"`

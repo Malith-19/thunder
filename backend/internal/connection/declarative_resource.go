@@ -287,6 +287,7 @@ func connectionModelFromIDPDTO(dto providers.IDPDTO) (connectionExportModel, err
 		Type:                   vendor,
 		Name:                   dto.Name,
 		Description:            dto.Description,
+		ProjectID:              dto.ProjectID,
 		ClientID:               values[idp.PropClientID],
 		ClientSecret:           values[idp.PropClientSecret],
 		RedirectURI:            values[idp.PropRedirectURI],
@@ -327,6 +328,7 @@ func connectionModelFromSenderDTO(dto ncommon.NotificationSenderDTO) (connection
 		Type:        vendor,
 		Name:        dto.Name,
 		Description: dto.Description,
+		ProjectID:   dto.ProjectID,
 	}
 	switch dto.Provider {
 	case ncommon.NotificationProviderTypeTwilio:
@@ -361,6 +363,7 @@ func connectionModelFromAuthZENPDP(connection authzenpdp.AuthZENPDPConnection) c
 		Type:                     "authzen-pdp",
 		Name:                     connection.Name,
 		Description:              connection.Description,
+		ProjectID:                connection.ProjectID,
 		AuthZENPDPEndpoint:       connection.Endpoint,
 		AuthZENPDPBatchEndpoint:  connection.BatchEndpoint,
 		AuthZENPDPTimeoutMS:      connection.TimeoutMS,
@@ -385,6 +388,7 @@ func connectionModelToDTO(model connectionExportModel) (*providers.IDPDTO, *ncom
 			return nil, nil, err
 		}
 		dto.ID = model.ID
+		dto.ProjectID = model.ProjectID
 		return dto, nil, nil
 	case "github":
 		dto, err := githubToIDPDTO(githubConnectionRequest{
@@ -396,6 +400,7 @@ func connectionModelToDTO(model connectionExportModel) (*providers.IDPDTO, *ncom
 			return nil, nil, err
 		}
 		dto.ID = model.ID
+		dto.ProjectID = model.ProjectID
 		return dto, nil, nil
 	case "oidc":
 		dto, err := oidcToIDPDTO(oidcConnectionRequest{
@@ -411,6 +416,7 @@ func connectionModelToDTO(model connectionExportModel) (*providers.IDPDTO, *ncom
 			return nil, nil, err
 		}
 		dto.ID = model.ID
+		dto.ProjectID = model.ProjectID
 		return dto, nil, nil
 	case "oauth":
 		dto, err := oauthToIDPDTO(oauthConnectionRequest{
@@ -424,6 +430,7 @@ func connectionModelToDTO(model connectionExportModel) (*providers.IDPDTO, *ncom
 			return nil, nil, err
 		}
 		dto.ID = model.ID
+		dto.ProjectID = model.ProjectID
 		return dto, nil, nil
 	case "twilio":
 		dto, err := twilioToSenderDTO(twilioConnectionRequest{
@@ -434,6 +441,7 @@ func connectionModelToDTO(model connectionExportModel) (*providers.IDPDTO, *ncom
 			return nil, nil, err
 		}
 		dto.ID = model.ID
+		dto.ProjectID = model.ProjectID
 		return nil, dto, nil
 	case "vonage":
 		dto, err := vonageToSenderDTO(vonageConnectionRequest{
@@ -444,6 +452,7 @@ func connectionModelToDTO(model connectionExportModel) (*providers.IDPDTO, *ncom
 			return nil, nil, err
 		}
 		dto.ID = model.ID
+		dto.ProjectID = model.ProjectID
 		return nil, dto, nil
 	case smsGatewayVendorName:
 		dto, err := smsGatewayToSenderDTO(smsGatewayConnectionRequest{
@@ -454,6 +463,7 @@ func connectionModelToDTO(model connectionExportModel) (*providers.IDPDTO, *ncom
 			return nil, nil, err
 		}
 		dto.ID = model.ID
+		dto.ProjectID = model.ProjectID
 		return nil, dto, nil
 	case emailSMTPVendorName:
 		dto, err := emailSMTPToSenderDTO(emailSMTPConnectionRequest{
@@ -465,6 +475,7 @@ func connectionModelToDTO(model connectionExportModel) (*providers.IDPDTO, *ncom
 			return nil, nil, err
 		}
 		dto.ID = model.ID
+		dto.ProjectID = model.ProjectID
 		return nil, dto, nil
 	default:
 		return nil, nil, fmt.Errorf("unsupported connection vendor: %s", model.Type)
@@ -477,6 +488,7 @@ func connectionModelToAuthZENPDP(model connectionExportModel) *authzenpdp.AuthZE
 		ID:                       model.ID,
 		Name:                     model.Name,
 		Description:              model.Description,
+		ProjectID:                model.ProjectID,
 		Endpoint:                 model.AuthZENPDPEndpoint,
 		BatchEndpoint:            model.AuthZENPDPBatchEndpoint,
 		TimeoutMS:                model.AuthZENPDPTimeoutMS,

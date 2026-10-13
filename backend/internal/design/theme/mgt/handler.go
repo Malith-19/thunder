@@ -43,7 +43,8 @@ func (th *themeMgtHandler) HandleThemeListRequest(w http.ResponseWriter, r *http
 		return
 	}
 
-	themeList, svcErr := th.themeMgtService.GetThemeList(ctx, limit, offset)
+	projectID := r.URL.Query().Get(sysutils.QueryParamProjectID)
+	themeList, svcErr := th.themeMgtService.GetThemeList(ctx, limit, offset, projectID)
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
 		return
@@ -62,6 +63,7 @@ func (th *themeMgtHandler) HandleThemeListRequest(w http.ResponseWriter, r *http
 			CreatedAt:          theme.CreatedAt,
 			UpdatedAt:          theme.UpdatedAt,
 			IsReadOnly:         theme.IsReadOnly,
+			ProjectID:          theme.ProjectID,
 		})
 	}
 
@@ -95,6 +97,7 @@ func (th *themeMgtHandler) HandleThemePostRequest(w http.ResponseWriter, r *http
 		DisplayName: createRequest.DisplayName,
 		Description: createRequest.Description,
 		Theme:       createRequest.Theme,
+		ProjectID:   createRequest.ProjectID,
 	})
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
@@ -109,6 +112,7 @@ func (th *themeMgtHandler) HandleThemePostRequest(w http.ResponseWriter, r *http
 		Theme:       createdTheme.Theme,
 		CreatedAt:   createdTheme.CreatedAt,
 		UpdatedAt:   createdTheme.UpdatedAt,
+		ProjectID:   createdTheme.ProjectID,
 	}
 
 	sysutils.WriteSuccessResponse(ctx, w, http.StatusCreated, themeResponse)
@@ -135,6 +139,7 @@ func (th *themeMgtHandler) HandleThemeGetRequest(w http.ResponseWriter, r *http.
 		Theme:       theme.Theme,
 		CreatedAt:   theme.CreatedAt,
 		UpdatedAt:   theme.UpdatedAt,
+		ProjectID:   theme.ProjectID,
 	}
 
 	sysutils.WriteSuccessResponse(ctx, w, http.StatusOK, themeResponse)
@@ -166,6 +171,7 @@ func (th *themeMgtHandler) HandleThemePutRequest(w http.ResponseWriter, r *http.
 		Theme:       updatedTheme.Theme,
 		CreatedAt:   updatedTheme.CreatedAt,
 		UpdatedAt:   updatedTheme.UpdatedAt,
+		ProjectID:   updatedTheme.ProjectID,
 	}
 
 	sysutils.WriteSuccessResponse(ctx, w, http.StatusOK, themeResponse)

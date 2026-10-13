@@ -246,6 +246,20 @@ var (
 			DefaultValue: "The userOnboardingFlowId does not reference an existing user onboarding flow",
 		},
 	}
+	// ErrorProjectChangeNotAllowed is the error returned when an update moves an organization unit to
+	// another project.
+	ErrorProjectChangeNotAllowed = tidcommon.ServiceError{
+		Type: tidcommon.ClientErrorType,
+		Code: "OU-1022",
+		Error: tidcommon.I18nMessage{
+			Key:          "error.ouservice.project_change_not_allowed",
+			DefaultValue: "Project cannot be changed",
+		},
+		ErrorDescription: tidcommon.I18nMessage{
+			Key:          "error.ouservice.project_change_not_allowed_description",
+			DefaultValue: "An organization unit stays in the project it was created in",
+		},
+	}
 )
 
 // Error variables

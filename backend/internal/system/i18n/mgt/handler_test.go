@@ -35,7 +35,7 @@ func (suite *I18nHandlerTestSuite) SetupTest() {
 
 func (suite *I18nHandlerTestSuite) TestHandleListLanguages_Success() {
 	expectedLangs := []string{"en-US", "fr-FR"}
-	suite.mockService.On("ListLanguages", mock.Anything).Return(expectedLangs, nil)
+	suite.mockService.On("ListLanguagesByProject", mock.Anything, "").Return(expectedLangs, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/i18n/languages", nil)
 	w := httptest.NewRecorder()
@@ -52,7 +52,7 @@ func (suite *I18nHandlerTestSuite) TestHandleListLanguages_Success() {
 }
 
 func (suite *I18nHandlerTestSuite) TestHandleListLanguages_ServiceError() {
-	suite.mockService.On("ListLanguages", mock.Anything).Return(nil, &tidcommon.InternalServerError)
+	suite.mockService.On("ListLanguagesByProject", mock.Anything, "").Return(nil, &tidcommon.InternalServerError)
 
 	req := httptest.NewRequest(http.MethodGet, "/i18n/languages", nil)
 	w := httptest.NewRecorder()
@@ -113,7 +113,8 @@ func (suite *I18nHandlerTestSuite) TestHandleSetOverrideTranslationsByLanguage_S
 		Translations: inputTranslations,
 	}
 
-	suite.mockService.On("SetTranslationOverrides", mock.Anything, "en-US", inputTranslations).Return(expectedResp, nil)
+	suite.mockService.On("SetTranslationOverrides", mock.Anything, "en-US", "", inputTranslations).
+		Return(expectedResp, nil)
 
 	body, _ := json.Marshal(request)
 	req := httptest.NewRequest(http.MethodPost, "/i18n/languages/en-US/translations", bytes.NewBuffer(body))
@@ -137,7 +138,7 @@ func (suite *I18nHandlerTestSuite) TestHandleSetOverrideTranslationsByLanguage_I
 }
 
 func (suite *I18nHandlerTestSuite) TestHandleClearOverrideTranslationsByLanguage_Success() {
-	suite.mockService.On("ClearTranslationOverrides", mock.Anything, "en-US").Return(nil)
+	suite.mockService.On("ClearTranslationOverrides", mock.Anything, "en-US", "").Return(nil)
 
 	req := httptest.NewRequest(http.MethodDelete, "/i18n/languages/en-US/translations", nil)
 	req.SetPathValue("language", "en-US")
@@ -177,7 +178,7 @@ func (suite *I18nHandlerTestSuite) TestHandleSetOverrideTranslation_Success() {
 		Value:     "new val",
 	}
 
-	suite.mockService.On("SetTranslationOverrideForKey", mock.Anything, "en-US", "ns", "key", "new val").
+	suite.mockService.On("SetTranslationOverrideForKey", mock.Anything, "en-US", "ns", "key", "new val", "").
 		Return(expectedResp, nil)
 
 	body, _ := json.Marshal(request)
@@ -215,7 +216,7 @@ func (suite *I18nHandlerTestSuite) TestHandleSetOverrideTranslationsByLanguage_S
 		Translations: inputTranslations,
 	}
 
-	suite.mockService.On("SetTranslationOverrides", mock.Anything, "en-US", inputTranslations).
+	suite.mockService.On("SetTranslationOverrides", mock.Anything, "en-US", "", inputTranslations).
 		Return(nil, &tidcommon.InternalServerError)
 
 	body, _ := json.Marshal(request)
@@ -229,7 +230,7 @@ func (suite *I18nHandlerTestSuite) TestHandleSetOverrideTranslationsByLanguage_S
 }
 
 func (suite *I18nHandlerTestSuite) TestHandleClearOverrideTranslationsByLanguage_ServiceError() {
-	suite.mockService.On("ClearTranslationOverrides", mock.Anything, "en-US").
+	suite.mockService.On("ClearTranslationOverrides", mock.Anything, "en-US", "").
 		Return(&ErrorInvalidLanguage)
 
 	req := httptest.NewRequest(http.MethodDelete, "/i18n/languages/en-US/translations", nil)
@@ -272,7 +273,7 @@ func (suite *I18nHandlerTestSuite) TestHandleSetOverrideTranslation_InvalidJSON(
 func (suite *I18nHandlerTestSuite) TestHandleSetOverrideTranslation_ServiceError() {
 	request := SetTranslationRequest{Value: "new val"}
 
-	suite.mockService.On("SetTranslationOverrideForKey", mock.Anything, "en-US", "ns", "key", "new val").
+	suite.mockService.On("SetTranslationOverrideForKey", mock.Anything, "en-US", "ns", "key", "new val", "").
 		Return(nil, &tidcommon.InternalServerError)
 
 	body, _ := json.Marshal(request)
@@ -314,4 +315,63 @@ func (suite *I18nHandlerTestSuite) TestHandleError_NotFound() {
 	handleError(context.Background(), w, svcErr)
 
 	suite.Equal(http.StatusNotFound, w.Code)
+}
+
+func (suite *I18nHandlerTestSuite) TestHandleListLanguages_Project() {
+	suite.mockService.On("ListLanguagesByProject", mock.Anything, "prj-1").Return([]string{"fr-FR"}, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/i18n/languages?projectId=prj-1", nil)
+	w := httptest.NewRecorder()
+
+	suite.handler.HandleListLanguages(w, req)
+
+	suite.Equal(http.StatusOK, w.Code)
+}
+
+func (suite *I18nHandlerTestSuite) TestHandleSetOverrideTranslationsByLanguage_Project() {
+	translations := map[string]map[string]string{"common": {"key": "value"}}
+	suite.mockService.On("SetTranslationOverrides", mock.Anything, "en-US", "prj-1", translations).
+		Return(&providers.LanguageTranslationsResponse{Language: "en-US", Translations: translations}, nil)
+
+	body, _ := json.Marshal(SetTranslationsRequest{Translations: translations, ProjectID: "prj-1"})
+	req := httptest.NewRequest(http.MethodPost, "/i18n/languages/en-US/translations", bytes.NewBuffer(body))
+	req.SetPathValue("language", "en-US")
+	w := httptest.NewRecorder()
+
+	suite.handler.HandleSetOverrideTranslationsByLanguage(w, req)
+
+	suite.Equal(http.StatusOK, w.Code)
+}
+
+func (suite *I18nHandlerTestSuite) TestHandleClearOverrideTranslationsByLanguage_Project() {
+	suite.mockService.On("ClearTranslationOverrides", mock.Anything, "en-US", "prj-1").Return(nil)
+
+	req := httptest.NewRequest(http.MethodDelete, "/i18n/languages/en-US/translations?projectId=prj-1", nil)
+	req.SetPathValue("language", "en-US")
+	w := httptest.NewRecorder()
+
+	suite.handler.HandleClearOverrideTranslationsByLanguage(w, req)
+
+	suite.Equal(http.StatusNoContent, w.Code)
+}
+
+func (suite *I18nHandlerTestSuite) TestHandleSetOverrideTranslation_Project() {
+	suite.mockService.On("SetTranslationOverrideForKey", mock.Anything, "en-US", "ns", "key", "new val", "prj-1").
+		Return(&TranslationResponse{Language: "en-US", Namespace: "ns", Key: "key", Value: "new val",
+			ProjectID: "prj-1"}, nil)
+
+	body, _ := json.Marshal(SetTranslationRequest{Value: "new val", ProjectID: "prj-1"})
+	req := httptest.NewRequest(http.MethodPost, "/i18n/languages/en-US/translations/ns/ns/keys/key",
+		bytes.NewBuffer(body))
+	req.SetPathValue("language", "en-US")
+	req.SetPathValue("namespace", "ns")
+	req.SetPathValue("key", "key")
+	w := httptest.NewRecorder()
+
+	suite.handler.HandleSetOverrideTranslation(w, req)
+
+	suite.Equal(http.StatusOK, w.Code)
+	var response TranslationResponse
+	suite.NoError(json.NewDecoder(w.Body).Decode(&response))
+	suite.Equal("prj-1", response.ProjectID)
 }

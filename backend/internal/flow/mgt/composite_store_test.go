@@ -170,10 +170,10 @@ func (s *CompositeStoreTestSuite) TestListFlows_MergeAndDeduplicate() {
 	}
 
 	// Composite store fetches all flows with unlimited sentinel (10000)
-	s.mockDBStore.EXPECT().ListFlows(mock.Anything, 10000, 0, flowType).Return(dbFlows, 2, nil).Once()
-	s.mockFileStore.EXPECT().ListFlows(mock.Anything, 10000, 0, flowType).Return(fileFlows, 2, nil).Once()
+	s.mockDBStore.EXPECT().ListFlows(mock.Anything, 10000, 0, flowType, "").Return(dbFlows, 2, nil).Once()
+	s.mockFileStore.EXPECT().ListFlows(mock.Anything, 10000, 0, flowType, "").Return(fileFlows, 2, nil).Once()
 
-	result, total, err := s.compositeStore.ListFlows(context.Background(), limit, offset, flowType)
+	result, total, err := s.compositeStore.ListFlows(context.Background(), limit, offset, flowType, "")
 
 	require.NoError(s.T(), err)
 	assert.Equal(s.T(), 3, len(result))
@@ -228,10 +228,10 @@ func (s *CompositeStoreTestSuite) TestListFlows_MarkDBAsReadWrite() {
 	dbFlows := []BasicFlowDefinition{
 		s.createBasicTestFlow("flow-1", "auth-flow", "Auth Flow", false),
 	}
-	s.mockDBStore.EXPECT().ListFlows(mock.Anything, 10000, 0, "").Return(dbFlows, 1, nil).Once()
-	s.mockFileStore.EXPECT().ListFlows(mock.Anything, 10000, 0, "").Return([]BasicFlowDefinition{}, 0, nil).Once()
+	s.mockDBStore.EXPECT().ListFlows(mock.Anything, 10000, 0, "", "").Return(dbFlows, 1, nil).Once()
+	s.mockFileStore.EXPECT().ListFlows(mock.Anything, 10000, 0, "", "").Return([]BasicFlowDefinition{}, 0, nil).Once()
 
-	result, _, err := s.compositeStore.ListFlows(context.Background(), 10, 0, "")
+	result, _, err := s.compositeStore.ListFlows(context.Background(), 10, 0, "", "")
 
 	require.NoError(s.T(), err)
 	require.Len(s.T(), result, 1)
@@ -242,10 +242,10 @@ func (s *CompositeStoreTestSuite) TestListFlows_MarkFileAsReadOnly() {
 	fileFlows := []BasicFlowDefinition{
 		s.createBasicTestFlow("flow-1", "auth-flow", "Auth Flow", false),
 	}
-	s.mockDBStore.EXPECT().ListFlows(mock.Anything, 10000, 0, "").Return([]BasicFlowDefinition{}, 0, nil).Once()
-	s.mockFileStore.EXPECT().ListFlows(mock.Anything, 10000, 0, "").Return(fileFlows, 1, nil).Once()
+	s.mockDBStore.EXPECT().ListFlows(mock.Anything, 10000, 0, "", "").Return([]BasicFlowDefinition{}, 0, nil).Once()
+	s.mockFileStore.EXPECT().ListFlows(mock.Anything, 10000, 0, "", "").Return(fileFlows, 1, nil).Once()
 
-	result, _, err := s.compositeStore.ListFlows(context.Background(), 10, 0, "")
+	result, _, err := s.compositeStore.ListFlows(context.Background(), 10, 0, "", "")
 
 	require.NoError(s.T(), err)
 	require.Len(s.T(), result, 1)
@@ -284,9 +284,9 @@ func (s *CompositeStoreTestSuite) TestDeleteFlow_RoutedToDBOnly() {
 // Error handling tests
 func (s *CompositeStoreTestSuite) TestListFlows_DBError() {
 	dbError := errors.New("database error")
-	s.mockDBStore.EXPECT().ListFlows(mock.Anything, 10000, 0, "").Return(nil, 0, dbError).Once()
+	s.mockDBStore.EXPECT().ListFlows(mock.Anything, 10000, 0, "", "").Return(nil, 0, dbError).Once()
 
-	result, total, err := s.compositeStore.ListFlows(context.Background(), 10, 0, "")
+	result, total, err := s.compositeStore.ListFlows(context.Background(), 10, 0, "", "")
 
 	assert.Error(s.T(), err)
 	assert.Equal(s.T(), dbError, err)
@@ -326,10 +326,10 @@ func (s *CompositeStoreTestSuite) TestListFlows_FileStoreError() {
 	}
 	fileError := errors.New("file read error")
 
-	s.mockDBStore.EXPECT().ListFlows(mock.Anything, 10000, 0, "").Return(dbFlows, 1, nil).Once()
-	s.mockFileStore.EXPECT().ListFlows(mock.Anything, 10000, 0, "").Return(nil, 0, fileError).Once()
+	s.mockDBStore.EXPECT().ListFlows(mock.Anything, 10000, 0, "", "").Return(dbFlows, 1, nil).Once()
+	s.mockFileStore.EXPECT().ListFlows(mock.Anything, 10000, 0, "", "").Return(nil, 0, fileError).Once()
 
-	result, total, err := s.compositeStore.ListFlows(context.Background(), 10, 0, "")
+	result, total, err := s.compositeStore.ListFlows(context.Background(), 10, 0, "", "")
 
 	// File store error should propagate
 	s.Error(err)

@@ -32,18 +32,18 @@ func newCompositeFlowStore(fileStore, dbStore flowStoreInterface) *compositeFlow
 // Database flows are marked as mutable (IsReadOnly=false), file-based flows as immutable (IsReadOnly=true).
 // This method fetches all flows from both stores, computes the deduplicated total, then applies
 // pagination to the merged result to ensure accurate total count and correct pagination behavior.
-func (c *compositeFlowStore) ListFlows(ctx context.Context, limit, offset int, flowType string) (
+func (c *compositeFlowStore) ListFlows(ctx context.Context, limit, offset int, flowType, projectID string) (
 	[]BasicFlowDefinition, int, error) {
 	// Fetch all flows from both stores (use a large limit to get all results)
 	// We use 10000 as a practical "unlimited" sentinel - in practice, no deployment should have this many flows
 	const unlimitedSentinel = 10000
 
-	dbFlows, _, err := c.dbStore.ListFlows(ctx, unlimitedSentinel, 0, flowType)
+	dbFlows, _, err := c.dbStore.ListFlows(ctx, unlimitedSentinel, 0, flowType, projectID)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	fileFlows, _, err := c.fileStore.ListFlows(ctx, unlimitedSentinel, 0, flowType)
+	fileFlows, _, err := c.fileStore.ListFlows(ctx, unlimitedSentinel, 0, flowType, projectID)
 	if err != nil {
 		return nil, 0, err
 	}

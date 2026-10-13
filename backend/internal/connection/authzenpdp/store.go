@@ -50,7 +50,8 @@ func (s *authZENPDPStore) CreateAuthZENPDP(ctx context.Context, connection AuthZ
 		return err
 	}
 	_, err = dbClient.ExecuteContext(ctx, queryCreateAuthZENPDPConnection,
-		connection.ID, connection.Name, connection.Description, authZENPDPConnectionType, properties, s.scope(ctx))
+		connection.ID, connection.Name, connection.Description, authZENPDPConnectionType, properties,
+		nullableProjectID(connection.ProjectID), s.scope(ctx))
 	return err
 }
 
@@ -155,7 +156,8 @@ func (s *authZENPDPStore) UpdateAuthZENPDP(
 		return err
 	}
 	_, err = dbClient.ExecuteContext(ctx, queryUpdateAuthZENPDPConnection,
-		connection.Name, connection.Description, properties, id, authZENPDPConnectionType, s.scope(ctx))
+		connection.Name, connection.Description, properties, nullableProjectID(connection.ProjectID), id,
+		authZENPDPConnectionType, s.scope(ctx))
 	return err
 }
 
@@ -199,10 +201,18 @@ func (s *authZENPDPStore) buildAuthZENPDPConnection(row map[string]interface{}) 
 	}
 	return AuthZENPDPConnection{
 		ID: stringValue(row["id"]), Name: stringValue(row["name"]), Description: stringValue(row["description"]),
-		Endpoint: properties.Endpoint, BatchEndpoint: properties.BatchEndpoint,
-		TimeoutMS: properties.TimeoutMS, RetryCount: properties.RetryCount,
+		ProjectID: stringValue(row["project_id"]), Endpoint: properties.Endpoint,
+		BatchEndpoint: properties.BatchEndpoint, TimeoutMS: properties.TimeoutMS, RetryCount: properties.RetryCount,
 		SubjectAttributeMappings: properties.SubjectAttributeMappings,
 	}, nil
+}
+
+// nullableProjectID stores a connection outside every project as SQL NULL.
+func nullableProjectID(projectID string) interface{} {
+	if projectID == "" {
+		return nil
+	}
+	return projectID
 }
 
 // stringValue converts database string or byte values into a string.

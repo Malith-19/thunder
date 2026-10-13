@@ -13,6 +13,7 @@ import (
 type smsGatewayConnectionRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
+	ProjectID   string `json:"projectId,omitempty"`
 	URL         string `json:"url"`
 	HTTPMethod  string `json:"httpMethod,omitempty"`
 	HTTPHeaders string `json:"httpHeaders,omitempty"`
@@ -24,6 +25,7 @@ type smsGatewayConnectionResponse struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
+	ProjectID   string `json:"projectId,omitempty"`
 	Type        string `json:"type"`
 	URL         string `json:"url,omitempty"`
 	HTTPMethod  string `json:"httpMethod,omitempty"`
@@ -49,6 +51,7 @@ func smsGatewayToSenderDTO(req smsGatewayConnectionRequest) (*ncommon.Notificati
 	return &ncommon.NotificationSenderDTO{
 		Name:        req.Name,
 		Description: req.Description,
+		ProjectID:   req.ProjectID,
 		Type:        ncommon.NotificationSenderTypeMessage,
 		Provider:    ncommon.NotificationProviderTypeCustom,
 		Properties:  props,
@@ -64,6 +67,7 @@ func smsGatewayFromSenderDTO(dto ncommon.NotificationSenderDTO) (smsGatewayConne
 		ID:          dto.ID,
 		Name:        dto.Name,
 		Description: dto.Description,
+		ProjectID:   dto.ProjectID,
 		Type:        smsGatewayVendorName,
 		URL:         values[ncommon.CustomPropKeyURL],
 		HTTPMethod:  values[ncommon.CustomPropKeyHTTPMethod],

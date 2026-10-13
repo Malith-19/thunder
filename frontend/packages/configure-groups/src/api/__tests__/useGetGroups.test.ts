@@ -147,4 +147,18 @@ describe('useGetGroups', () => {
       expect(result.current.data).toEqual(nextPageData);
     });
   });
+
+  it('should list only the groups of the given project', async () => {
+    mockHttpRequest.mockResolvedValue({data: mockGroupsData});
+    const {result} = renderHook(() => useGetGroups({projectId: 'prj-finance'}));
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual(mockGroupsData);
+    });
+    expect(mockHttpRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://localhost:8090/groups?limit=30&offset=0&include=display&projectId=prj-finance',
+      }),
+    );
+  });
 });

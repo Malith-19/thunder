@@ -8,6 +8,7 @@ type ConnectionRequest struct {
 	ID                       string                    `json:"-" yaml:"-"`
 	Name                     string                    `json:"name"`
 	Description              string                    `json:"description,omitempty"`
+	ProjectID                string                    `json:"projectId,omitempty"`
 	Endpoint                 string                    `json:"endpoint"`
 	BatchEndpoint            string                    `json:"batchEndpoint,omitempty"`
 	TimeoutMS                int                       `json:"timeoutMs,omitempty"`
@@ -20,6 +21,7 @@ type ConnectionResponse struct {
 	ID                       string                    `json:"id"`
 	Name                     string                    `json:"name"`
 	Description              string                    `json:"description,omitempty"`
+	ProjectID                string                    `json:"projectId,omitempty"`
 	Type                     string                    `json:"type"`
 	Endpoint                 string                    `json:"endpoint"`
 	BatchEndpoint            string                    `json:"batchEndpoint,omitempty"`
@@ -34,6 +36,7 @@ func ToResponse(connection AuthZENPDPConnection) ConnectionResponse {
 		ID:                       connection.ID,
 		Name:                     connection.Name,
 		Description:              connection.Description,
+		ProjectID:                connection.ProjectID,
 		Type:                     "authzen-pdp",
 		Endpoint:                 connection.Endpoint,
 		BatchEndpoint:            connection.BatchEndpoint,
@@ -48,6 +51,7 @@ type AuthZENPDPConnection struct {
 	ID                       string
 	Name                     string
 	Description              string
+	ProjectID                string
 	IsReadOnly               bool
 	Endpoint                 string
 	BatchEndpoint            string

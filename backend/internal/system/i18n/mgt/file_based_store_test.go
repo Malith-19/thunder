@@ -57,7 +57,7 @@ func (s *FileBasedStoreTestSuite) TestCreateAndGetDistinctLanguages() {
 	assert.NoError(s.T(), err)
 
 	// Verify distinct languages
-	languages, err := s.store.GetDistinctLanguages(context.Background())
+	languages, err := s.store.GetDistinctLanguages(context.Background(), "")
 	assert.NoError(s.T(), err)
 	assert.Len(s.T(), languages, 2)
 	assert.Contains(s.T(), languages, "en-US")
@@ -217,7 +217,7 @@ func (s *FileBasedStoreTestSuite) TestIsTranslationExists() {
 }
 
 func (s *FileBasedStoreTestSuite) TestUpsertTranslationsByLanguage_NotSupported() {
-	err := s.store.UpsertTranslationsByLanguage(context.Background(), "en-US", []Translation{})
+	err := s.store.UpsertTranslationsByLanguage(context.Background(), "en-US", "", []Translation{})
 	assert.Error(s.T(), err)
 	assert.Contains(s.T(), err.Error(), "not supported")
 }
@@ -229,7 +229,7 @@ func (s *FileBasedStoreTestSuite) TestUpsertTranslation_NotSupported() {
 }
 
 func (s *FileBasedStoreTestSuite) TestDeleteTranslationsByLanguage_NotSupported() {
-	err := s.store.DeleteTranslationsByLanguage(context.Background(), "en-US")
+	err := s.store.DeleteTranslationsByLanguage(context.Background(), "en-US", "")
 	assert.Error(s.T(), err)
 	assert.Contains(s.T(), err.Error(), "not supported")
 }
@@ -277,4 +277,41 @@ func (s *FileBasedStoreTestSuite) TestNewFileBasedStore() {
 	fbStore, ok := store.(*fileBasedStore)
 	assert.True(s.T(), ok)
 	assert.NotNil(s.T(), fbStore.GenericFileBasedStore)
+}
+
+func (s *FileBasedStoreTestSuite) TestProjects() {
+	assert.NoError(s.T(), s.store.Create("fr-FR@prj-1", &LanguageTranslations{
+		Language: "fr-FR", ProjectID: "prj-1",
+		Translations: map[string]map[string]string{"common": {"ok": "D'accord"}},
+	}))
+	assert.NoError(s.T(), s.store.Create("fr-FR@prj-2", &LanguageTranslations{
+		Language: "fr-FR", ProjectID: "prj-2",
+		Translations: map[string]map[string]string{"common": {"no": "Non"}},
+	}))
+	assert.NoError(s.T(), s.store.Create("de-DE", &LanguageTranslations{
+		Language:     "de-DE",
+		Translations: map[string]map[string]string{"common": {"ok": "OK"}},
+	}))
+
+	languages, err := s.store.GetDistinctLanguages(context.Background(), "")
+	assert.NoError(s.T(), err)
+	assert.ElementsMatch(s.T(), []string{"fr-FR", "de-DE"}, languages,
+		"a language split across files is listed once")
+
+	languages, err = s.store.GetDistinctLanguages(context.Background(), "prj-2")
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), []string{"fr-FR"}, languages)
+
+	byKey, err := s.store.GetTranslationsByKey(context.Background(), "no", "common")
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), "prj-2", byKey["fr-FR"].ProjectID)
+
+	all, err := s.store.GetTranslations(context.Background())
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), "prj-1", all["common|ok"]["fr-FR"].ProjectID)
+	assert.Empty(s.T(), all["common|ok"]["de-DE"].ProjectID)
+
+	byNamespace, err := s.store.GetTranslationsByNamespace(context.Background(), "common")
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), "prj-2", byNamespace["common|no"]["fr-FR"].ProjectID)
 }

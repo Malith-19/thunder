@@ -89,7 +89,7 @@ func (suite *InitTestSuite) TearDownSuite() {
 }
 
 func (suite *InitTestSuite) TestInitialize() {
-	mgtService, _, _, err := Initialize(suite.mockJWTService)
+	mgtService, _, _, err := Initialize(suite.mockJWTService, nil)
 	suite.NoError(err)
 
 	suite.NotNil(mgtService)
@@ -103,7 +103,7 @@ func (suite *InitTestSuite) TestInitialize_StoreErrorPropagates() {
 	getDBProvider = func() provider.DBProviderInterface { return mockProvider }
 	defer func() { getDBProvider = originalGetDBProvider }()
 
-	mgtService, otpService, senderService, err := Initialize(suite.mockJWTService)
+	mgtService, otpService, senderService, err := Initialize(suite.mockJWTService, nil)
 
 	suite.Error(err)
 	suite.Nil(mgtService)

@@ -20,6 +20,7 @@ import (
 type emailSMTPConnectionRequest struct {
 	Name           string                       `json:"name"`
 	Description    string                       `json:"description,omitempty"`
+	ProjectID      string                       `json:"projectId,omitempty"`
 	Host           string                       `json:"host"`
 	Port           int                          `json:"port"`
 	FromAddress    string                       `json:"fromAddress"`
@@ -34,6 +35,7 @@ type emailSMTPConnectionResponse struct {
 	ID             string                      `json:"id"`
 	Name           string                      `json:"name"`
 	Description    string                      `json:"description,omitempty"`
+	ProjectID      string                      `json:"projectId,omitempty"`
 	Type           string                      `json:"type"`
 	Host           string                      `json:"host,omitempty"`
 	Port           int                         `json:"port,omitempty"`
@@ -83,6 +85,7 @@ func emailSMTPToSenderDTO(req emailSMTPConnectionRequest) (*ncommon.Notification
 	return &ncommon.NotificationSenderDTO{
 		Name:        req.Name,
 		Description: req.Description,
+		ProjectID:   req.ProjectID,
 		Type:        ncommon.NotificationSenderTypeEmail,
 		Provider:    ncommon.NotificationProviderTypeSMTP,
 		Properties:  props,
@@ -102,6 +105,7 @@ func emailSMTPFromSenderDTO(dto ncommon.NotificationSenderDTO) (emailSMTPConnect
 		ID:             dto.ID,
 		Name:           dto.Name,
 		Description:    dto.Description,
+		ProjectID:      dto.ProjectID,
 		Type:           emailSMTPVendorName,
 		Host:           values[ncommon.SMTPPropKeyHost],
 		Port:           port,

@@ -17,10 +17,10 @@ import type {RoleListResponse} from '../models/role';
 export default function useGetRoles(params?: RoleListParams): UseQueryResult<RoleListResponse> {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
-  const {limit = 30, offset = 0} = params ?? {};
+  const {limit = 30, offset = 0, projectId} = params ?? {};
 
   return useQuery<RoleListResponse>({
-    queryKey: [RoleQueryKeys.ROLES, {limit, offset}],
+    queryKey: [RoleQueryKeys.ROLES, {limit, offset, projectId}],
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<RoleListResponse> => {
       const serverUrl: string = getServerUrl();
@@ -29,6 +29,9 @@ export default function useGetRoles(params?: RoleListParams): UseQueryResult<Rol
         offset: offset.toString(),
         include: 'display',
       });
+      if (projectId) {
+        queryParams.append('projectId', projectId);
+      }
 
       const response: {data: RoleListResponse} = await http.request({
         url: `${serverUrl}/roles?${queryParams.toString()}`,

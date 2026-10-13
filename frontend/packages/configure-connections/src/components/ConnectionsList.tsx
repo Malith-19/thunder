@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {QueryErrorNotice} from '@thunderid/components';
+import {useProject} from '@thunderid/contexts';
 import {Button, Grid, InputAdornment, Paper, Skeleton, Stack, TextField, Typography} from '@wso2/oxygen-ui';
 import {Search, SearchX, X} from '@wso2/oxygen-ui-icons-react';
 import {type JSX, useMemo, useState} from 'react';
@@ -26,7 +27,8 @@ export default function ConnectionsList(): JSX.Element {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<CategoryFilterValue>('all');
 
-  const connectionsQuery = useConnections();
+  const {selectedProject} = useProject();
+  const connectionsQuery = useConnections({projectId: selectedProject?.id});
 
   const cards: ConnectionCardModel[] = useMemo(
     () => buildConnectionCards(connectionsQuery.data?.connections ?? [], CONNECTION_VENDOR_META, routes),

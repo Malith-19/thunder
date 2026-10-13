@@ -39,10 +39,12 @@ type mockLayoutService struct {
 	isLayoutExistFunc   func(id string) (bool, *tidcommon.ServiceError)
 	getLayoutUsagesFunc func(id string, limit, offset int) (
 		*resourcedependency.DependenciesResponse, *tidcommon.ServiceError)
+	listProjectID string
 }
 
 func (m *mockLayoutService) GetLayoutList(
-	_ context.Context, limit, offset int) (*LayoutList, *tidcommon.ServiceError) {
+	_ context.Context, limit, offset int, projectID string) (*LayoutList, *tidcommon.ServiceError) {
+	m.listProjectID = projectID
 	return m.getLayoutListFunc(limit, offset)
 }
 

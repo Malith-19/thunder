@@ -92,7 +92,7 @@ func (s *ThemeDeclarativeSuite) TestThemeExporter_GetAllResourceIDs_Success() {
 			{ID: "theme-003", DisplayName: "Theme 3"},
 		},
 	}
-	mockService.EXPECT().GetThemeList(mock.Anything, 100, 0).Return(themeList, nil).Once()
+	mockService.EXPECT().GetThemeList(mock.Anything, 100, 0, "").Return(themeList, nil).Once()
 	exporter := &themeExporter{service: mockService}
 
 	// Act
@@ -110,7 +110,7 @@ func (s *ThemeDeclarativeSuite) TestThemeExporter_GetAllResourceIDs_ServiceError
 	// Arrange
 	serviceErr := &tidcommon.ServiceError{Error: tidcommon.I18nMessage{DefaultValue: "Database error"}}
 	mockService := NewThemeMgtServiceInterfaceMock(s.T())
-	mockService.EXPECT().GetThemeList(mock.Anything, 100, 0).Return(&ThemeList{}, serviceErr).Once()
+	mockService.EXPECT().GetThemeList(mock.Anything, 100, 0, "").Return(&ThemeList{}, serviceErr).Once()
 	exporter := &themeExporter{service: mockService}
 
 	// Act
@@ -125,7 +125,7 @@ func (s *ThemeDeclarativeSuite) TestThemeExporter_GetAllResourceIDs_ServiceError
 func (s *ThemeDeclarativeSuite) TestThemeExporter_GetAllResourceIDs_EmptyList() {
 	// Arrange
 	mockService := NewThemeMgtServiceInterfaceMock(s.T())
-	mockService.EXPECT().GetThemeList(mock.Anything, 100, 0).Return(&ThemeList{Themes: []Theme{}}, nil).Once()
+	mockService.EXPECT().GetThemeList(mock.Anything, 100, 0, "").Return(&ThemeList{Themes: []Theme{}}, nil).Once()
 	exporter := &themeExporter{service: mockService}
 
 	// Act

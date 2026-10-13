@@ -24,6 +24,7 @@ const (
 	colName          = "name"
 	colFlowType      = "flow_type"
 	colActiveVersion = "active_version"
+	colProjectID     = "project_id"
 	colNodes         = "nodes"
 	colInterceptors  = "interceptors"
 	colCreatedAt     = "created_at"
@@ -36,7 +37,8 @@ var getDBProvider = provider.GetDBProvider
 
 // flowStoreInterface defines the interface for flow store operations.
 type flowStoreInterface interface {
-	ListFlows(ctx context.Context, limit, offset int, flowType string) ([]BasicFlowDefinition, int, error)
+	ListFlows(ctx context.Context, limit, offset int, flowType, projectID string) (
+		[]BasicFlowDefinition, int, error)
 	ListActiveFlowsWithNodes(ctx context.Context) ([]*providers.CompleteFlowDefinition, error)
 	CreateFlow(ctx context.Context, flowID string, flow *FlowDefinition) (*providers.CompleteFlowDefinition, error)
 	GetFlowByID(ctx context.Context, flowID string) (*providers.CompleteFlowDefinition, error)
@@ -82,36 +84,38 @@ func newFlowStore() (flowStoreInterface, providers.Transactioner, error) {
 	}, transactioner, nil
 }
 
-// ListFlows retrieves a paginated list of flow definitions with optional filtering by flow type.
-func (s *flowStore) ListFlows(ctx context.Context, limit, offset int, flowType string) (
+// ListFlows retrieves a paginated list of flow definitions with optional filtering by flow type and
+// project.
+func (s *flowStore) ListFlows(ctx context.Context, limit, offset int, flowType, projectID string) (
 	[]BasicFlowDefinition, int, error) {
 	var flows []BasicFlowDefinition
 	var totalCount int
 
+	scope := s.scope(ctx)
+	countQuery, countArgs := queryCountFlows, []interface{}{scope}
+	listQuery, listArgs := queryListFlows, []interface{}{scope, limit, offset}
+	switch {
+	case projectID != "" && flowType != "":
+		countQuery, countArgs = queryCountFlowsByProjectWithType, []interface{}{projectID, flowType, scope}
+		listQuery = queryListFlowsByProjectWithType
+		listArgs = []interface{}{projectID, flowType, scope, limit, offset}
+	case projectID != "":
+		countQuery, countArgs = queryCountFlowsByProject, []interface{}{projectID, scope}
+		listQuery, listArgs = queryListFlowsByProject, []interface{}{projectID, scope, limit, offset}
+	case flowType != "":
+		countQuery, countArgs = queryCountFlowsWithType, []interface{}{flowType, scope}
+		listQuery, listArgs = queryListFlowsWithType, []interface{}{flowType, scope, limit, offset}
+	}
+
 	err := s.withDBClientContext(ctx, func(dbClient provider.DBClientInterface) error {
-		var countResults, results []map[string]interface{}
-		var err error
+		countResults, err := dbClient.QueryContext(ctx, countQuery, countArgs...)
+		if err != nil {
+			return fmt.Errorf("failed to count flows: %w", err)
+		}
 
-		if flowType != "" {
-			countResults, err = dbClient.QueryContext(ctx, queryCountFlowsWithType, flowType, s.scope(ctx))
-			if err != nil {
-				return fmt.Errorf("failed to count flows: %w", err)
-			}
-
-			results, err = dbClient.QueryContext(ctx, queryListFlowsWithType, flowType, s.scope(ctx), limit, offset)
-			if err != nil {
-				return fmt.Errorf("failed to list flows: %w", err)
-			}
-		} else {
-			countResults, err = dbClient.QueryContext(ctx, queryCountFlows, s.scope(ctx))
-			if err != nil {
-				return fmt.Errorf("failed to count flows: %w", err)
-			}
-
-			results, err = dbClient.QueryContext(ctx, queryListFlows, s.scope(ctx), limit, offset)
-			if err != nil {
-				return fmt.Errorf("failed to list flows: %w", err)
-			}
+		results, err := dbClient.QueryContext(ctx, listQuery, listArgs...)
+		if err != nil {
+			return fmt.Errorf("failed to list flows: %w", err)
 		}
 
 		totalCount, err = s.parseCountResult(countResults)
@@ -183,7 +187,7 @@ func (s *flowStore) CreateFlow(ctx context.Context, flowID string, flow *FlowDef
 
 	err = s.withDBClientContext(ctx, func(dbClient provider.DBClientInterface) error {
 		_, err := dbClient.ExecuteContext(ctx, queryCreateFlow, flowID, flow.Handle,
-			flow.Name, flow.FlowType, int64(1), s.scope(ctx))
+			flow.Name, flow.FlowType, int64(1), nullableProjectID(flow.ProjectID), s.scope(ctx))
 		if err != nil {
 			return fmt.Errorf("failed to create flow: %w", err)
 		}
@@ -280,7 +284,8 @@ func (s *flowStore) UpdateFlow(ctx context.Context, flowID string, flow *FlowDef
 			return err
 		}
 
-		_, err = dbClient.ExecuteContext(ctx, queryUpdateFlow, flowID, flow.Name, newVersion, s.scope(ctx))
+		_, err = dbClient.ExecuteContext(ctx, queryUpdateFlow, flowID, flow.Name, newVersion,
+			nullableProjectID(flow.ProjectID), s.scope(ctx))
 		if err != nil {
 			return fmt.Errorf("failed to update flow: %w", err)
 		}
@@ -420,7 +425,8 @@ func (s *flowStore) RestoreFlowVersion(ctx context.Context, flowID string, versi
 			return err
 		}
 
-		_, err = dbClient.ExecuteContext(ctx, queryUpdateFlow, flowID, currentFlow.Name, newVersion, s.scope(ctx))
+		_, err = dbClient.ExecuteContext(ctx, queryUpdateFlow, flowID, currentFlow.Name, newVersion,
+			nullableProjectID(currentFlow.ProjectID), s.scope(ctx))
 		if err != nil {
 			return fmt.Errorf("failed to update flow: %w", err)
 		}
@@ -533,6 +539,20 @@ func (s *flowStore) getTimestamp(row map[string]interface{}, key string) (string
 	}
 }
 
+// getProjectID returns the project of a flow row, or an empty string when the flow belongs to no project.
+func (s *flowStore) getProjectID(row map[string]interface{}) string {
+	projectID, _ := s.getString(row, colProjectID)
+	return projectID
+}
+
+// nullableProjectID stores a flow outside every project as SQL NULL.
+func nullableProjectID(projectID string) interface{} {
+	if projectID == "" {
+		return nil
+	}
+	return projectID
+}
+
 // getInt64 safely extracts an int64 value from a database row.
 func (s *flowStore) getInt64(row map[string]interface{}, key string) (int64, error) {
 	if val, ok := row[key].(int64); ok {
@@ -584,6 +604,7 @@ func (s *flowStore) buildBasicFlowDefinitionFromRow(row map[string]interface{}) 
 		Handle:        handle,
 		Name:          name,
 		FlowType:      providers.FlowType(flowTypeStr),
+		ProjectID:     s.getProjectID(row),
 		ActiveVersion: int(activeVersion),
 		CreatedAt:     createdAt,
 		UpdatedAt:     updatedAt,
@@ -638,6 +659,7 @@ func (s *flowStore) buildCompleteFlowDefinitionFromRow(row map[string]interface{
 		Handle:        handle,
 		Name:          name,
 		FlowType:      providers.FlowType(flowTypeStr),
+		ProjectID:     s.getProjectID(row),
 		ActiveVersion: int(activeVersion),
 		CreatedAt:     createdAt,
 		UpdatedAt:     updatedAt,

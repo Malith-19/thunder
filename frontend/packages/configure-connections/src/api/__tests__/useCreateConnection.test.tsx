@@ -7,6 +7,7 @@ import useCreateConnection from '../useCreateConnection';
 
 const mockHttpRequest = vi.fn();
 const showToast = vi.fn();
+let mockSelectedProject: {id: string} | null = null;
 
 vi.mock('@thunderid/react', () => ({
   useThunderID: () => ({http: {request: mockHttpRequest}}),
@@ -17,6 +18,7 @@ vi.mock('@thunderid/contexts', async (importOriginal) => {
     ...actual,
     useConfig: () => ({getServerUrl: () => 'https://localhost:8090'}),
     useToast: () => ({showToast}),
+    useProject: () => ({selectedProject: mockSelectedProject}),
   };
 });
 
@@ -24,6 +26,7 @@ describe('useCreateConnection', () => {
   beforeEach(() => {
     mockHttpRequest.mockReset().mockResolvedValue({data: {id: 'c1', type: 'oidc', name: 'Acme'}});
     showToast.mockReset();
+    mockSelectedProject = null;
   });
 
   afterEach(() => vi.clearAllMocks());
@@ -63,5 +66,37 @@ describe('useCreateConnection', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it('creates an identity-provider connection in the selected project', async () => {
+    mockSelectedProject = {id: 'prj-finance'};
+    const {result} = renderHook(() => useCreateConnection('google'));
+    result.current.mutate({name: 'Google', clientId: 'x', redirectUri: 'https://r'} as never);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const request = mockHttpRequest.mock.calls[0][0] as {data: Record<string, unknown>};
+    expect(request.data).toEqual(expect.objectContaining({name: 'Google', projectId: 'prj-finance'}));
+  });
+
+  it.each(['twilio', 'vonage', 'sms-gateway', 'authzen-pdp'] as const)(
+    'creates a %s connection in the selected project',
+    async (type) => {
+      mockSelectedProject = {id: 'prj-finance'};
+      const {result} = renderHook(() => useCreateConnection(type));
+      result.current.mutate({name: 'Connection'} as never);
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(mockHttpRequest).toHaveBeenCalledWith(
+        expect.objectContaining({data: {name: 'Connection', projectId: 'prj-finance'}}),
+      );
+    },
+  );
+
+  it('does not send a project when none is selected', async () => {
+    const {result} = renderHook(() => useCreateConnection('twilio'));
+    result.current.mutate({name: 'Twilio'} as never);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({data: {name: 'Twilio'}}));
   });
 });

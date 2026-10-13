@@ -49,6 +49,8 @@ export interface RoleListParams {
   limit?: number;
   /** Number of records to skip */
   offset?: number;
+  /** Lists only the roles of the organization units in this project */
+  projectId?: string;
 }
 
 /**

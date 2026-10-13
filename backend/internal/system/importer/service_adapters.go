@@ -91,6 +91,7 @@ type themeDeclarativeYAML struct {
 	DisplayName string      `yaml:"displayName"`
 	Description string      `yaml:"description,omitempty"`
 	Theme       interface{} `yaml:"theme"`
+	ProjectID   string      `yaml:"projectId,omitempty"`
 }
 
 type layoutDeclarativeYAML struct {
@@ -99,6 +100,7 @@ type layoutDeclarativeYAML struct {
 	DisplayName string      `yaml:"displayName"`
 	Description string      `yaml:"description,omitempty"`
 	Layout      interface{} `yaml:"layout"`
+	ProjectID   string      `yaml:"projectId,omitempty"`
 }
 
 // notificationTemplateDeclarativeYAML is the import shape for a notification template.
@@ -115,6 +117,7 @@ type notificationTemplateDeclarativeYAML struct {
 	Design *struct {
 		ColorScheme string `yaml:"colorScheme"`
 	} `yaml:"design"`
+	ProjectID string `yaml:"projectId,omitempty"`
 }
 
 func (s *importService) importOrganizationUnit(
@@ -559,12 +562,14 @@ func (s *importService) importTheme(
 		DisplayName: req.DisplayName,
 		Description: req.Description,
 		Theme:       themeBytes,
+		ProjectID:   req.ProjectID,
 	}
 	updateReq := thememgt.UpdateThemeRequest{
 		Handle:      req.Handle,
 		DisplayName: req.DisplayName,
 		Description: req.Description,
 		Theme:       themeBytes,
+		ProjectID:   req.ProjectID,
 	}
 
 	if dryRun {
@@ -638,12 +643,14 @@ func (s *importService) importLayout(
 		DisplayName: req.DisplayName,
 		Description: req.Description,
 		Layout:      layoutBytes,
+		ProjectID:   req.ProjectID,
 	}
 	updateReq := layoutmgt.UpdateLayoutRequest{
 		Handle:      req.Handle,
 		DisplayName: req.DisplayName,
 		Description: req.Description,
 		Layout:      layoutBytes,
+		ProjectID:   req.ProjectID,
 	}
 
 	if dryRun {
@@ -826,7 +833,7 @@ func (s *importService) importTranslation(ctx context.Context, doc parsedDocumen
 		return successOutcome(resourceTypeTranslation, "", req.Language, operationUpdate)
 	}
 
-	_, i18nErr := s.translationService.SetTranslationOverrides(ctx, req.Language, req.Translations)
+	_, i18nErr := s.translationService.SetTranslationOverrides(ctx, req.Language, req.ProjectID, req.Translations)
 	if i18nErr != nil {
 		return ImportItemOutcome{
 			ResourceType: resourceTypeTranslation,
@@ -1261,6 +1268,7 @@ func (s *importService) importNotificationTemplate(
 		Description: raw.Description,
 		Design:      design,
 		Content:     content,
+		ProjectID:   raw.ProjectID,
 	}
 
 	// Validate before the handle lookup so an invalid or missing handle surfaces as a validation
@@ -1323,6 +1331,7 @@ func (s *importService) importNotificationTemplate(
 			Description: raw.Description,
 			Design:      design,
 			Content:     content,
+			ProjectID:   raw.ProjectID,
 		})
 	if updErr != nil {
 		return serviceErrorOutcome(resourceTypeNotificationTemplate, existingID, raw.Handle, operationUpdate, updErr)

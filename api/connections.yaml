@@ -47,6 +47,7 @@ paths:
           schema:
             type: string
             enum: [identity-provider, sms-provider, authorization-pdp, email-provider]
+        - $ref: '#/components/parameters/projectIdQueryParam'
         - $ref: '#/components/parameters/limitQueryParam'
         - $ref: '#/components/parameters/offsetQueryParam'
       responses:
@@ -84,6 +85,8 @@ paths:
     get:
       tags: [Connections]
       summary: List configured AuthZEN PDP connections
+      parameters:
+        - $ref: '#/components/parameters/projectIdQueryParam'
       responses:
         "200": { $ref: '#/components/responses/AuthZENPDPInstanceList' }
         "401": { $ref: '#/components/responses/Unauthorized' }
@@ -172,6 +175,8 @@ paths:
     get:
       tags: [Connections]
       summary: List configured Google connections
+      parameters:
+        - $ref: '#/components/parameters/projectIdQueryParam'
       responses:
         "200": { $ref: '#/components/responses/InstanceList' }
         "401": { $ref: '#/components/responses/Unauthorized' }
@@ -274,6 +279,8 @@ paths:
     get:
       tags: [Connections]
       summary: List configured GitHub connections
+      parameters:
+        - $ref: '#/components/parameters/projectIdQueryParam'
       responses:
         "200": { $ref: '#/components/responses/InstanceList' }
         "401": { $ref: '#/components/responses/Unauthorized' }
@@ -375,6 +382,8 @@ paths:
     get:
       tags: [Connections]
       summary: List configured OIDC connections
+      parameters:
+        - $ref: '#/components/parameters/projectIdQueryParam'
       responses:
         "200": { $ref: '#/components/responses/InstanceList' }
         "401": { $ref: '#/components/responses/Unauthorized' }
@@ -476,6 +485,8 @@ paths:
     get:
       tags: [Connections]
       summary: List configured Twilio connections
+      parameters:
+        - $ref: '#/components/parameters/projectIdQueryParam'
       responses:
         "200": { $ref: '#/components/responses/InstanceList' }
         "401": { $ref: '#/components/responses/Unauthorized' }
@@ -577,6 +588,8 @@ paths:
     get:
       tags: [Connections]
       summary: List configured Vonage connections
+      parameters:
+        - $ref: '#/components/parameters/projectIdQueryParam'
       responses:
         "200": { $ref: '#/components/responses/InstanceList' }
         "401": { $ref: '#/components/responses/Unauthorized' }
@@ -678,6 +691,8 @@ paths:
     get:
       tags: [Connections]
       summary: List configured SMS gateway connections
+      parameters:
+        - $ref: '#/components/parameters/projectIdQueryParam'
       description: >-
         The SMS gateway connection is a generic HTTP webhook sender, for SMS providers without
         a dedicated vendor integration.
@@ -781,6 +796,8 @@ paths:
     get:
       tags: [Connections]
       summary: List configured SMTP connections
+      parameters:
+        - $ref: '#/components/parameters/projectIdQueryParam'
       responses:
         "200": { $ref: '#/components/responses/InstanceList' }
         "401": { $ref: '#/components/responses/Unauthorized' }
@@ -886,6 +903,8 @@ paths:
     get:
       tags: [Connections]
       summary: List configured OAuth 2.0 connections
+      parameters:
+        - $ref: '#/components/parameters/projectIdQueryParam'
       responses:
         "200": { $ref: '#/components/responses/InstanceList' }
         "401": { $ref: '#/components/responses/Unauthorized' }
@@ -1081,6 +1100,17 @@ components:
         type: integer
         minimum: 0
         default: 0
+
+    projectIdQueryParam:
+      in: query
+      name: projectId
+      required: false
+      description: >-
+        Lists only the connections that belong to this project. Every kind of connection belongs to
+        a project. Omit it to list the connections of every project.
+      schema:
+        type: string
+        format: uuid
 
   responses:
     InstanceList:
@@ -1287,6 +1317,10 @@ components:
             Lowercase vendor identifier. `sms-gateway` denotes a generic HTTP webhook SMS sender.
           enum: [google, github, oidc, oauth, twilio, vonage, sms-gateway, authzen-pdp, email-smtp]
           example: "google"
+        projectId:
+          type: string
+          format: uuid
+          description: Project the connection belongs to.
         categories:
           type: array
           minItems: 1
@@ -1377,6 +1411,7 @@ components:
       properties:
         name: { type: string, example: "My Google" }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         clientId: { type: string }
         clientSecret: { type: string, description: "Write-only. Omit to keep the stored value on update." }
         redirectUri: { type: string }
@@ -1397,6 +1432,7 @@ components:
         id: { type: string, format: uuid }
         name: { type: string }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         type: { type: string, example: "google" }
         clientId: { type: string }
         clientSecret: { type: string, description: "Masked as \"******\".", example: "******" }
@@ -1414,6 +1450,7 @@ components:
       properties:
         name: { type: string, example: "My GitHub" }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         clientId: { type: string }
         clientSecret: { type: string, description: "Write-only. Omit to keep the stored value on update." }
         redirectUri: { type: string }
@@ -1431,6 +1468,7 @@ components:
         id: { type: string, format: uuid }
         name: { type: string }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         type: { type: string, example: "github" }
         clientId: { type: string }
         clientSecret: { type: string, example: "******" }
@@ -1445,6 +1483,7 @@ components:
       properties:
         name: { type: string }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         clientId: { type: string }
         clientSecret: { type: string, description: "Write-only. Omit to keep the stored value on update." }
         redirectUri: { type: string }
@@ -1470,6 +1509,7 @@ components:
         id: { type: string, format: uuid }
         name: { type: string }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         type: { type: string, example: "oidc" }
         clientId: { type: string }
         clientSecret: { type: string, example: "******" }
@@ -1497,6 +1537,7 @@ components:
       properties:
         name: { type: string }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         clientId: { type: string }
         clientSecret: { type: string, description: "Write-only. Omit to keep the stored value on update." }
         redirectUri: { type: string }
@@ -1517,6 +1558,7 @@ components:
         id: { type: string, format: uuid }
         name: { type: string }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         type: { type: string, example: "oauth" }
         clientId: { type: string }
         clientSecret: { type: string, example: "******" }
@@ -1534,6 +1576,7 @@ components:
       properties:
         name: { type: string, example: "Travel Booking PDP" }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         endpoint:
           type: string
           format: uri
@@ -1596,6 +1639,7 @@ components:
       properties:
         name: { type: string, example: "My Twilio" }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         accountSid: { type: string, description: "Twilio Account SID (AC followed by 32 hex characters).", example: "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" }
         authToken: { type: string, description: "Write-only. Omit to keep the stored value on update." }
         senderId: { type: string, description: "Sender phone number or alphanumeric sender ID.", example: "+15005550006" }
@@ -1610,6 +1654,7 @@ components:
         id: { type: string, format: uuid }
         name: { type: string }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         type: { type: string, example: "twilio" }
         accountSid: { type: string }
         authToken: { type: string, description: "Masked as \"******\".", example: "******" }
@@ -1621,6 +1666,7 @@ components:
       properties:
         name: { type: string, example: "My Vonage" }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         apiKey: { type: string, description: "Vonage API key." }
         apiSecret: { type: string, description: "Write-only. Omit to keep the stored value on update." }
         senderId: { type: string, description: "Sender phone number or alphanumeric sender ID.", example: "ThunderID" }
@@ -1635,6 +1681,7 @@ components:
         id: { type: string, format: uuid }
         name: { type: string }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         type: { type: string, example: "vonage" }
         apiKey: { type: string }
         apiSecret: { type: string, description: "Masked as \"******\".", example: "******" }
@@ -1646,6 +1693,7 @@ components:
       properties:
         name: { type: string, example: "Prod SMS Gateway" }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         url: { type: string, description: "The HTTP endpoint to call to send an SMS.", example: "https://sms.example.com/send" }
         httpMethod: { type: string, enum: [GET, POST], example: "POST" }
         httpHeaders:
@@ -1663,6 +1711,7 @@ components:
         id: { type: string, format: uuid }
         name: { type: string }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         type: { type: string, example: "sms-gateway" }
         url: { type: string }
         httpMethod: { type: string }
@@ -1675,6 +1724,7 @@ components:
       properties:
         name: { type: string, example: "Corp SMTP" }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         host: { type: string, description: "Hostname of the SMTP server.", example: "smtp.example.com" }
         port: { type: integer, minimum: 1, maximum: 65535, example: 587 }
         fromAddress: { type: string, format: email, description: "Address used in the From header and the SMTP envelope.", example: "noreply@example.com" }
@@ -1711,6 +1761,7 @@ components:
         id: { type: string, format: uuid }
         name: { type: string }
         description: { type: string }
+        projectId: { type: string, format: uuid, description: "Project the connection belongs to. One created without a project goes to the default project." }
         type: { type: string, example: "email-smtp" }
         host: { type: string }
         port: { type: integer, example: 587 }

@@ -66,7 +66,7 @@ func (suite *LayoutServiceTestSuite) TestGetLayoutList_Success() {
 	suite.mockStore.On("GetLayoutListCount", testCtx()).Return(2, nil)
 	suite.mockStore.On("GetLayoutList", testCtx(), 10, 0).Return(layouts, nil)
 
-	result, err := suite.service.GetLayoutList(testCtx(), 10, 0)
+	result, err := suite.service.GetLayoutList(testCtx(), 10, 0, "")
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), result)
@@ -80,7 +80,7 @@ func (suite *LayoutServiceTestSuite) TestGetLayoutList_Success() {
 func (suite *LayoutServiceTestSuite) TestGetLayoutList_CountError() {
 	suite.mockStore.On("GetLayoutListCount", testCtx()).Return(0, errors.New("database error"))
 
-	result, err := suite.service.GetLayoutList(testCtx(), 10, 0)
+	result, err := suite.service.GetLayoutList(testCtx(), 10, 0, "")
 
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), err)
@@ -91,7 +91,7 @@ func (suite *LayoutServiceTestSuite) TestGetLayoutList_StoreError() {
 	suite.mockStore.On("GetLayoutListCount", testCtx()).Return(2, nil)
 	suite.mockStore.On("GetLayoutList", testCtx(), 10, 0).Return(nil, errors.New("database error"))
 
-	result, err := suite.service.GetLayoutList(testCtx(), 10, 0)
+	result, err := suite.service.GetLayoutList(testCtx(), 10, 0, "")
 
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), err)
@@ -99,7 +99,7 @@ func (suite *LayoutServiceTestSuite) TestGetLayoutList_StoreError() {
 
 // Test GetLayoutList - Invalid Pagination
 func (suite *LayoutServiceTestSuite) TestGetLayoutList_InvalidLimit() {
-	result, err := suite.service.GetLayoutList(testCtx(), -1, 0)
+	result, err := suite.service.GetLayoutList(testCtx(), -1, 0, "")
 
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), err)
@@ -107,7 +107,7 @@ func (suite *LayoutServiceTestSuite) TestGetLayoutList_InvalidLimit() {
 }
 
 func (suite *LayoutServiceTestSuite) TestGetLayoutList_InvalidOffset() {
-	result, err := suite.service.GetLayoutList(testCtx(), 10, -1)
+	result, err := suite.service.GetLayoutList(testCtx(), 10, -1, "")
 
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), err)

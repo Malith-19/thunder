@@ -87,7 +87,7 @@ func (t *themeTools) listThemes(
 	offset := 0
 
 	for {
-		resp, svcErr := t.themeMgtService.GetThemeList(ctx, serverconst.MaxPageSize, offset)
+		resp, svcErr := t.themeMgtService.GetThemeList(ctx, serverconst.MaxPageSize, offset, "")
 		if svcErr != nil {
 			return nil, nil, fmt.Errorf("failed to list themes: %s", svcErr.ErrorDescription)
 		}

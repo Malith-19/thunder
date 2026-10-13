@@ -48,7 +48,8 @@ func (suite *EntityTypeToolsTestSuite) TestListUserTypes_Success() {
 		},
 	}
 
-	mockService.On("GetEntityTypeList", mock.Anything, TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockService.On("GetEntityTypeList", mock.Anything, TypeCategoryUser, mock.Anything, mock.Anything,
+		mock.Anything, false).
 		Return(&EntityTypeListResponse{
 			TotalResults: 2,
 			Types:        expectedTypes,
@@ -86,7 +87,8 @@ func (suite *EntityTypeToolsTestSuite) TestListUserTypes_ServiceError() {
 	mockService := NewEntityTypeServiceInterfaceMock(suite.T())
 	tools := &entityTypeTools{entityTypeService: mockService}
 
-	mockService.On("GetEntityTypeList", mock.Anything, TypeCategoryUser, mock.Anything, mock.Anything, false).
+	mockService.On("GetEntityTypeList", mock.Anything, TypeCategoryUser, mock.Anything, mock.Anything,
+		mock.Anything, false).
 		Return(nil, &tidcommon.ServiceError{
 			ErrorDescription: tidcommon.I18nMessage{DefaultValue: "database error"},
 		})

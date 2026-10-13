@@ -250,4 +250,17 @@ describe('useGetFlows', () => {
     expect(result.current.data?.flows).toEqual([]);
     expect(result.current.data?.totalResults).toBe(0);
   });
+
+  it('should list only the flows of the given project', async () => {
+    mockHttpRequest.mockResolvedValueOnce({data: mockFlowListResponse});
+
+    const {result} = renderHook(() => useGetFlows({projectId: 'prj-finance'}));
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    const callArgs = mockHttpRequest.mock.calls[0][0] as {url: string};
+    expect(callArgs.url).toBe('https://localhost:8090/flows?limit=30&offset=0&projectId=prj-finance');
+  });
 });

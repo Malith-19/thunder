@@ -119,4 +119,17 @@ describe('useGetResourceServers', () => {
       expect(result.current.data).toEqual(nextPageData);
     });
   });
+
+  it('should list only the resource servers of the given project', async () => {
+    mockHttpRequest.mockResolvedValueOnce({data: firstPageData});
+
+    const {result} = renderHook(() => useGetResourceServers({limit: 10, offset: 0, projectId: 'prj-finance'}));
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockHttpRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://localhost:8090/resource-servers?limit=10&offset=0&projectId=prj-finance',
+      }),
+    );
+  });
 });

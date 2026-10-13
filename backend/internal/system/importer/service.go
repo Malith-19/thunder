@@ -198,9 +198,8 @@ type userAdapter interface {
 }
 
 type translationAdapter interface {
-	SetTranslationOverrides(ctx context.Context, language string, translations map[string]map[string]string) (
-		*providers.LanguageTranslationsResponse,
-		*tidcommon.ServiceError)
+	SetTranslationOverrides(ctx context.Context, language string, projectID string,
+		translations map[string]map[string]string) (*providers.LanguageTranslationsResponse, *tidcommon.ServiceError)
 }
 
 type agentAdapter interface {
@@ -645,6 +644,7 @@ func authZENPDPConnectionRequest(connection *authzenpdp.AuthZENPDPConnection) au
 		ID:                       connection.ID,
 		Name:                     connection.Name,
 		Description:              connection.Description,
+		ProjectID:                connection.ProjectID,
 		Endpoint:                 connection.Endpoint,
 		BatchEndpoint:            connection.BatchEndpoint,
 		TimeoutMS:                connection.TimeoutMS,

@@ -79,7 +79,7 @@ func (s *idpStore) CreateIdentityProvider(ctx context.Context, idp providers.IDP
 
 	_, err = dbClient.ExecuteContext(ctx,
 		queryCreateIdentityProvider, idp.ID, idp.Name, idp.Description, idp.Type, propertiesJSON,
-		attributeConfigurationJSON, s.scope(ctx),
+		attributeConfigurationJSON, nullableProjectID(idp.ProjectID), s.scope(ctx),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to execute query: %w", err)
@@ -207,6 +207,7 @@ func (s *idpStore) GetIdentityProvidersByProperty(ctx context.Context,
 			Name:                   basicIDP.Name,
 			Description:            basicIDP.Description,
 			Type:                   basicIDP.Type,
+			ProjectID:              basicIDP.ProjectID,
 			Properties:             properties,
 			AttributeConfiguration: attributeConfiguration,
 		})
@@ -268,6 +269,7 @@ func (s *idpStore) getIDP(ctx context.Context, query dbmodel.DBQuery, identifier
 		Name:                   basicIDP.Name,
 		Description:            basicIDP.Description,
 		Type:                   basicIDP.Type,
+		ProjectID:              basicIDP.ProjectID,
 		Properties:             properties,
 		AttributeConfiguration: attributeConfiguration,
 	}
@@ -297,7 +299,8 @@ func (s *idpStore) UpdateIdentityProvider(ctx context.Context, idp *providers.ID
 
 	// Update the IDP in the database
 	_, err = dbClient.ExecuteContext(ctx, queryUpdateIdentityProviderByID, idp.ID, idp.Name,
-		idp.Description, idp.Type, propertiesJSON, attributeConfigurationJSON, s.scope(ctx))
+		idp.Description, idp.Type, propertiesJSON, attributeConfigurationJSON, nullableProjectID(idp.ProjectID),
+		s.scope(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -352,8 +355,19 @@ func buildIDPFromResultRow(row map[string]interface{}) (*BasicIDPDTO, error) {
 		Description: idpDescription,
 		Type:        providers.IDPType(idpType),
 	}
+	if projectID, ok := row["project_id"].(string); ok {
+		idp.ProjectID = projectID
+	}
 
 	return &idp, nil
+}
+
+// nullableProjectID stores an identity provider outside every project as SQL NULL.
+func nullableProjectID(projectID string) interface{} {
+	if projectID == "" {
+		return nil
+	}
+	return projectID
 }
 
 // idJagEnabledFromRow extracts and parses the id_jag_enabled property from a query result row's

@@ -50,13 +50,17 @@ func (c *compositeStore) GetTemplateByHandle(ctx context.Context, channel Channe
 }
 
 // ListTemplates returns a page over the merged set, rejecting a source that exceeds the composite cap.
-func (c *compositeStore) ListTemplates(ctx context.Context, channel ChannelType, limit, offset int) (
-	[]templateDAO, error) {
+func (c *compositeStore) ListTemplates(ctx context.Context, channel ChannelType, limit, offset int,
+	projectID string) ([]templateDAO, error) {
 	merged, limitExceeded, err := declarativeresource.CompositeMergeListHelperWithLimit(
-		cappedCount(ctx, channel, c.fileStore.CountTemplates),
-		cappedCount(ctx, channel, c.dbStore.CountTemplates),
-		func(count int) ([]templateDAO, error) { return c.fileStore.ListTemplates(ctx, channel, count, 0) },
-		func(count int) ([]templateDAO, error) { return c.dbStore.ListTemplates(ctx, channel, count, 0) },
+		cappedCount(ctx, channel, projectID, c.fileStore.CountTemplates),
+		cappedCount(ctx, channel, projectID, c.dbStore.CountTemplates),
+		func(count int) ([]templateDAO, error) {
+			return c.fileStore.ListTemplates(ctx, channel, count, 0, projectID)
+		},
+		func(count int) ([]templateDAO, error) {
+			return c.dbStore.ListTemplates(ctx, channel, count, 0, projectID)
+		},
 		mergeTemplatesByHandle,
 		limit,
 		offset,
@@ -72,12 +76,16 @@ func (c *compositeStore) ListTemplates(ctx context.Context, channel ChannelType,
 }
 
 // CountTemplates returns the merged count, rejecting a source that exceeds the composite cap.
-func (c *compositeStore) CountTemplates(ctx context.Context, channel ChannelType) (int, error) {
+func (c *compositeStore) CountTemplates(ctx context.Context, channel ChannelType, projectID string) (int, error) {
 	merged, limitExceeded, err := declarativeresource.CompositeMergeListHelperWithLimit(
-		cappedCount(ctx, channel, c.fileStore.CountTemplates),
-		cappedCount(ctx, channel, c.dbStore.CountTemplates),
-		func(count int) ([]templateDAO, error) { return c.fileStore.ListTemplates(ctx, channel, count, 0) },
-		func(count int) ([]templateDAO, error) { return c.dbStore.ListTemplates(ctx, channel, count, 0) },
+		cappedCount(ctx, channel, projectID, c.fileStore.CountTemplates),
+		cappedCount(ctx, channel, projectID, c.dbStore.CountTemplates),
+		func(count int) ([]templateDAO, error) {
+			return c.fileStore.ListTemplates(ctx, channel, count, 0, projectID)
+		},
+		func(count int) ([]templateDAO, error) {
+			return c.dbStore.ListTemplates(ctx, channel, count, 0, projectID)
+		},
 		mergeTemplatesByHandle,
 		serverconst.MaxCompositeStoreRecords+1,
 		0,
@@ -146,10 +154,10 @@ func mergeTemplatesByHandle(declared, dbItems []templateDAO) []templateDAO {
 }
 
 // cappedCount wraps a channel count, capping it at MaxCompositeStoreRecords.
-func cappedCount(ctx context.Context, channel ChannelType,
-	fn func(context.Context, ChannelType) (int, error)) func() (int, error) {
+func cappedCount(ctx context.Context, channel ChannelType, projectID string,
+	fn func(context.Context, ChannelType, string) (int, error)) func() (int, error) {
 	return func() (int, error) {
-		count, err := fn(ctx, channel)
+		count, err := fn(ctx, channel, projectID)
 		if err != nil {
 			return 0, err
 		}

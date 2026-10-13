@@ -15,45 +15,51 @@ var (
 			`WHERE DEPLOYMENT_ID = $1 ORDER BY LANGUAGE_CODE`,
 	}
 
+	// queryGetDistinctLanguagesByProject retrieves the distinct language codes that have translations
+	// in a project.
+	queryGetDistinctLanguagesByProject = dbmodel.DBQuery{
+		ID: "I18N-11",
+		Query: `SELECT DISTINCT LANGUAGE_CODE FROM "TRANSLATION" ` +
+			`WHERE PROJECT_ID = $1 AND DEPLOYMENT_ID = $2 ORDER BY LANGUAGE_CODE`,
+	}
+
 	// queryGetTranslationsByLanguage retrieves all translations for a language and namespace.
 	queryGetTranslations = dbmodel.DBQuery{
 		ID: "I18N-02",
-		Query: `SELECT MESSAGE_KEY, LANGUAGE_CODE, NAMESPACE, VALUE FROM "TRANSLATION" ` +
+		Query: `SELECT MESSAGE_KEY, LANGUAGE_CODE, NAMESPACE, VALUE, PROJECT_ID FROM "TRANSLATION" ` +
 			`WHERE DEPLOYMENT_ID = $1 ORDER BY MESSAGE_KEY`,
 	}
 
 	// queryGetTranslationsByLanguage retrieves all translations for a language and namespace.
 	queryGetTranslationsByNamespace = dbmodel.DBQuery{
 		ID: "I18N-03",
-		Query: `SELECT MESSAGE_KEY, LANGUAGE_CODE, NAMESPACE, VALUE FROM "TRANSLATION" ` +
+		Query: `SELECT MESSAGE_KEY, LANGUAGE_CODE, NAMESPACE, VALUE, PROJECT_ID FROM "TRANSLATION" ` +
 			`WHERE NAMESPACE = $1 AND DEPLOYMENT_ID = $2 ORDER BY MESSAGE_KEY`,
 	}
 
 	// queryGetTranslation retrieves a single translation by key, and namespace.
 	queryGetTranslation = dbmodel.DBQuery{
 		ID: "I18N-04",
-		Query: `SELECT MESSAGE_KEY, LANGUAGE_CODE, NAMESPACE, VALUE FROM "TRANSLATION" ` +
+		Query: `SELECT MESSAGE_KEY, LANGUAGE_CODE, NAMESPACE, VALUE, PROJECT_ID FROM "TRANSLATION" ` +
 			`WHERE MESSAGE_KEY = $1 AND NAMESPACE = $2 AND DEPLOYMENT_ID = $3`,
 	}
 
-	// queryInsertTranslation inserts a new translation.
-	queryInsertTranslation = dbmodel.DBQuery{
-		ID: "I18N-05",
-		Query: `INSERT INTO "TRANSLATION" (MESSAGE_KEY, LANGUAGE_CODE, NAMESPACE, VALUE, DEPLOYMENT_ID) ` +
-			`VALUES ($1, $2, $3, $4, $5)`,
-	}
-
-	// queryUpsertTranslation inserts or updates a translation.
+	// queryUpsertTranslation inserts or updates a translation. A write without a project keeps the
+	// project the translation already has.
 	queryUpsertTranslation = dbmodel.DBQuery{
 		ID: "I18N-06",
-		Query: `INSERT INTO "TRANSLATION" (MESSAGE_KEY, LANGUAGE_CODE, NAMESPACE, VALUE, DEPLOYMENT_ID) ` +
-			`VALUES ($1, $2, $3, $4, $5) ` +
+		Query: `INSERT INTO "TRANSLATION" ` +
+			`(MESSAGE_KEY, LANGUAGE_CODE, NAMESPACE, VALUE, PROJECT_ID, DEPLOYMENT_ID) ` +
+			`VALUES ($1, $2, $3, $4, $5, $6) ` +
 			`ON CONFLICT (DEPLOYMENT_ID, NAMESPACE, MESSAGE_KEY, LANGUAGE_CODE) ` +
-			`DO UPDATE SET VALUE = EXCLUDED.VALUE, UPDATED_AT = NOW()`,
-		SQLiteQuery: `INSERT INTO "TRANSLATION" (MESSAGE_KEY, LANGUAGE_CODE, NAMESPACE, VALUE, DEPLOYMENT_ID) ` +
-			`VALUES ($1, $2, $3, $4, $5) ` +
+			`DO UPDATE SET VALUE = EXCLUDED.VALUE, ` +
+			`PROJECT_ID = COALESCE(EXCLUDED.PROJECT_ID, "TRANSLATION".PROJECT_ID), UPDATED_AT = NOW()`,
+		SQLiteQuery: `INSERT INTO "TRANSLATION" ` +
+			`(MESSAGE_KEY, LANGUAGE_CODE, NAMESPACE, VALUE, PROJECT_ID, DEPLOYMENT_ID) ` +
+			`VALUES ($1, $2, $3, $4, $5, $6) ` +
 			`ON CONFLICT (DEPLOYMENT_ID, NAMESPACE, MESSAGE_KEY, LANGUAGE_CODE) ` +
-			`DO UPDATE SET VALUE = excluded.VALUE, UPDATED_AT = datetime('now')`,
+			`DO UPDATE SET VALUE = excluded.VALUE, ` +
+			`PROJECT_ID = COALESCE(excluded.PROJECT_ID, "TRANSLATION".PROJECT_ID), UPDATED_AT = datetime('now')`,
 	}
 
 	// queryDeleteTranslation deletes a translation by language, key, and namespace.
@@ -67,6 +73,22 @@ var (
 	queryDeleteTranslationsByLanguage = dbmodel.DBQuery{
 		ID:    "I18N-08",
 		Query: `DELETE FROM "TRANSLATION" WHERE LANGUAGE_CODE = $1 AND DEPLOYMENT_ID = $2`,
+	}
+
+	// queryDeleteTranslationsByLanguageAndProject deletes the translations of a language code that
+	// belong to a project.
+	queryDeleteTranslationsByLanguageAndProject = dbmodel.DBQuery{
+		ID: "I18N-12",
+		Query: `DELETE FROM "TRANSLATION" ` +
+			`WHERE LANGUAGE_CODE = $1 AND PROJECT_ID = $2 AND DEPLOYMENT_ID = $3`,
+	}
+
+	// queryDeleteUnownedTranslationsByLanguage deletes the translations of a language code that
+	// belong to no project.
+	queryDeleteUnownedTranslationsByLanguage = dbmodel.DBQuery{
+		ID: "I18N-13",
+		Query: `DELETE FROM "TRANSLATION" ` +
+			`WHERE LANGUAGE_CODE = $1 AND PROJECT_ID IS NULL AND DEPLOYMENT_ID = $2`,
 	}
 
 	// queryDeleteTranslationsByNamespace deletes all translations for a given namespace.

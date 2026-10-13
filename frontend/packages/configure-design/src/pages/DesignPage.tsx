@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {ExternalLink, QueryErrorNotice} from '@thunderid/components';
+import {useProject} from '@thunderid/contexts';
 import {useGetThemes, useGetLayouts} from '@thunderid/design';
 import {Box, Button, Grid, PageContent, PageTitle, Skeleton, Typography} from '@wso2/oxygen-ui';
 import {ArrowUpRight, LayoutTemplate, Palette, Plus} from '@wso2/oxygen-ui-icons-react';
@@ -27,8 +28,15 @@ export default function DesignPage(): JSX.Element {
   const {t} = useTranslation('design');
   const navigate = useNavigate();
   const routes = useDesignRoutes();
-  const {data: themesData, isLoading: themesLoading, error: themesError, refetch: refetchThemes} = useGetThemes();
-  const {data: layoutsData, error: layoutsError, refetch: refetchLayouts} = useGetLayouts();
+  const {selectedProject} = useProject();
+  const projectId = selectedProject?.id;
+  const {
+    data: themesData,
+    isLoading: themesLoading,
+    error: themesError,
+    refetch: refetchThemes,
+  } = useGetThemes({projectId});
+  const {data: layoutsData, error: layoutsError, refetch: refetchLayouts} = useGetLayouts({projectId});
 
   const [showAllThemes, setShowAllThemes] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{id: string; name: string} | null>(null);

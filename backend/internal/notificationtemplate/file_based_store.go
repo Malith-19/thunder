@@ -66,10 +66,11 @@ func (f *templateFileBasedStore) GetTemplateByHandle(_ context.Context, channel 
 	return templateDAO{}, errTemplateNotFound
 }
 
-// ListTemplates returns a page of declared templates of a channel.
-func (f *templateFileBasedStore) ListTemplates(_ context.Context, channel ChannelType, limit, offset int) (
-	[]templateDAO, error) {
-	filtered, err := f.listByChannel(channel)
+// ListTemplates returns a page of declared templates of a channel, only those in the project when a
+// project ID is given.
+func (f *templateFileBasedStore) ListTemplates(_ context.Context, channel ChannelType, limit, offset int,
+	projectID string) ([]templateDAO, error) {
+	filtered, err := f.listByChannelAndProject(channel, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +81,11 @@ func (f *templateFileBasedStore) ListTemplates(_ context.Context, channel Channe
 	return filtered[offset:end], nil
 }
 
-// CountTemplates returns the number of declared templates of a channel.
-func (f *templateFileBasedStore) CountTemplates(_ context.Context, channel ChannelType) (int, error) {
-	filtered, err := f.listByChannel(channel)
+// CountTemplates returns the number of declared templates of a channel, only those in the project when
+// a project ID is given.
+func (f *templateFileBasedStore) CountTemplates(_ context.Context, channel ChannelType,
+	projectID string) (int, error) {
+	filtered, err := f.listByChannelAndProject(channel, projectID)
 	if err != nil {
 		return 0, err
 	}
@@ -166,4 +169,21 @@ func (f *templateFileBasedStore) listByChannel(channel ChannelType) ([]templateD
 	}
 	sort.Slice(filtered, func(i, j int) bool { return filtered[i].Handle < filtered[j].Handle })
 	return filtered, nil
+}
+
+// listByChannelAndProject returns the declared templates of a channel, only those in the project when a
+// project ID is given.
+func (f *templateFileBasedStore) listByChannelAndProject(channel ChannelType, projectID string) (
+	[]templateDAO, error) {
+	filtered, err := f.listByChannel(channel)
+	if err != nil || projectID == "" {
+		return filtered, err
+	}
+	inProject := []templateDAO{}
+	for _, t := range filtered {
+		if t.ProjectID == projectID {
+			inProject = append(inProject, t)
+		}
+	}
+	return inProject, nil
 }

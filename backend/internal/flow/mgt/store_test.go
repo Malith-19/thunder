@@ -58,7 +58,7 @@ func (s *FlowStoreTestSuite) SetupTest() {
 func (s *FlowStoreTestSuite) TestListFlowsDBClientError() {
 	s.mockDBProvider.EXPECT().GetConfigDBClient().Return(nil, errors.New("connection error"))
 
-	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "")
+	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "", "")
 
 	s.Error(err)
 	s.Contains(err.Error(), "failed to get database client")
@@ -71,7 +71,7 @@ func (s *FlowStoreTestSuite) TestListFlowsCountQueryError() {
 	s.mockDBClient.EXPECT().QueryContext(mock.Anything, queryCountFlows, "test-deployment").
 		Return(nil, errors.New("query error")).Once()
 
-	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "")
+	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "", "")
 
 	s.Error(err)
 	s.Contains(err.Error(), "failed to count flows")
@@ -86,7 +86,7 @@ func (s *FlowStoreTestSuite) TestListFlowsQueryError() {
 	s.mockDBClient.EXPECT().QueryContext(mock.Anything, queryListFlows, "test-deployment", 10, 0).
 		Return(nil, errors.New("query error")).Once()
 
-	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "")
+	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "", "")
 
 	s.Error(err)
 	s.Contains(err.Error(), "failed to list flows")
@@ -122,7 +122,7 @@ func (s *FlowStoreTestSuite) TestListFlowsSuccess() {
 	s.mockDBClient.EXPECT().QueryContext(mock.Anything, queryListFlows, "test-deployment", 10, 0).
 		Return(flowsData, nil).Once()
 
-	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "")
+	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "", "")
 
 	s.NoError(err)
 	s.Equal(2, count)
@@ -155,7 +155,7 @@ func (s *FlowStoreTestSuite) TestListFlowsWithTypeSuccess() {
 			string(providers.FlowTypeAuthentication), "test-deployment", 10, 0).
 		Return(flowsData, nil).Once()
 
-	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, string(providers.FlowTypeAuthentication))
+	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, string(providers.FlowTypeAuthentication), "")
 
 	s.NoError(err)
 	s.Equal(1, count)
@@ -472,7 +472,7 @@ func (s *FlowStoreTestSuite) TestListFlowsWithTypeCountQueryError() {
 		nil, expectedError)
 	s.mockDBProvider.EXPECT().GetConfigDBClient().Return(s.mockDBClient, nil)
 
-	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "authentication")
+	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "authentication", "")
 
 	s.Error(err)
 	s.Nil(flows)
@@ -490,7 +490,7 @@ func (s *FlowStoreTestSuite) TestListFlowsWithTypeQueryError() {
 		nil, expectedError)
 	s.mockDBProvider.EXPECT().GetConfigDBClient().Return(s.mockDBClient, nil)
 
-	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "authentication")
+	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "authentication", "")
 
 	s.Error(err)
 	s.Nil(flows)
@@ -507,7 +507,7 @@ func (s *FlowStoreTestSuite) TestListFlowsBuildFlowError() {
 		}, nil)
 	s.mockDBProvider.EXPECT().GetConfigDBClient().Return(s.mockDBClient, nil)
 
-	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "")
+	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "", "")
 
 	s.Error(err)
 	s.Nil(flows)
@@ -683,7 +683,7 @@ func (s *FlowStoreTestSuite) TestCreateFlow_ExecError() {
 
 	s.mockDBProvider.EXPECT().GetConfigDBClient().Return(s.mockDBClient, nil)
 	s.mockDBClient.EXPECT().ExecuteContext(mock.Anything, queryCreateFlow, "flow-1", "login-handle", "Login Flow",
-		providers.FlowTypeAuthentication, int64(1), "test-deployment").Return(int64(0), errors.New("insert error"))
+		providers.FlowTypeAuthentication, int64(1), nil, "test-deployment").Return(int64(0), errors.New("insert error"))
 
 	result, err := s.store.CreateFlow(context.Background(), "flow-1", flowDef)
 
@@ -944,7 +944,7 @@ func (s *FlowStoreTestSuite) TestCreateFlow_InsertFlowVersionError() {
 	nodesJSON := `[{"id":"node1","type":"start"}]`
 	s.mockDBProvider.EXPECT().GetConfigDBClient().Return(s.mockDBClient, nil)
 	s.mockDBClient.EXPECT().ExecuteContext(mock.Anything, queryCreateFlow, "flow-1", "login-handle", "Login Flow",
-		providers.FlowTypeAuthentication, int64(1), "test-deployment").Return(int64(0), nil)
+		providers.FlowTypeAuthentication, int64(1), nil, "test-deployment").Return(int64(0), nil)
 	s.mockDBClient.EXPECT().ExecuteContext(mock.Anything, queryInsertFlowVersion, "flow-1", 1, nodesJSON, "null",
 		"test-deployment").Return(int64(0), errors.New("version insert error"))
 
@@ -1335,7 +1335,7 @@ func (s *FlowStoreTestSuite) TestCreateFlowWithInterceptors() {
 
 	s.mockDBProvider.EXPECT().GetConfigDBClient().Return(s.mockDBClient, nil)
 	s.mockDBClient.EXPECT().ExecuteContext(mock.Anything, queryCreateFlow, "flow-1", "login-handle", "Login Flow",
-		providers.FlowTypeAuthentication, int64(1), "test-deployment").Return(int64(1), nil)
+		providers.FlowTypeAuthentication, int64(1), nil, "test-deployment").Return(int64(1), nil)
 	s.mockDBClient.EXPECT().ExecuteContext(mock.Anything, queryInsertFlowVersion, "flow-1", 1, nodesJSON,
 		interceptorsJSON, "test-deployment").Return(int64(1), nil)
 
@@ -1405,7 +1405,7 @@ func (s *FlowStoreTestSuite) TestListFlows_ScopesByTheRequestDeployment() {
 	s.mockDBClient.EXPECT().QueryContext(mock.Anything, queryCountFlows, "acme").
 		Return(nil, errors.New("query error")).Once()
 
-	_, _, err := s.store.ListFlows(deployment.WithID(context.Background(), "acme"), 10, 0, "")
+	_, _, err := s.store.ListFlows(deployment.WithID(context.Background(), "acme"), 10, 0, "", "")
 
 	s.Error(err)
 }

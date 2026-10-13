@@ -14,6 +14,7 @@ import (
 	"github.com/thunder-id/thunderid/pkg/thunderidengine/providers"
 
 	"github.com/thunder-id/thunderid/internal/notification/common"
+	"github.com/thunder-id/thunderid/internal/project"
 	declarativeresource "github.com/thunder-id/thunderid/internal/system/declarative_resource"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/resourcedependency"
@@ -43,6 +44,8 @@ type notificationSenderMgtService struct {
 	transactioner      providers.Transactioner
 	dependencyRegistry resourcedependency.Registry
 	uuidGenerator      func() (string, error)
+	// projects decides the project of a notification sender.
+	projects project.Resolver
 }
 
 // newNotificationSenderMgtService returns a new instance of NotificationSenderMgtSvcInterface.
@@ -72,6 +75,12 @@ func (s *notificationSenderMgtService) CreateSender(
 
 	applyDefaultSenderProperties(&sender)
 
+	projectID, svcErr := project.ResolveProjectID(ctx, s.projects, sender.ProjectID, "")
+	if svcErr != nil {
+		return nil, svcErr
+	}
+	sender.ProjectID = projectID
+
 	if sender.ID == "" {
 		id, err := s.uuidGenerator()
 		if err != nil {
@@ -81,7 +90,6 @@ func (s *notificationSenderMgtService) CreateSender(
 		sender.ID = id
 	}
 
-	var svcErr *tidcommon.ServiceError
 	transactErr := s.transactioner.Transact(ctx, func(txCtx context.Context) error {
 		// Check if sender with same name already exists
 		senderRetv, err := s.notificationStore.getSenderByName(txCtx, sender.Name)
@@ -116,6 +124,7 @@ func (s *notificationSenderMgtService) CreateSender(
 		ID:          sender.ID,
 		Name:        sender.Name,
 		Description: sender.Description,
+		ProjectID:   sender.ProjectID,
 		Type:        sender.Type,
 		Provider:    sender.Provider,
 		Properties:  sender.Properties,
@@ -254,6 +263,13 @@ func (s *notificationSenderMgtService) UpdateSender(ctx context.Context, id stri
 			return errors.New("cannot change type")
 		}
 
+		projectID, projectErr := s.resolveUpdatedProjectID(txCtx, senderRetv, sender)
+		if projectErr != nil {
+			svcErr = projectErr
+			return errors.New("invalid project")
+		}
+		sender.ProjectID = projectID
+
 		// Update the sender
 		if err := s.notificationStore.updateSender(txCtx, id, sender); err != nil {
 			return err
@@ -275,10 +291,31 @@ func (s *notificationSenderMgtService) UpdateSender(ctx context.Context, id stri
 		ID:          id,
 		Name:        sender.Name,
 		Description: sender.Description,
+		ProjectID:   sender.ProjectID,
 		Type:        sender.Type,
 		Provider:    sender.Provider,
 		Properties:  sender.Properties,
 	}, nil
+}
+
+// resolveUpdatedProjectID returns the project of an updated notification sender. An update that leaves
+// the project out keeps the current one, and a notification sender stays in the project it was created
+// in.
+func (s *notificationSenderMgtService) resolveUpdatedProjectID(
+	ctx context.Context, existing *common.NotificationSenderDTO, updated common.NotificationSenderDTO,
+) (string, *tidcommon.ServiceError) {
+	requested := updated.ProjectID
+	if requested == "" {
+		requested = existing.ProjectID
+	}
+	projectID, svcErr := project.ResolveProjectID(ctx, s.projects, requested, "")
+	if svcErr != nil {
+		return "", svcErr
+	}
+	if s.projects != nil && existing.ProjectID != "" && projectID != existing.ProjectID {
+		return "", &project.ErrorProjectChangeNotAllowed
+	}
+	return projectID, nil
 }
 
 // DeleteSender deletes a notification sender

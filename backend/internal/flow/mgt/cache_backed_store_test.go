@@ -147,9 +147,9 @@ func (s *CacheBackedFlowStoreTestSuite) TestListFlows() {
 		},
 	}
 
-	s.mockStore.EXPECT().ListFlows(mock.Anything, 10, 0, "").Return(flows, 2, nil)
+	s.mockStore.EXPECT().ListFlows(mock.Anything, 10, 0, "", "").Return(flows, 2, nil)
 
-	result, count, err := s.cachedStore.ListFlows(context.Background(), 10, 0, "")
+	result, count, err := s.cachedStore.ListFlows(context.Background(), 10, 0, "", "")
 
 	s.NoError(err)
 	s.Len(result, 2)
@@ -158,9 +158,9 @@ func (s *CacheBackedFlowStoreTestSuite) TestListFlows() {
 }
 
 func (s *CacheBackedFlowStoreTestSuite) TestListFlowsError() {
-	s.mockStore.EXPECT().ListFlows(mock.Anything, 10, 0, "").Return(nil, 0, errors.New("list error"))
+	s.mockStore.EXPECT().ListFlows(mock.Anything, 10, 0, "", "").Return(nil, 0, errors.New("list error"))
 
-	result, count, err := s.cachedStore.ListFlows(context.Background(), 10, 0, "")
+	result, count, err := s.cachedStore.ListFlows(context.Background(), 10, 0, "", "")
 
 	s.Error(err)
 	s.Nil(result)

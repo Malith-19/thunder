@@ -162,6 +162,8 @@ export interface UpdateUserTypeRequest {
 export interface UserTypeListParams {
   limit?: number;
   offset?: number;
+  /** Lists only the user types of the organization units in this project. */
+  projectId?: string;
 }
 
 /**

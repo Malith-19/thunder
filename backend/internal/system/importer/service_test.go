@@ -131,7 +131,7 @@ func (f *fakeApplicationService) ValidateApplication(
 }
 
 func (f *fakeApplicationService) GetApplicationList(
-	_ context.Context,
+	_ context.Context, _ string,
 ) (*model.ApplicationListResponse, *tidcommon.ServiceError) {
 	return nil, nil
 }
@@ -1888,6 +1888,7 @@ func TestImportResources_ThemeUpsertCreatePreservesID(t *testing.T) {
 		"id: thm-123",
 		"handle: default-theme",
 		"displayName: Default Theme",
+		"projectId: prj-1",
 		"theme:",
 		"  colorSchemes:",
 		"    light: {}",
@@ -1904,6 +1905,7 @@ func TestImportResources_ThemeUpsertCreatePreservesID(t *testing.T) {
 	assert.Equal(t, "thm-123", resp.Results[0].ResourceID)
 	assert.Len(t, themeSvc.created, 1)
 	assert.Equal(t, "thm-123", themeSvc.created[0].ID)
+	assert.Equal(t, "prj-1", themeSvc.created[0].ProjectID)
 }
 
 func layoutImportContent() string {
@@ -1912,6 +1914,7 @@ func layoutImportContent() string {
 		"id: lay-123",
 		"handle: default-layout",
 		"displayName: Default Layout",
+		"projectId: prj-1",
 		"layout:",
 		"  head:",
 		"    stylesheets: []",
@@ -1942,6 +1945,7 @@ func TestImportResources_LayoutUpsertCreatePreservesID(t *testing.T) {
 	assert.Equal(t, "lay-123", resp.Results[0].ResourceID)
 	require.Len(t, layoutSvc.created, 1)
 	assert.Equal(t, "lay-123", layoutSvc.created[0].ID)
+	assert.Equal(t, "prj-1", layoutSvc.created[0].ProjectID)
 	assert.Empty(t, layoutSvc.updated)
 }
 

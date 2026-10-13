@@ -14,14 +14,15 @@ import (
 
 // i18nStoreInterface defines the interface for i18n store operations.
 type i18nStoreInterface interface {
-	GetDistinctLanguages(ctx context.Context) ([]string, error)
+	GetDistinctLanguages(ctx context.Context, projectID string) ([]string, error)
 	GetTranslations(ctx context.Context) (map[string]map[string]Translation, error)
 	GetTranslationsByNamespace(ctx context.Context, namespace string) (map[string]map[string]Translation, error)
 	GetTranslationsByKey(ctx context.Context, key string, namespace string) (map[string]Translation, error)
-	UpsertTranslationsByLanguage(ctx context.Context, language string, translations []Translation) error
+	UpsertTranslationsByLanguage(ctx context.Context, language string, projectID string,
+		translations []Translation) error
 	UpsertTranslation(ctx context.Context, trans Translation) error
 	UpsertTranslations(ctx context.Context, translations []Translation) error
-	DeleteTranslationsByLanguage(ctx context.Context, language string) error
+	DeleteTranslationsByLanguage(ctx context.Context, language string, projectID string) error
 	DeleteTranslation(ctx context.Context, language string, key string, namespace string) error
 	DeleteTranslationsByNamespace(ctx context.Context, namespace string) error
 	DeleteTranslationsByKey(ctx context.Context, namespace string, key string) error
@@ -55,14 +56,20 @@ func (s *i18nStore) getDBClient() (provider.DBClientInterface, error) {
 	return dbClient, nil
 }
 
-// GetDistinctLanguages retrieves all distinct language codes that have translations.
-func (s *i18nStore) GetDistinctLanguages(ctx context.Context) ([]string, error) {
+// GetDistinctLanguages retrieves all distinct language codes that have translations, only those with
+// translations in the project when a project ID is given.
+func (s *i18nStore) GetDistinctLanguages(ctx context.Context, projectID string) ([]string, error) {
 	dbClient, err := s.getDBClient()
 	if err != nil {
 		return nil, err
 	}
 
-	results, err := dbClient.Query(queryGetDistinctLanguages, s.scope(ctx))
+	var results []map[string]interface{}
+	if projectID != "" {
+		results, err = dbClient.Query(queryGetDistinctLanguagesByProject, projectID, s.scope(ctx))
+	} else {
+		results, err = dbClient.Query(queryGetDistinctLanguages, s.scope(ctx))
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get distinct languages: %w", err)
 	}
@@ -129,8 +136,10 @@ func (s *i18nStore) GetTranslationsByKey(ctx context.Context, key string, namesp
 	return buildTranslationsMap(results)
 }
 
-// InsertTranslation inserts a new translation.
-func (s *i18nStore) UpsertTranslationsByLanguage(ctx context.Context, language string,
+// UpsertTranslationsByLanguage replaces the translations of a language that belong to the project
+// (or to no project when the project ID is empty) with the given ones. Translations of the language
+// in other projects are kept.
+func (s *i18nStore) UpsertTranslationsByLanguage(ctx context.Context, language string, projectID string,
 	translations []Translation) error {
 	dbClient, err := s.getDBClient()
 	if err != nil {
@@ -142,7 +151,11 @@ func (s *i18nStore) UpsertTranslationsByLanguage(ctx context.Context, language s
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
-	_, err = tx.Exec(queryDeleteTranslationsByLanguage, language, s.scope(ctx))
+	if projectID != "" {
+		_, err = tx.Exec(queryDeleteTranslationsByLanguageAndProject, language, projectID, s.scope(ctx))
+	} else {
+		_, err = tx.Exec(queryDeleteUnownedTranslationsByLanguage, language, s.scope(ctx))
+	}
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			err = errors.Join(err, fmt.Errorf("failed to rollback transaction: %w", rollbackErr))
@@ -151,8 +164,8 @@ func (s *i18nStore) UpsertTranslationsByLanguage(ctx context.Context, language s
 	}
 
 	for _, trans := range translations {
-		_, err = tx.Exec(queryInsertTranslation, trans.Key, trans.Language, trans.Namespace,
-			trans.Value, s.scope(ctx))
+		_, err = tx.Exec(queryUpsertTranslation, trans.Key, trans.Language, trans.Namespace,
+			trans.Value, nullableProjectID(trans.ProjectID), s.scope(ctx))
 		if err != nil {
 			if rollbackErr := tx.Rollback(); rollbackErr != nil {
 				err = errors.Join(err, fmt.Errorf("failed to rollback transaction: %w", rollbackErr))
@@ -177,7 +190,7 @@ func (s *i18nStore) UpsertTranslation(ctx context.Context, trans Translation) er
 	}
 
 	_, err = dbClient.Execute(queryUpsertTranslation, trans.Key, trans.Language, trans.Namespace,
-		trans.Value, s.scope(ctx))
+		trans.Value, nullableProjectID(trans.ProjectID), s.scope(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to upsert translation: %w", err)
 	}
@@ -195,7 +208,7 @@ func (s *i18nStore) UpsertTranslations(ctx context.Context, translations []Trans
 
 	for _, trans := range translations {
 		if _, err = dbClient.ExecuteContext(ctx, queryUpsertTranslation, trans.Key, trans.Language,
-			trans.Namespace, trans.Value, s.scope(ctx)); err != nil {
+			trans.Namespace, trans.Value, nullableProjectID(trans.ProjectID), s.scope(ctx)); err != nil {
 			return fmt.Errorf("failed to upsert translation: %w", err)
 		}
 	}
@@ -216,14 +229,19 @@ func (s *i18nStore) DeleteTranslation(ctx context.Context, language string, key 
 	return nil
 }
 
-// DeleteTranslationsByLanguage deletes all translations for the given language.
-func (s *i18nStore) DeleteTranslationsByLanguage(ctx context.Context, language string) error {
+// DeleteTranslationsByLanguage deletes all translations for the given language, only those in the
+// project when a project ID is given.
+func (s *i18nStore) DeleteTranslationsByLanguage(ctx context.Context, language string, projectID string) error {
 	dbClient, err := s.getDBClient()
 	if err != nil {
 		return err
 	}
 
-	_, err = dbClient.Execute(queryDeleteTranslationsByLanguage, language, s.scope(ctx))
+	if projectID != "" {
+		_, err = dbClient.Execute(queryDeleteTranslationsByLanguageAndProject, language, projectID, s.scope(ctx))
+	} else {
+		_, err = dbClient.Execute(queryDeleteTranslationsByLanguage, language, s.scope(ctx))
+	}
 	if err != nil {
 		return fmt.Errorf("failed to delete translation: %w", err)
 	}
@@ -282,12 +300,23 @@ func buildTranslationFromRow(row map[string]interface{}) (*Translation, error) {
 		return nil, fmt.Errorf("failed to parse value")
 	}
 
+	projectID, _ := row["project_id"].(string)
+
 	return &Translation{
 		Key:       key,
 		Language:  lang,
 		Namespace: namespace,
 		Value:     value,
+		ProjectID: projectID,
 	}, nil
+}
+
+// nullableProjectID stores a translation outside every project as SQL NULL.
+func nullableProjectID(projectID string) interface{} {
+	if projectID == "" {
+		return nil
+	}
+	return projectID
 }
 
 func transformResults(results []map[string]interface{}) (map[string]map[string]Translation, error) {

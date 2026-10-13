@@ -73,6 +73,7 @@ func (f *idpFileBasedStore) GetIdentityProviderList(ctx context.Context) ([]Basi
 				Name:         idp.Name,
 				Description:  idp.Description,
 				Type:         idp.Type,
+				ProjectID:    idp.ProjectID,
 				IDJagEnabled: idJagEnabledFromProperties(idp.Properties),
 			}
 			idpList = append(idpList, basicIDP)

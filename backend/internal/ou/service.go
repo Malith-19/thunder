@@ -14,6 +14,7 @@ import (
 	tidcommon "github.com/thunder-id/thunderid/pkg/thunderidengine/common"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine/providers"
 
+	"github.com/thunder-id/thunderid/internal/project"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/resourcedependency"
@@ -75,6 +76,9 @@ type OrganizationUnitServiceInterface interface {
 	GetOrganizationUnitHandlesByIDs(
 		ctx context.Context, ids []string,
 	) (map[string]string, *tidcommon.ServiceError)
+	// GetOrganizationUnitIDsByProject returns every organization unit in a project, at any depth. It
+	// does not check access: callers narrow the result to what the caller may see.
+	GetOrganizationUnitIDsByProject(ctx context.Context, projectID string) ([]string, *tidcommon.ServiceError)
 }
 
 // ouFlowResolver validates that a flow ID exists and matches the expected flow type, for
@@ -93,6 +97,7 @@ type ConfigurableOUService interface {
 	SetOUGroupResolver(resolver OUGroupResolver)
 	SetOURoleResolver(resolver OURoleResolver)
 	SetOUFlowResolver(resolver ouFlowResolver)
+	SetProjectResolver(resolver project.Resolver)
 	SetDependencyRegistry(r resourcedependency.Registry)
 	GetResourceDependencies(
 		ctx context.Context, resourceType, id string) ([]resourcedependency.ResourceDependency, error)
@@ -107,11 +112,18 @@ type organizationUnitService struct {
 	groupResolver      OUGroupResolver
 	roleResolver       OURoleResolver
 	flowResolver       ouFlowResolver
+	projectResolver    project.Resolver
 	dependencyRegistry resourcedependency.Registry
 }
 
 func (ous *organizationUnitService) SetOUUserResolver(resolver OUUserResolver) {
 	ous.userResolver = resolver
+}
+
+// SetProjectResolver installs what decides the project an organization unit belongs to. Without one
+// the project ID is kept as given.
+func (ous *organizationUnitService) SetProjectResolver(resolver project.Resolver) {
+	ous.projectResolver = resolver
 }
 
 // SetDependencyRegistry injects the dependency registry. Called by servicemanager after the
@@ -352,6 +364,12 @@ func (ous *organizationUnitService) CreateOrganizationUnit(
 			return errors.New("validation error")
 		}
 
+		projectID, svcErr := ous.resolveProjectID(txCtx, request.ProjectID, request.Parent)
+		if svcErr != nil {
+			capturedSvcErr = svcErr
+			return errors.New("validation error")
+		}
+
 		conflict, err := ous.ouStore.CheckOrganizationUnitNameConflict(txCtx, request.Name, request.Parent)
 		if err != nil {
 			return err
@@ -385,6 +403,7 @@ func (ous *organizationUnitService) CreateOrganizationUnit(
 			Name:                      request.Name,
 			Description:               request.Description,
 			Parent:                    request.Parent,
+			ProjectID:                 projectID,
 			ThemeID:                   request.ThemeID,
 			LayoutID:                  request.LayoutID,
 			AuthFlowID:                request.AuthFlowID,
@@ -667,6 +686,11 @@ func (ous *organizationUnitService) updateOUInternal(
 		return OrganizationUnit{}, err
 	}
 
+	projectID, svcErr := ous.resolveUpdatedProjectID(ctx, existingOU, request, logger)
+	if svcErr != nil {
+		return OrganizationUnit{}, svcErr
+	}
+
 	parentChanged := !stringPtrEqual(existingOU.Parent, request.Parent)
 
 	var nameConflict bool
@@ -702,6 +726,7 @@ func (ous *organizationUnitService) updateOUInternal(
 		Name:                      request.Name,
 		Description:               request.Description,
 		Parent:                    request.Parent,
+		ProjectID:                 projectID,
 		ThemeID:                   request.ThemeID,
 		LayoutID:                  request.LayoutID,
 		AuthFlowID:                request.AuthFlowID,
@@ -728,6 +753,61 @@ func (ous *organizationUnitService) updateOUInternal(
 		return OrganizationUnit{}, &tidcommon.InternalServerError
 	}
 	return updatedOU, nil
+}
+
+// GetOrganizationUnitIDsByProject returns every organization unit in a project, at any depth.
+func (ous *organizationUnitService) GetOrganizationUnitIDsByProject(
+	ctx context.Context, projectID string,
+) ([]string, *tidcommon.ServiceError) {
+	return newOUHierarchyEnumerator(ous.ouStore).ProjectOUIDs(ctx, projectID)
+}
+
+// resolveProjectID returns the project a new organization unit belongs to. A child belongs to its
+// parent's project; a root organization unit belongs to the requested project, or the default one.
+func (ous *organizationUnitService) resolveProjectID(
+	ctx context.Context, requested string, parent *string,
+) (string, *tidcommon.ServiceError) {
+	ownerProjectID := ""
+	if parent != nil {
+		parentOU, err := ous.ouStore.GetOrganizationUnit(ctx, *parent)
+		if err != nil {
+			if errors.Is(err, ErrOrganizationUnitNotFound) {
+				return "", &ErrorParentOrganizationUnitNotFound
+			}
+			return "", &tidcommon.InternalServerError
+		}
+		ownerProjectID = parentOU.ProjectID
+	}
+	return project.ResolveProjectID(ctx, ous.projectResolver, requested, ownerProjectID)
+}
+
+// resolveUpdatedProjectID returns the project of an updated organization unit. An organization unit
+// stays in the project it was created in: moving it would take its users, applications and roles to
+// another project. Without a project resolver the project ID is kept as given.
+func (ous *organizationUnitService) resolveUpdatedProjectID(
+	ctx context.Context, existingOU OrganizationUnit, request OrganizationUnitRequestWithID, logger *log.Logger,
+) (string, *tidcommon.ServiceError) {
+	if ous.projectResolver == nil {
+		if request.ProjectID != "" {
+			return request.ProjectID, nil
+		}
+		return existingOU.ProjectID, nil
+	}
+
+	if request.ProjectID != "" && request.ProjectID != existingOU.ProjectID {
+		return "", &ErrorProjectChangeNotAllowed
+	}
+	if request.Parent != nil {
+		parentOU, err := ous.ouStore.GetOrganizationUnit(ctx, *request.Parent)
+		if err != nil {
+			logger.Error(ctx, "Failed to get parent organization unit", log.Error(err))
+			return "", &tidcommon.InternalServerError
+		}
+		if parentOU.ProjectID != existingOU.ProjectID {
+			return "", &project.ErrorProjectMismatch
+		}
+	}
+	return existingOU.ProjectID, nil
 }
 
 // DeleteOrganizationUnit deletes an organization unit.

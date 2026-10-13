@@ -38,6 +38,7 @@ type declaredNotificationTemplate struct {
 	Description string          `yaml:"description"`
 	Content     TemplateContent `yaml:"content"`
 	Design      *TemplateDesign `yaml:"design"`
+	ProjectID   string          `yaml:"projectId,omitempty"`
 }
 
 // parseDeclaredTemplate unmarshals one declared template. The loader resolves environment references
@@ -76,6 +77,7 @@ func declaredToDAO(declared *declaredNotificationTemplate) (templateDAO, error) 
 			svcErrReason(svcErr))
 	}
 	dao.Handle = declared.Handle
+	dao.ProjectID = declared.ProjectID
 	return dao, nil
 }
 
@@ -212,7 +214,7 @@ func (e *notificationTemplateExporter) GetAllResourceIDs(ctx context.Context) ([
 	for _, channel := range sortedChannels() {
 		offset := 0
 		for {
-			list, svcErr := e.service.ListTemplates(ctx, channel, limit, offset)
+			list, svcErr := e.service.ListTemplates(ctx, channel, limit, offset, "")
 			if svcErr != nil {
 				return nil, svcErr
 			}
@@ -300,5 +302,6 @@ func templateToDeclared(channel ChannelType, t *Template) *declaredNotificationT
 		Description: t.Description,
 		Content:     t.Content,
 		Design:      t.Design,
+		ProjectID:   t.ProjectID,
 	}
 }

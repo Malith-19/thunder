@@ -60,3 +60,22 @@ func TestBuildPaginationLinks_WithExtraQuery(t *testing.T) {
 	assert.Equal(t, "/items?offset=10&limit=5&include=display", links[2].Href)
 	assert.Equal(t, "/items?offset=15&limit=5&include=display", links[3].Href)
 }
+
+func TestProjectIDQueryParam_Empty(t *testing.T) {
+	assert.Equal(t, "", ProjectIDQueryParam(""))
+}
+
+func TestProjectIDQueryParam_Value(t *testing.T) {
+	assert.Equal(t, "&projectId=ou-123", ProjectIDQueryParam("ou-123"))
+}
+
+func TestProjectIDQueryParam_EscapesValue(t *testing.T) {
+	assert.Equal(t, "&projectId=a+b%26c%3Dd%2Fe", ProjectIDQueryParam("a b&c=d/e"))
+}
+
+func TestBuildPaginationLinks_WithOUIDQuery(t *testing.T) {
+	links := BuildPaginationLinks("/items", 5, 0, 10, ProjectIDQueryParam("ou-1"))
+	require.Len(t, links, 2)
+	assert.Equal(t, "/items?offset=5&limit=5&projectId=ou-1", links[0].Href)
+	assert.Equal(t, "/items?offset=5&limit=5&projectId=ou-1", links[1].Href)
+}

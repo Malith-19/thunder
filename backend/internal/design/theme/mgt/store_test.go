@@ -132,7 +132,7 @@ func (suite *ThemeStoreTestSuite) TestGetThemeList_DBClientError() {
 func (suite *ThemeStoreTestSuite) TestCreateTheme_Success() {
 	suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 	suite.mockDBClient.On("Execute", mock.Anything, "theme-1", "classic", "Test", "Desc",
-		mock.Anything, "test-deployment").Return(int64(1), nil)
+		mock.Anything, nil, "test-deployment").Return(int64(1), nil)
 
 	err := suite.store.CreateTheme(context.Background(), "theme-1", CreateThemeRequest{
 		Handle:      "classic",

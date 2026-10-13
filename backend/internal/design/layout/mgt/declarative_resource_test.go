@@ -92,7 +92,7 @@ func (s *DeclarativeResourceTestSuite) TestLayoutExporter_GetAllResourceIDs_Succ
 			{ID: "layout-003", DisplayName: "Layout 3"},
 		},
 	}
-	mockService.EXPECT().GetLayoutList(mock.Anything, 100, 0).Return(layoutList, nil).Once()
+	mockService.EXPECT().GetLayoutList(mock.Anything, 100, 0, "").Return(layoutList, nil).Once()
 	exporter := &layoutExporter{service: mockService}
 
 	// Act
@@ -110,7 +110,7 @@ func (s *DeclarativeResourceTestSuite) TestLayoutExporter_GetAllResourceIDs_Serv
 	// Arrange
 	serviceErr := &tidcommon.ServiceError{Error: tidcommon.I18nMessage{DefaultValue: "Database error"}}
 	mockService := NewLayoutMgtServiceInterfaceMock(s.T())
-	mockService.EXPECT().GetLayoutList(mock.Anything, 100, 0).Return(&LayoutList{}, serviceErr).Once()
+	mockService.EXPECT().GetLayoutList(mock.Anything, 100, 0, "").Return(&LayoutList{}, serviceErr).Once()
 	exporter := &layoutExporter{service: mockService}
 
 	// Act
@@ -125,7 +125,7 @@ func (s *DeclarativeResourceTestSuite) TestLayoutExporter_GetAllResourceIDs_Serv
 func (s *DeclarativeResourceTestSuite) TestLayoutExporter_GetAllResourceIDs_EmptyList() {
 	// Arrange
 	mockService := NewLayoutMgtServiceInterfaceMock(s.T())
-	mockService.EXPECT().GetLayoutList(mock.Anything, 100, 0).Return(&LayoutList{Layouts: []Layout{}}, nil).Once()
+	mockService.EXPECT().GetLayoutList(mock.Anything, 100, 0, "").Return(&LayoutList{Layouts: []Layout{}}, nil).Once()
 	exporter := &layoutExporter{service: mockService}
 
 	// Act

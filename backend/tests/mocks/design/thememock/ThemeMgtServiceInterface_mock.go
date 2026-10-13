@@ -240,8 +240,8 @@ func (_c *ThemeMgtServiceInterfaceMock_GetTheme_Call) RunAndReturn(run func(ctx 
 }
 
 // GetThemeList provides a mock function for the type ThemeMgtServiceInterfaceMock
-func (_mock *ThemeMgtServiceInterfaceMock) GetThemeList(ctx context.Context, limit int, offset int) (*thememgt.ThemeList, *common.ServiceError) {
-	ret := _mock.Called(ctx, limit, offset)
+func (_mock *ThemeMgtServiceInterfaceMock) GetThemeList(ctx context.Context, limit int, offset int, projectID string) (*thememgt.ThemeList, *common.ServiceError) {
+	ret := _mock.Called(ctx, limit, offset, projectID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetThemeList")
@@ -249,18 +249,18 @@ func (_mock *ThemeMgtServiceInterfaceMock) GetThemeList(ctx context.Context, lim
 
 	var r0 *thememgt.ThemeList
 	var r1 *common.ServiceError
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int) (*thememgt.ThemeList, *common.ServiceError)); ok {
-		return returnFunc(ctx, limit, offset)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, string) (*thememgt.ThemeList, *common.ServiceError)); ok {
+		return returnFunc(ctx, limit, offset, projectID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int) *thememgt.ThemeList); ok {
-		r0 = returnFunc(ctx, limit, offset)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, string) *thememgt.ThemeList); ok {
+		r0 = returnFunc(ctx, limit, offset, projectID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*thememgt.ThemeList)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, int, int) *common.ServiceError); ok {
-		r1 = returnFunc(ctx, limit, offset)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int, int, string) *common.ServiceError); ok {
+		r1 = returnFunc(ctx, limit, offset, projectID)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*common.ServiceError)
@@ -278,11 +278,12 @@ type ThemeMgtServiceInterfaceMock_GetThemeList_Call struct {
 //   - ctx context.Context
 //   - limit int
 //   - offset int
-func (_e *ThemeMgtServiceInterfaceMock_Expecter) GetThemeList(ctx interface{}, limit interface{}, offset interface{}) *ThemeMgtServiceInterfaceMock_GetThemeList_Call {
-	return &ThemeMgtServiceInterfaceMock_GetThemeList_Call{Call: _e.mock.On("GetThemeList", ctx, limit, offset)}
+//   - projectID string
+func (_e *ThemeMgtServiceInterfaceMock_Expecter) GetThemeList(ctx interface{}, limit interface{}, offset interface{}, projectID interface{}) *ThemeMgtServiceInterfaceMock_GetThemeList_Call {
+	return &ThemeMgtServiceInterfaceMock_GetThemeList_Call{Call: _e.mock.On("GetThemeList", ctx, limit, offset, projectID)}
 }
 
-func (_c *ThemeMgtServiceInterfaceMock_GetThemeList_Call) Run(run func(ctx context.Context, limit int, offset int)) *ThemeMgtServiceInterfaceMock_GetThemeList_Call {
+func (_c *ThemeMgtServiceInterfaceMock_GetThemeList_Call) Run(run func(ctx context.Context, limit int, offset int, projectID string)) *ThemeMgtServiceInterfaceMock_GetThemeList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -296,10 +297,15 @@ func (_c *ThemeMgtServiceInterfaceMock_GetThemeList_Call) Run(run func(ctx conte
 		if args[2] != nil {
 			arg2 = args[2].(int)
 		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -310,7 +316,7 @@ func (_c *ThemeMgtServiceInterfaceMock_GetThemeList_Call) Return(themeList *them
 	return _c
 }
 
-func (_c *ThemeMgtServiceInterfaceMock_GetThemeList_Call) RunAndReturn(run func(ctx context.Context, limit int, offset int) (*thememgt.ThemeList, *common.ServiceError)) *ThemeMgtServiceInterfaceMock_GetThemeList_Call {
+func (_c *ThemeMgtServiceInterfaceMock_GetThemeList_Call) RunAndReturn(run func(ctx context.Context, limit int, offset int, projectID string) (*thememgt.ThemeList, *common.ServiceError)) *ThemeMgtServiceInterfaceMock_GetThemeList_Call {
 	_c.Call.Return(run)
 	return _c
 }

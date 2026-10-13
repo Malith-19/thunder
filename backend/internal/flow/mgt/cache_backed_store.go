@@ -43,9 +43,9 @@ func newCacheBackedFlowStore(
 
 // ListFlows retrieves a paginated list of flow definitions.
 // Note: List operations are not cached as they can vary by parameters and change frequently.
-func (s *cacheBackedFlowStore) ListFlows(ctx context.Context, limit, offset int, flowType string) (
+func (s *cacheBackedFlowStore) ListFlows(ctx context.Context, limit, offset int, flowType, projectID string) (
 	[]BasicFlowDefinition, int, error) {
-	return s.store.ListFlows(ctx, limit, offset, flowType)
+	return s.store.ListFlows(ctx, limit, offset, flowType, projectID)
 }
 
 // ListActiveFlowsWithNodes retrieves active flows with their nodes. Like ListFlows, this scan is not

@@ -163,7 +163,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	var exporters []declarativeresource.ResourceExporter
 
 	// Initialize i18n service for internationalization support.
-	i18nService, i18nExporter, err := i18nmgt.Initialize(mux, config.GetServerRuntime().Config.Translation)
+	i18nService, i18nExporter, err := i18nmgt.Initialize(mux, config.GetServerRuntime().Config.Translation, nil)
 	fatalOnError(ctx, logger, err, "Failed to initialize i18n service")
 	// Add to exporters list (must be done after initializing list)
 	exporters = append(exporters, i18nExporter)
@@ -219,7 +219,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	fatalOnError(ctx, logger, err, "Failed to initialize GroupService")
 	exporters = append(exporters, groupExporter)
 
-	authZENPDPService, err := authzenpdp.Initialize(runtime.Config.AuthZENPDP, entityTypeService)
+	authZENPDPService, err := authzenpdp.Initialize(runtime.Config.AuthZENPDP, entityTypeService, nil)
 	fatalOnError(ctx, logger, err, "Failed to initialize AuthZENPDPService")
 
 	resourceService, resourceExporter, err := resource.Initialize(mux, ouService, authZENPDPService)
@@ -259,14 +259,16 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	authZService := authz.Initialize(
 		roleService, resourceService, entityService, authZENPDPService)
 
-	idpService, err := idp.Initialize(cacheManager, entityTypeService, roleService, groupService, resourceService)
+	idpService, err := idp.Initialize(cacheManager, entityTypeService, roleService, groupService, resourceService,
+		// The data plane has no projects: a resource keeps the project ID it arrives with as a label.
+		nil)
 	fatalOnError(ctx, logger, err, "Failed to initialize IDPService")
 
-	notifSenderMgtSvc, notifOTPService, notifSenderSvc, err := notification.Initialize(jwtService)
+	notifSenderMgtSvc, notifOTPService, notifSenderSvc, err := notification.Initialize(jwtService, nil)
 	fatalOnError(ctx, logger, err, "Failed to initialize NotificationService")
 
 	notifTemplateSvc, notifTemplateRenderer, notifTemplateExporter, err :=
-		notificationtemplate.Initialize(mux, cacheManager, i18nService)
+		notificationtemplate.Initialize(mux, cacheManager, i18nService, nil)
 	fatalOnError(ctx, logger, err, "Failed to initialize NotificationTemplateService")
 	exporters = append(exporters, notifTemplateExporter)
 
@@ -422,7 +424,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 
 	flowMgtService, flowMgtExporter, err := flowmgt.Initialize(
 		mux, mcpServer, cacheManager, flowFactory, execRegistry, interceptorRegistry, graphBuilder,
-		serverConfigService, ouService, flowConfigHandler)
+		serverConfigService, ouService, flowConfigHandler, nil)
 	fatalOnError(ctx, logger, err, "Failed to initialize FlowMgtService")
 
 	// Two-phase initialization: inject the flow resolver into the OU service.
@@ -433,11 +435,11 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	fatalOnError(ctx, logger, err, "Failed to initialize CertificateService")
 
 	// Initialize theme and layout services
-	themeMgtService, themeExporter, err := thememgt.Initialize(mux, mcpServer)
+	themeMgtService, themeExporter, err := thememgt.Initialize(mux, mcpServer, nil)
 	fatalOnError(ctx, logger, err, "Failed to initialize ThemeMgtService")
 	exporters = append(exporters, themeExporter)
 
-	layoutMgtService, layoutExporter, err := layoutmgt.Initialize(mux)
+	layoutMgtService, layoutExporter, err := layoutmgt.Initialize(mux, nil)
 	fatalOnError(ctx, logger, err, "Failed to initialize LayoutMgtService")
 	exporters = append(exporters, layoutExporter)
 

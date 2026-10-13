@@ -29,6 +29,10 @@ export interface BasicFlowDefinition {
    */
   activeVersion: number;
   /**
+   * Project the flow belongs to
+   */
+  projectId?: string;
+  /**
    * Timestamp when the flow was initially created
    */
   createdAt: string;
@@ -275,6 +279,10 @@ export interface CreateFlowRequest {
    */
   flowType: FlowType;
   /**
+   * Project the flow belongs to. One created without a project goes to the default project.
+   */
+  projectId?: string;
+  /**
    * List of nodes that define the flow graph
    */
   nodes: FlowNode[];
@@ -296,6 +304,10 @@ export interface UpdateFlowRequest {
    * Type of flow
    */
   flowType: FlowType;
+  /**
+   * Project the flow belongs to. An update without a project keeps the current one.
+   */
+  projectId?: string;
   /**
    * List of nodes that define the flow graph
    */
@@ -322,6 +334,10 @@ export interface FlowDefinitionResponse {
    * Type of flow
    */
   flowType: FlowType;
+  /**
+   * Project the flow belongs to
+   */
+  projectId?: string;
   /**
    * The version number that is currently active
    */

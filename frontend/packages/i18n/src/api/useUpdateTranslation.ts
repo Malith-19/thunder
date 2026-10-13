@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {useMutation, useQueryClient, type UseMutationResult} from '@tanstack/react-query';
-import {useConfig} from '@thunderid/contexts';
+import {useConfig, useProject} from '@thunderid/contexts';
 import {useThunderID} from '@thunderid/react';
 import I18nQueryKeys from '../constants/i18n-query-keys';
 import type {UpdateTranslationVariables} from '../models/requests';
@@ -20,7 +20,8 @@ export interface UseUpdateTranslationOptions {
 }
 
 /**
- * Custom hook to create or update a single translation.
+ * Custom hook to create or update a single translation. A new translation is created in the selected
+ * project, when the server has projects.
  *
  * @param options - Options for the mutation
  * @returns TanStack Query mutation object for updating translations
@@ -56,6 +57,8 @@ export default function useUpdateTranslation(
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
   const queryClient: ReturnType<typeof useQueryClient> = useQueryClient();
+  const {selectedProject} = useProject();
+  const projectId = selectedProject?.id;
   const {onMutationSuccess} = options ?? {};
 
   return useMutation<TranslationResponse, Error, UpdateTranslationVariables>({
@@ -69,7 +72,7 @@ export default function useUpdateTranslation(
         headers: {
           'Content-Type': 'application/json',
         },
-        data: {value},
+        data: projectId ? {value, projectId} : {value},
       } as unknown as Parameters<typeof http.request>[0]);
 
       return response.data;

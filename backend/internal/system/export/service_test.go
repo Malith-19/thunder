@@ -480,7 +480,7 @@ func (suite *ExportServiceTestSuite) TestExportResources_WildcardApplications() 
 		Description: "Third App",
 	}
 
-	suite.appServiceMock.EXPECT().GetApplicationList(mock.Anything).Return(mockAppList, nil)
+	suite.appServiceMock.EXPECT().GetApplicationList(mock.Anything, mock.Anything).Return(mockAppList, nil)
 	suite.appServiceMock.EXPECT().GetApplication(mock.Anything, testApp1ID).Return(mockApp1, nil)
 	suite.appServiceMock.EXPECT().GetApplication(mock.Anything, testApp2ID).Return(mockApp2, nil)
 	suite.appServiceMock.EXPECT().GetApplication(mock.Anything, testApp3ID).Return(mockApp3, nil)
@@ -509,7 +509,7 @@ func (suite *ExportServiceTestSuite) TestExportResources_WildcardApplications_Li
 		Error: tidcommon.I18nMessage{DefaultValue: "Failed to list applications"},
 	}
 
-	suite.appServiceMock.EXPECT().GetApplicationList(mock.Anything).Return(nil, listError)
+	suite.appServiceMock.EXPECT().GetApplicationList(mock.Anything, mock.Anything).Return(nil, listError)
 
 	result, err := suite.exportService.ExportResources(context.Background(), request)
 
@@ -534,7 +534,7 @@ func (suite *ExportServiceTestSuite) TestExportResources_WildcardApplications_Em
 		Applications: []appmodel.BasicApplicationResponse{},
 	}
 
-	suite.appServiceMock.EXPECT().GetApplicationList(mock.Anything).Return(mockAppList, nil)
+	suite.appServiceMock.EXPECT().GetApplicationList(mock.Anything, mock.Anything).Return(mockAppList, nil)
 
 	result, err := suite.exportService.ExportResources(context.Background(), request)
 
@@ -580,7 +580,7 @@ func (suite *ExportServiceTestSuite) TestExportResources_WildcardApplications_Pa
 		Error: tidcommon.I18nMessage{DefaultValue: "Application not found"},
 	}
 
-	suite.appServiceMock.EXPECT().GetApplicationList(mock.Anything).Return(mockAppList, nil)
+	suite.appServiceMock.EXPECT().GetApplicationList(mock.Anything, mock.Anything).Return(mockAppList, nil)
 	suite.appServiceMock.EXPECT().GetApplication(mock.Anything, testApp1ID).Return(mockApp1, nil)
 	suite.appServiceMock.EXPECT().GetApplication(mock.Anything, testApp2ID).Return(nil, appError)
 	suite.appServiceMock.EXPECT().GetApplication(mock.Anything, testApp3ID).Return(mockApp3, nil)
@@ -1757,9 +1757,10 @@ func (suite *ExportServiceTestSuite) TestExportEntityTypes_Wildcard() {
 	}
 
 	suite.mockEntityTypeService.EXPECT().
-		GetEntityTypeList(mock.Anything, mock.Anything, 100, 0, mock.Anything).Return(mockSchemaList, nil).Once()
+		GetEntityTypeList(mock.Anything, mock.Anything, 100, 0, mock.Anything,
+			mock.Anything).Return(mockSchemaList, nil).Once()
 	suite.mockEntityTypeService.EXPECT().
-		GetEntityTypeList(mock.Anything, mock.Anything, 100, 2, mock.Anything).
+		GetEntityTypeList(mock.Anything, mock.Anything, 100, 2, mock.Anything, mock.Anything).
 		Return(&entitytype.EntityTypeListResponse{Types: []entitytype.EntityTypeListItem{}}, nil).Once()
 	suite.mockEntityTypeService.EXPECT().
 		GetEntityType(mock.Anything, mock.Anything, "schema1", mock.Anything).
@@ -1908,9 +1909,10 @@ func (suite *ExportServiceTestSuite) TestExportEntityTypes_WildcardPartialFailur
 	}
 
 	suite.mockEntityTypeService.EXPECT().
-		GetEntityTypeList(mock.Anything, mock.Anything, 100, 0, mock.Anything).Return(mockSchemaList, nil).Once()
+		GetEntityTypeList(mock.Anything, mock.Anything, 100, 0, mock.Anything,
+			mock.Anything).Return(mockSchemaList, nil).Once()
 	suite.mockEntityTypeService.EXPECT().
-		GetEntityTypeList(mock.Anything, mock.Anything, 100, 3, mock.Anything).
+		GetEntityTypeList(mock.Anything, mock.Anything, 100, 3, mock.Anything, mock.Anything).
 		Return(&entitytype.EntityTypeListResponse{Types: []entitytype.EntityTypeListItem{}}, nil).Once()
 	suite.mockEntityTypeService.EXPECT().
 		GetEntityType(mock.Anything, mock.Anything, "schema1", mock.Anything).
@@ -2110,7 +2112,7 @@ func (suite *ExportServiceTestSuite) TestExportResourcesWithExporter_WildcardSuc
 		Description: "Second App",
 	}
 
-	suite.appServiceMock.EXPECT().GetApplicationList(mock.Anything).Return(mockAppList, nil)
+	suite.appServiceMock.EXPECT().GetApplicationList(mock.Anything, mock.Anything).Return(mockAppList, nil)
 	suite.appServiceMock.EXPECT().GetApplication(mock.Anything, testApp1ID).Return(mockApp1, nil)
 	suite.appServiceMock.EXPECT().GetApplication(mock.Anything, testApp2ID).Return(mockApp2, nil)
 
@@ -2135,7 +2137,7 @@ func (suite *ExportServiceTestSuite) TestExportResourcesWithExporter_WildcardFai
 		Error: tidcommon.I18nMessage{DefaultValue: "Failed to list applications"},
 	}
 
-	suite.appServiceMock.EXPECT().GetApplicationList(mock.Anything).Return(nil, listError)
+	suite.appServiceMock.EXPECT().GetApplicationList(mock.Anything, mock.Anything).Return(nil, listError)
 
 	exporter, _ := suite.exportService.(*exportService).registry.Get(resourceTypeApplication)
 	options := &ExportOptions{Format: formatYAML}
@@ -2157,7 +2159,7 @@ func (suite *ExportServiceTestSuite) TestExportResourcesWithExporter_WildcardEmp
 		Applications: []appmodel.BasicApplicationResponse{},
 	}
 
-	suite.appServiceMock.EXPECT().GetApplicationList(mock.Anything).Return(mockAppList, nil)
+	suite.appServiceMock.EXPECT().GetApplicationList(mock.Anything, mock.Anything).Return(mockAppList, nil)
 
 	exporter, _ := suite.exportService.(*exportService).registry.Get(resourceTypeApplication)
 	options := &ExportOptions{Format: formatYAML}
@@ -2626,7 +2628,7 @@ func (suite *ExportServiceTestSuite) TestExportResourcesWithExporter_WildcardFlo
 		},
 	}
 
-	suite.mockFlowService.EXPECT().ListFlows(mock.Anything, 10000, 0, providers.FlowType("")).Return(flowList, nil)
+	suite.mockFlowService.EXPECT().ListFlows(mock.Anything, 10000, 0, providers.FlowType(""), "").Return(flowList, nil)
 	suite.mockFlowService.EXPECT().GetFlow(mock.Anything, testFlow1ID).Return(flow1Complete, nil)
 	suite.mockFlowService.EXPECT().GetFlow(mock.Anything, testFlow2ID).Return(flow2Complete, nil)
 
@@ -2648,7 +2650,7 @@ func (suite *ExportServiceTestSuite) TestExportResourcesWithExporter_WildcardFlo
 		Code:  "DB_ERROR",
 		Error: tidcommon.I18nMessage{DefaultValue: "Database error"},
 	}
-	suite.mockFlowService.EXPECT().ListFlows(mock.Anything, 10000, 0, providers.FlowType("")).Return(nil, dbError)
+	suite.mockFlowService.EXPECT().ListFlows(mock.Anything, 10000, 0, providers.FlowType(""), "").Return(nil, dbError)
 
 	exporter, _ := suite.exportService.(*exportService).registry.Get("flow")
 	options := &ExportOptions{Format: formatYAML}

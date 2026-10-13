@@ -5,10 +5,12 @@
 package idp
 
 import (
+	"context"
 	"strings"
 
 	"github.com/thunder-id/thunderid/internal/entitytype"
 	"github.com/thunder-id/thunderid/internal/group"
+	"github.com/thunder-id/thunderid/internal/project"
 	"github.com/thunder-id/thunderid/internal/role"
 	"github.com/thunder-id/thunderid/internal/system/cache"
 	"github.com/thunder-id/thunderid/internal/system/config"
@@ -26,6 +28,7 @@ func Initialize(
 	roleService role.RoleServiceInterface,
 	groupService group.GroupServiceInterface,
 	resourceService providers.ResourceServerProvider,
+	projects project.Registry,
 ) (IDPServiceInterface, error) {
 	// Create store and transactioner based on store mode
 	idpStore, transactioner, err := initializeStore(cacheManager)
@@ -33,8 +36,31 @@ func Initialize(
 		return nil, err
 	}
 
-	idpService := newIDPService(idpStore, entityTypeService, roleService, groupService, resourceService, transactioner)
-	return idpService, nil
+	idpSvc := newIDPService(idpStore, entityTypeService, roleService, groupService, resourceService, transactioner)
+	if projects != nil {
+		idpSvc.(*idpService).projects = projects
+		projects.AddUsageChecker(&projectUsageChecker{store: idpStore})
+	}
+	return idpSvc, nil
+}
+
+// projectUsageChecker keeps a project from being deleted while identity providers still belong to it.
+type projectUsageChecker struct {
+	store idpStoreInterface
+}
+
+// HasResourcesInProject reports whether any identity provider belongs to the project.
+func (c *projectUsageChecker) HasResourcesInProject(ctx context.Context, projectID string) (bool, error) {
+	idps, err := c.store.GetIdentityProviderList(ctx)
+	if err != nil {
+		return false, err
+	}
+	for _, idp := range idps {
+		if idp.ProjectID == projectID {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // Store Selection (based on identity_provider.store configuration):

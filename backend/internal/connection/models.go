@@ -108,6 +108,7 @@ type connectionInstance struct {
 	Name         string               `json:"name"`
 	Description  string               `json:"description,omitempty"`
 	Type         string               `json:"type"`
+	ProjectID    string               `json:"projectId,omitempty"`
 	Categories   []connectionCategory `json:"categories"`
 	IDJagEnabled *bool                `json:"idJagEnabled,omitempty"`
 }

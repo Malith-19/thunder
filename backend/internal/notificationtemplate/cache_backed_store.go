@@ -64,14 +64,14 @@ func (s *cacheBackedStore) GetTemplateByHandle(ctx context.Context, channel Chan
 }
 
 // ListTemplates always delegates; the list is not cached.
-func (s *cacheBackedStore) ListTemplates(ctx context.Context, channel ChannelType, limit, offset int) (
-	[]templateDAO, error) {
-	return s.inner.ListTemplates(ctx, channel, limit, offset)
+func (s *cacheBackedStore) ListTemplates(ctx context.Context, channel ChannelType, limit, offset int,
+	projectID string) ([]templateDAO, error) {
+	return s.inner.ListTemplates(ctx, channel, limit, offset, projectID)
 }
 
 // CountTemplates always delegates; the count is not cached.
-func (s *cacheBackedStore) CountTemplates(ctx context.Context, channel ChannelType) (int, error) {
-	return s.inner.CountTemplates(ctx, channel)
+func (s *cacheBackedStore) CountTemplates(ctx context.Context, channel ChannelType, projectID string) (int, error) {
+	return s.inner.CountTemplates(ctx, channel, projectID)
 }
 
 // UpdateTemplate delegates then re-caches the new row. The only cache key, (channel, handle), is

@@ -33,7 +33,9 @@ func (h *i18nHandler) HandleListLanguages(w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, handlerLoggerComponentName))
 
-	localeCodes, svcErr := h.i18nService.ListLanguages(ctx)
+	projectID := sysutils.SanitizeString(r.URL.Query().Get(sysutils.QueryParamProjectID))
+
+	localeCodes, svcErr := h.i18nService.ListLanguagesByProject(ctx, projectID)
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
 		return
@@ -85,7 +87,8 @@ func (h *i18nHandler) HandleSetOverrideTranslationsByLanguage(w http.ResponseWri
 		return
 	}
 
-	resp, svcErr := h.i18nService.SetTranslationOverrides(ctx, sanitizedLanguage, req.Translations)
+	resp, svcErr := h.i18nService.SetTranslationOverrides(ctx, sanitizedLanguage,
+		sysutils.SanitizeString(req.ProjectID), req.Translations)
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
 		return
@@ -104,8 +107,9 @@ func (h *i18nHandler) HandleClearOverrideTranslationsByLanguage(w http.ResponseW
 
 	language := r.PathValue("language")
 	sanitizedLanguage := sysutils.SanitizeString(language)
+	projectID := sysutils.SanitizeString(r.URL.Query().Get(sysutils.QueryParamProjectID))
 
-	svcErr := h.i18nService.ClearTranslationOverrides(ctx, sanitizedLanguage)
+	svcErr := h.i18nService.ClearTranslationOverrides(ctx, sanitizedLanguage, projectID)
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
 		return
@@ -164,7 +168,7 @@ func (h *i18nHandler) HandleSetOverrideTranslation(w http.ResponseWriter, r *htt
 	sanitizedValue := sysutils.SanitizeString(req.Value)
 
 	resp, svcErr := h.i18nService.SetTranslationOverrideForKey(ctx,
-		sanitizedLanguage, sanitizedNamespace, sanitizedKey, sanitizedValue)
+		sanitizedLanguage, sanitizedNamespace, sanitizedKey, sanitizedValue, sysutils.SanitizeString(req.ProjectID))
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
 		return

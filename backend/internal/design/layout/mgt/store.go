@@ -20,6 +20,8 @@ var errLayoutNotFound = errors.New("layout not found")
 type layoutMgtStoreInterface interface {
 	GetLayoutListCount(ctx context.Context) (int, error)
 	GetLayoutList(ctx context.Context, limit, offset int) ([]Layout, error)
+	GetLayoutListCountByProject(ctx context.Context, projectID string) (int, error)
+	GetLayoutListByProject(ctx context.Context, projectID string, limit, offset int) ([]Layout, error)
 	CreateLayout(ctx context.Context, id string, layout CreateLayoutRequest) error
 	GetLayout(ctx context.Context, id string) (Layout, error)
 	IsLayoutExist(ctx context.Context, id string) (bool, error)
@@ -75,6 +77,43 @@ func (s *layoutMgtStore) GetLayoutList(ctx context.Context, limit, offset int) (
 		return nil, fmt.Errorf("failed to execute layout list query: %w", err)
 	}
 
+	return s.buildLayoutListFromResultRows(results)
+}
+
+// GetLayoutListCountByProject retrieves the number of layout configurations of a project.
+func (s *layoutMgtStore) GetLayoutListCountByProject(ctx context.Context, projectID string) (int, error) {
+	dbClient, err := s.getConfigDBClient()
+	if err != nil {
+		return 0, err
+	}
+
+	countResults, err := dbClient.Query(queryGetLayoutListCountByProject, projectID, s.scope(ctx))
+	if err != nil {
+		return 0, fmt.Errorf("failed to execute count query: %w", err)
+	}
+
+	return parseCountResult(countResults)
+}
+
+// GetLayoutListByProject retrieves the layout configurations of a project with pagination.
+func (s *layoutMgtStore) GetLayoutListByProject(
+	ctx context.Context, projectID string, limit, offset int,
+) ([]Layout, error) {
+	dbClient, err := s.getConfigDBClient()
+	if err != nil {
+		return nil, err
+	}
+
+	results, err := dbClient.Query(queryGetLayoutListByProject, projectID, limit, offset, s.scope(ctx))
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute layout list query: %w", err)
+	}
+
+	return s.buildLayoutListFromResultRows(results)
+}
+
+// buildLayoutListFromResultRows builds the layouts of a list query from its result rows.
+func (s *layoutMgtStore) buildLayoutListFromResultRows(results []map[string]interface{}) ([]Layout, error) {
 	layouts := make([]Layout, 0)
 	for _, row := range results {
 		layout, err := s.buildLayoutListItemFromResultRow(row)
@@ -100,7 +139,7 @@ func (s *layoutMgtStore) CreateLayout(ctx context.Context, id string, layout Cre
 	}
 
 	_, err = dbClient.Execute(queryCreateLayout, id, layout.Handle, layout.DisplayName, layout.Description,
-		layoutJSON, s.scope(ctx))
+		layoutJSON, nullableProjectID(layout.ProjectID), s.scope(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -167,7 +206,8 @@ func (s *layoutMgtStore) UpdateLayout(ctx context.Context, id string, layout Upd
 		return fmt.Errorf("failed to marshal layout: %w", err)
 	}
 
-	_, err = dbClient.Execute(queryUpdateLayout, layout.DisplayName, layout.Description, layoutJSON, id, s.scope(ctx))
+	_, err = dbClient.Execute(queryUpdateLayout, layout.DisplayName, layout.Description, layoutJSON,
+		nullableProjectID(layout.ProjectID), id, s.scope(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -228,6 +268,21 @@ func parseCountResult(results []map[string]interface{}) (int, error) {
 	return total, nil
 }
 
+// projectIDFromRow reads the project of a layout from a database result row; a layout outside every
+// project has none.
+func projectIDFromRow(row map[string]interface{}) string {
+	projectID, _ := row["project_id"].(string)
+	return projectID
+}
+
+// nullableProjectID stores a layout outside every project as SQL NULL.
+func nullableProjectID(projectID string) interface{} {
+	if projectID == "" {
+		return nil
+	}
+	return projectID
+}
+
 // getTimestamp safely extracts a timestamp value from a database row and formats it as ISO 8601.
 func (s *layoutMgtStore) getTimestamp(row map[string]interface{}, key string) (string, error) {
 	val := row[key]
@@ -281,6 +336,7 @@ func (s *layoutMgtStore) buildLayoutListItemFromResultRow(row map[string]interfa
 		Description: description,
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
+		ProjectID:   projectIDFromRow(row),
 	}, nil
 }
 
@@ -339,6 +395,7 @@ func (s *layoutMgtStore) buildLayoutFromResultRow(row map[string]interface{}) (L
 		Layout:      layout,
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
+		ProjectID:   projectIDFromRow(row),
 	}, nil
 }
 

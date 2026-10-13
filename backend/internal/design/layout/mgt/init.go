@@ -4,15 +4,20 @@
 package layoutmgt
 
 import (
+	"context"
 	"net/http"
 
+	"github.com/thunder-id/thunderid/internal/project"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	declarativeresource "github.com/thunder-id/thunderid/internal/system/declarative_resource"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
 )
 
 // Initialize initializes the layout management service and registers its routes.
-func Initialize(mux *http.ServeMux) (LayoutMgtServiceInterface, declarativeresource.ResourceExporter, error) {
+func Initialize(
+	mux *http.ServeMux,
+	projects project.Registry,
+) (LayoutMgtServiceInterface, declarativeresource.ResourceExporter, error) {
 	// Step 1: Initialize store based on configuration
 	layoutMgtStore, err := initializeStore()
 	if err != nil {
@@ -20,12 +25,30 @@ func Initialize(mux *http.ServeMux) (LayoutMgtServiceInterface, declarativeresou
 	}
 
 	// Step 2: Create service with store
-	layoutMgtService := newLayoutMgtService(layoutMgtStore)
-	layoutMgtHandler := newLayoutMgtHandler(layoutMgtService)
+	layoutService := newLayoutMgtService(layoutMgtStore)
+	if projects != nil {
+		layoutService.(*layoutMgtService).projects = projects
+		projects.AddUsageChecker(&projectUsageChecker{store: layoutMgtStore})
+	}
+	layoutMgtHandler := newLayoutMgtHandler(layoutService)
 	registerRoutes(mux, layoutMgtHandler)
 
-	exporter := newLayoutExporter(layoutMgtService)
-	return layoutMgtService, exporter, nil
+	exporter := newLayoutExporter(layoutService)
+	return layoutService, exporter, nil
+}
+
+// projectUsageChecker keeps a project from being deleted while layouts still belong to it.
+type projectUsageChecker struct {
+	store layoutMgtStoreInterface
+}
+
+// HasResourcesInProject reports whether any layout belongs to the project.
+func (c *projectUsageChecker) HasResourcesInProject(ctx context.Context, projectID string) (bool, error) {
+	count, err := c.store.GetLayoutListCountByProject(ctx, projectID)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 // Store Selection (based on layout.store configuration):

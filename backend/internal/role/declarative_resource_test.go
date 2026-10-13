@@ -65,10 +65,10 @@ func (suite *RoleExporterTestSuite) TestGetAllResourceIDs_SinglePage() {
 		TotalResults: 2,
 	}
 
-	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 0).Return(
+	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 0, "").Return(
 		roleList, nil,
 	)
-	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 2).Return(
+	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 2, "").Return(
 		&RoleList{Roles: []Role{}, TotalResults: 2}, nil,
 	)
 	suite.mockService.On("IsRoleDeclarative", suite.ctx, "role1").Return(false, nil)
@@ -102,9 +102,9 @@ func (suite *RoleExporterTestSuite) TestGetAllResourceIDs_MultiplePages() {
 		TotalResults: 2,
 	}
 
-	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 0).Return(page1, nil)
-	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 1).Return(page2, nil)
-	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 2).Return(emptyPage, nil)
+	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 0, "").Return(page1, nil)
+	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 1, "").Return(page2, nil)
+	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 2, "").Return(emptyPage, nil)
 	suite.mockService.On("IsRoleDeclarative", suite.ctx, "role1").Return(false, nil)
 	suite.mockService.On("IsRoleDeclarative", suite.ctx, "role2").Return(false, nil)
 
@@ -125,10 +125,10 @@ func (suite *RoleExporterTestSuite) TestGetAllResourceIDs_ExcludesDeclarativeRol
 		TotalResults: 2,
 	}
 
-	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 0).Return(
+	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 0, "").Return(
 		roleList, nil,
 	)
-	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 2).Return(
+	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 2, "").Return(
 		&RoleList{Roles: []Role{}, TotalResults: 2}, nil,
 	)
 	suite.mockService.On("IsRoleDeclarative", suite.ctx, "role1").Return(false, nil)
@@ -147,7 +147,7 @@ func (suite *RoleExporterTestSuite) TestGetAllResourceIDs_ExcludesDeclarativeRol
 // Test GetAllResourceIDs - error on GetRoleList
 func (suite *RoleExporterTestSuite) TestGetAllResourceIDs_ErrorOnGetRoleList() {
 	serviceErr := &tidcommon.ServiceError{Code: "500"}
-	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 0).Return(nil, serviceErr)
+	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 0, "").Return(nil, serviceErr)
 
 	ids, err := suite.exporter.GetAllResourceIDs(suite.ctx)
 
@@ -166,7 +166,7 @@ func (suite *RoleExporterTestSuite) TestGetAllResourceIDs_ErrorOnIsRoleDeclarati
 	}
 	serviceErr := &tidcommon.ServiceError{Code: "500"}
 
-	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 0).Return(roleList, nil)
+	suite.mockService.On("GetRoleList", suite.ctx, serverconst.MaxPageSize, 0, "").Return(roleList, nil)
 	suite.mockService.On("IsRoleDeclarative", suite.ctx, "role1").Return(false, serviceErr)
 
 	ids, err := suite.exporter.GetAllResourceIDs(suite.ctx)

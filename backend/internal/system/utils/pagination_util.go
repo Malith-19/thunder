@@ -3,7 +3,10 @@
 
 package utils
 
-import "fmt"
+import (
+	"fmt"
+	"net/url"
+)
 
 // QueryParamInclude is the query parameter name for the include parameter.
 const QueryParamInclude = "include"
@@ -14,6 +17,18 @@ const IncludeValueDisplay = "display"
 // IncludeDisplayQuery is the query string fragment appended to pagination links
 // when the include=display parameter is active.
 const IncludeDisplayQuery = "&" + QueryParamInclude + "=" + IncludeValueDisplay
+
+// QueryParamProjectID is the query parameter name that scopes a resource listing to a project.
+const QueryParamProjectID = "projectId"
+
+// ProjectIDQueryParam returns the query string fragment that keeps a listing scoped to projectID in
+// its pagination links, or an empty string when the listing is not scoped.
+func ProjectIDQueryParam(projectID string) string {
+	if projectID == "" {
+		return ""
+	}
+	return "&" + QueryParamProjectID + "=" + url.QueryEscape(projectID)
+}
 
 // DisplayQueryParam returns IncludeDisplayQuery if includeDisplay is true, empty string otherwise.
 func DisplayQueryParam(includeDisplay bool) string {

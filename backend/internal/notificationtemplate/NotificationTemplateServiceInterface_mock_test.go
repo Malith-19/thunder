@@ -333,8 +333,8 @@ func (_c *NotificationTemplateServiceInterfaceMock_GetTemplateByHandle_Call) Run
 }
 
 // ListTemplates provides a mock function for the type NotificationTemplateServiceInterfaceMock
-func (_mock *NotificationTemplateServiceInterfaceMock) ListTemplates(ctx context.Context, channel ChannelType, limit int, offset int) (*TemplateListResponse, *common.ServiceError) {
-	ret := _mock.Called(ctx, channel, limit, offset)
+func (_mock *NotificationTemplateServiceInterfaceMock) ListTemplates(ctx context.Context, channel ChannelType, limit int, offset int, projectID string) (*TemplateListResponse, *common.ServiceError) {
+	ret := _mock.Called(ctx, channel, limit, offset, projectID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListTemplates")
@@ -342,18 +342,18 @@ func (_mock *NotificationTemplateServiceInterfaceMock) ListTemplates(ctx context
 
 	var r0 *TemplateListResponse
 	var r1 *common.ServiceError
-	if returnFunc, ok := ret.Get(0).(func(context.Context, ChannelType, int, int) (*TemplateListResponse, *common.ServiceError)); ok {
-		return returnFunc(ctx, channel, limit, offset)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, ChannelType, int, int, string) (*TemplateListResponse, *common.ServiceError)); ok {
+		return returnFunc(ctx, channel, limit, offset, projectID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, ChannelType, int, int) *TemplateListResponse); ok {
-		r0 = returnFunc(ctx, channel, limit, offset)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, ChannelType, int, int, string) *TemplateListResponse); ok {
+		r0 = returnFunc(ctx, channel, limit, offset, projectID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*TemplateListResponse)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, ChannelType, int, int) *common.ServiceError); ok {
-		r1 = returnFunc(ctx, channel, limit, offset)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, ChannelType, int, int, string) *common.ServiceError); ok {
+		r1 = returnFunc(ctx, channel, limit, offset, projectID)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*common.ServiceError)
@@ -372,11 +372,12 @@ type NotificationTemplateServiceInterfaceMock_ListTemplates_Call struct {
 //   - channel ChannelType
 //   - limit int
 //   - offset int
-func (_e *NotificationTemplateServiceInterfaceMock_Expecter) ListTemplates(ctx interface{}, channel interface{}, limit interface{}, offset interface{}) *NotificationTemplateServiceInterfaceMock_ListTemplates_Call {
-	return &NotificationTemplateServiceInterfaceMock_ListTemplates_Call{Call: _e.mock.On("ListTemplates", ctx, channel, limit, offset)}
+//   - projectID string
+func (_e *NotificationTemplateServiceInterfaceMock_Expecter) ListTemplates(ctx interface{}, channel interface{}, limit interface{}, offset interface{}, projectID interface{}) *NotificationTemplateServiceInterfaceMock_ListTemplates_Call {
+	return &NotificationTemplateServiceInterfaceMock_ListTemplates_Call{Call: _e.mock.On("ListTemplates", ctx, channel, limit, offset, projectID)}
 }
 
-func (_c *NotificationTemplateServiceInterfaceMock_ListTemplates_Call) Run(run func(ctx context.Context, channel ChannelType, limit int, offset int)) *NotificationTemplateServiceInterfaceMock_ListTemplates_Call {
+func (_c *NotificationTemplateServiceInterfaceMock_ListTemplates_Call) Run(run func(ctx context.Context, channel ChannelType, limit int, offset int, projectID string)) *NotificationTemplateServiceInterfaceMock_ListTemplates_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -394,11 +395,16 @@ func (_c *NotificationTemplateServiceInterfaceMock_ListTemplates_Call) Run(run f
 		if args[3] != nil {
 			arg3 = args[3].(int)
 		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
+			arg4,
 		)
 	})
 	return _c
@@ -409,7 +415,7 @@ func (_c *NotificationTemplateServiceInterfaceMock_ListTemplates_Call) Return(te
 	return _c
 }
 
-func (_c *NotificationTemplateServiceInterfaceMock_ListTemplates_Call) RunAndReturn(run func(ctx context.Context, channel ChannelType, limit int, offset int) (*TemplateListResponse, *common.ServiceError)) *NotificationTemplateServiceInterfaceMock_ListTemplates_Call {
+func (_c *NotificationTemplateServiceInterfaceMock_ListTemplates_Call) RunAndReturn(run func(ctx context.Context, channel ChannelType, limit int, offset int, projectID string) (*TemplateListResponse, *common.ServiceError)) *NotificationTemplateServiceInterfaceMock_ListTemplates_Call {
 	_c.Call.Return(run)
 	return _c
 }

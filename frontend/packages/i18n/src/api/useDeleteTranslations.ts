@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {useMutation, useQueryClient, type UseMutationResult} from '@tanstack/react-query';
-import {useConfig} from '@thunderid/contexts';
+import {useConfig, useProject} from '@thunderid/contexts';
 import {useThunderID} from '@thunderid/react';
 import I18nQueryKeys from '../constants/i18n-query-keys';
 
@@ -10,7 +10,8 @@ import I18nQueryKeys from '../constants/i18n-query-keys';
  * Custom hook to delete all custom translations for a language.
  *
  * Calls DELETE /i18n/languages/{language}/translations which removes all
- * custom translation overrides for the language, resetting it to defaults.
+ * custom translation overrides for the language, resetting it to defaults. Only the translations of
+ * the selected project are removed, when the server has projects.
  *
  * @returns TanStack Query mutation object for deleting translations
  *
@@ -38,12 +39,16 @@ export default function useDeleteTranslations(): UseMutationResult<void, Error, 
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
   const queryClient: ReturnType<typeof useQueryClient> = useQueryClient();
+  const {selectedProject} = useProject();
+  const projectId = selectedProject?.id;
 
   return useMutation<void, Error, string>({
     mutationFn: async (language: string): Promise<void> => {
       const serverUrl: string = getServerUrl();
       await http.request({
-        url: `${serverUrl}/i18n/languages/${language}/translations`,
+        url: projectId
+          ? `${serverUrl}/i18n/languages/${language}/translations?projectId=${encodeURIComponent(projectId)}`
+          : `${serverUrl}/i18n/languages/${language}/translations`,
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

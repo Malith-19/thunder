@@ -47,7 +47,7 @@ func (s *FlowMgtHandlerTestSuite) TestListFlows_Success() {
 		Count: 2,
 	}
 
-	s.mockService.EXPECT().ListFlows(mock.Anything, 30, 0, providers.FlowType("")).Return(expectedList, nil)
+	s.mockService.EXPECT().ListFlows(mock.Anything, 30, 0, providers.FlowType(""), "").Return(expectedList, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/flows", nil)
 	w := httptest.NewRecorder()
@@ -65,7 +65,7 @@ func (s *FlowMgtHandlerTestSuite) TestListFlows_Success() {
 func (s *FlowMgtHandlerTestSuite) TestListFlows_WithPagination() {
 	expectedList := &FlowListResponse{Flows: []BasicFlowDefinition{}, Count: 0}
 
-	s.mockService.EXPECT().ListFlows(mock.Anything, 20, 10, providers.FlowType("")).Return(expectedList, nil)
+	s.mockService.EXPECT().ListFlows(mock.Anything, 20, 10, providers.FlowType(""), "").Return(expectedList, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/flows?limit=20&offset=10", nil)
 	w := httptest.NewRecorder()
@@ -78,7 +78,8 @@ func (s *FlowMgtHandlerTestSuite) TestListFlows_WithPagination() {
 func (s *FlowMgtHandlerTestSuite) TestListFlows_WithFlowType() {
 	expectedList := &FlowListResponse{Flows: []BasicFlowDefinition{}, Count: 0}
 
-	s.mockService.EXPECT().ListFlows(mock.Anything, 30, 0, providers.FlowTypeAuthentication).Return(expectedList, nil)
+	s.mockService.EXPECT().ListFlows(mock.Anything, 30, 0, providers.FlowTypeAuthentication, "").
+		Return(expectedList, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/flows?flowType=AUTHENTICATION", nil)
 	w := httptest.NewRecorder()
@@ -116,7 +117,7 @@ func (s *FlowMgtHandlerTestSuite) TestListFlows_InvalidOffset() {
 }
 
 func (s *FlowMgtHandlerTestSuite) TestListFlows_ServiceError() {
-	s.mockService.EXPECT().ListFlows(mock.Anything, 30, 0, providers.FlowType("")).
+	s.mockService.EXPECT().ListFlows(mock.Anything, 30, 0, providers.FlowType(""), "").
 		Return(nil, &tidcommon.InternalServerError)
 
 	req := httptest.NewRequest(http.MethodGet, "/flows", nil)

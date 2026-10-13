@@ -46,16 +46,17 @@ func newService(idpService idp.IDPServiceInterface,
 	}
 }
 
-// listByType returns the configured instances of the given identity-provider type.
-func (s *service) listByType(ctx context.Context, idpType providers.IDPType) ([]idp.BasicIDPDTO,
-	*tidcommon.ServiceError) {
+// listByType returns the configured instances of the given identity-provider type. A non-empty
+// projectID narrows them to that project's.
+func (s *service) listByType(ctx context.Context, idpType providers.IDPType, projectID string) (
+	[]idp.BasicIDPDTO, *tidcommon.ServiceError) {
 	all, svcErr := s.idpService.GetIdentityProviderList(ctx)
 	if svcErr != nil {
 		return nil, svcErr
 	}
 	instances := make([]idp.BasicIDPDTO, 0)
 	for _, instance := range all {
-		if instance.Type == idpType {
+		if instance.Type == idpType && inProject(instance.ProjectID, projectID) {
 			instances = append(instances, instance)
 		}
 	}
@@ -78,7 +79,9 @@ func validatePaginationParams(limit, offset int) *tidcommon.ServiceError {
 // The merged list is sorted by type, then name (case-insensitive), then ID, so the listing —
 // and therefore pagination — is deterministic regardless of the underlying stores' iteration
 // order. Both backing services return full lists, so the page is sliced in memory.
-func (s *service) listInstances(ctx context.Context, category connectionCategory,
+//
+// A non-empty projectID narrows the instances of every kind to that project's.
+func (s *service) listInstances(ctx context.Context, category connectionCategory, projectID string,
 	limit, offset int) (*connectionListResponse, *tidcommon.ServiceError) {
 	if svcErr := validatePaginationParams(limit, offset); svcErr != nil {
 		return nil, svcErr
@@ -97,7 +100,7 @@ func (s *service) listInstances(ctx context.Context, category connectionCategory
 		}
 		for _, instance := range idps {
 			vendor, ok := idpVendorName(instance.Type)
-			if !ok {
+			if !ok || !inProject(instance.ProjectID, projectID) {
 				continue
 			}
 			instances = append(instances, connectionInstance{
@@ -105,6 +108,7 @@ func (s *service) listInstances(ctx context.Context, category connectionCategory
 				Name:         instance.Name,
 				Description:  instance.Description,
 				Type:         vendor,
+				ProjectID:    instance.ProjectID,
 				Categories:   []connectionCategory{categoryIdentityProvider},
 				IDJagEnabled: instance.IDJagEnabled,
 			})
@@ -118,7 +122,7 @@ func (s *service) listInstances(ctx context.Context, category connectionCategory
 		}
 		for _, sender := range senders {
 			vendor, ok := smsVendorName(sender.Provider)
-			if !ok {
+			if !ok || !inProject(sender.ProjectID, projectID) {
 				continue
 			}
 			instances = append(instances, connectionInstance{
@@ -126,13 +130,14 @@ func (s *service) listInstances(ctx context.Context, category connectionCategory
 				Name:        sender.Name,
 				Description: sender.Description,
 				Type:        vendor,
+				ProjectID:   sender.ProjectID,
 				Categories:  []connectionCategory{categorySMSProvider},
 			})
 		}
 	}
 
 	if category == "" || category == categoryAuthorizationPDP {
-		connections, svcErr := s.listAuthZENPDP(ctx)
+		connections, svcErr := s.listAuthZENPDP(ctx, projectID)
 		if svcErr != nil {
 			return nil, svcErr
 		}
@@ -142,6 +147,7 @@ func (s *service) listInstances(ctx context.Context, category connectionCategory
 				Name:        connection.Name,
 				Description: connection.Description,
 				Type:        "authzen-pdp",
+				ProjectID:   connection.ProjectID,
 				Categories:  []connectionCategory{categoryAuthorizationPDP},
 			})
 		}
@@ -154,7 +160,7 @@ func (s *service) listInstances(ctx context.Context, category connectionCategory
 		}
 		for _, sender := range senders {
 			vendor, ok := emailVendorName(sender.Provider)
-			if !ok {
+			if !ok || !inProject(sender.ProjectID, projectID) {
 				continue
 			}
 			instances = append(instances, connectionInstance{
@@ -162,6 +168,7 @@ func (s *service) listInstances(ctx context.Context, category connectionCategory
 				Name:        sender.Name,
 				Description: sender.Description,
 				Type:        vendor,
+				ProjectID:   sender.ProjectID,
 				Categories:  []connectionCategory{categoryEmailProvider},
 			})
 		}
@@ -192,6 +199,7 @@ func (s *service) listInstances(ctx context.Context, category connectionCategory
 	if category != "" {
 		extraQuery = "&category=" + string(category)
 	}
+	extraQuery += sysutils.ProjectIDQueryParam(projectID)
 	return &connectionListResponse{
 		TotalResults: total,
 		StartIndex:   offset + 1,
@@ -248,16 +256,18 @@ func (s *service) deleteByType(ctx context.Context, idpType providers.IDPType, i
 	return s.idpService.DeleteIdentityProvider(ctx, id)
 }
 
-// listSendersByProvider returns the configured senders of the given type and provider.
+// listSendersByProvider returns the configured senders of the given type and provider. A non-empty
+// projectID narrows them to that project's.
 func (s *service) listSendersByProvider(ctx context.Context, senderType ncommon.NotificationSenderType,
-	provider ncommon.NotificationProviderType) ([]ncommon.NotificationSenderDTO, *tidcommon.ServiceError) {
+	provider ncommon.NotificationProviderType, projectID string) ([]ncommon.NotificationSenderDTO,
+	*tidcommon.ServiceError) {
 	all, svcErr := s.notificationService.ListSendersByType(ctx, senderType)
 	if svcErr != nil {
 		return nil, svcErr
 	}
 	instances := make([]ncommon.NotificationSenderDTO, 0)
 	for _, instance := range all {
-		if instance.Provider == provider {
+		if instance.Provider == provider && inProject(instance.ProjectID, projectID) {
 			instances = append(instances, instance)
 		}
 	}
@@ -354,8 +364,10 @@ func (s *service) createAuthZENPDP(
 	return s.authZENPDPService.CreateAuthZENPDPConnection(ctx, request)
 }
 
-// listAuthZENPDP returns all AuthZEN PDP connections.
-func (s *service) listAuthZENPDP(ctx context.Context) ([]authzenpdp.AuthZENPDPConnection, *tidcommon.ServiceError) {
+// listAuthZENPDP returns the AuthZEN PDP connections. A non-empty projectID narrows them to that
+// project's.
+func (s *service) listAuthZENPDP(ctx context.Context, projectID string) ([]authzenpdp.AuthZENPDPConnection,
+	*tidcommon.ServiceError) {
 	if s.authZENPDPService == nil {
 		return nil, &tidcommon.InternalServerError
 	}
@@ -363,7 +375,19 @@ func (s *service) listAuthZENPDP(ctx context.Context) ([]authzenpdp.AuthZENPDPCo
 	if svcErr != nil {
 		return nil, svcErr
 	}
-	return connections, nil
+	instances := make([]authzenpdp.AuthZENPDPConnection, 0, len(connections))
+	for _, connection := range connections {
+		if inProject(connection.ProjectID, projectID) {
+			instances = append(instances, connection)
+		}
+	}
+	return instances, nil
+}
+
+// inProject reports whether a connection in resourceProjectID is kept by a listing narrowed to
+// projectID. An empty projectID keeps every connection.
+func inProject(resourceProjectID, projectID string) bool {
+	return projectID == "" || resourceProjectID == projectID
 }
 
 // getAuthZENPDP returns an AuthZEN PDP connection by ID.
@@ -443,7 +467,7 @@ func (s *service) usagesAuthZENPDP(ctx context.Context, id string) (
 	usages := make([]resourcedependency.ResourceDependency, 0)
 	offset := 0
 	for {
-		list, svcErr := s.resourceService.GetResourceServerList(ctx, serverconst.MaxPageSize, offset)
+		list, svcErr := s.resourceService.GetResourceServerList(ctx, serverconst.MaxPageSize, offset, "")
 		if svcErr != nil {
 			return nil, svcErr
 		}

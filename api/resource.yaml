@@ -40,6 +40,7 @@ paths:
         - Resource Servers
       summary: List resource servers
       parameters:
+        - $ref: '#/components/parameters/projectIdQueryParam'
         - $ref: '#/components/parameters/limitQueryParam'
         - $ref: '#/components/parameters/offsetQueryParam'
       responses:
@@ -2249,6 +2250,16 @@ components:
             system: Access to system management APIs
 
   parameters:
+    projectIdQueryParam:
+      in: query
+      name: projectId
+      required: false
+      description: >-
+        Lists only the resources bound to the organization units of this project. A resource bound to an
+        organization unit belongs to the unit's project.
+      schema:
+        type: string
+        format: uuid
     limitQueryParam:
       in: query
       name: limit

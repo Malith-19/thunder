@@ -29,18 +29,23 @@ func (f *fileBasedStore) Create(id string, data interface{}) error {
 	return f.GenericFileBasedStore.Create(id, trans)
 }
 
-// GetDistinctLanguages retrieves all distinct language codes that have translations.
-func (f *fileBasedStore) GetDistinctLanguages(ctx context.Context) ([]string, error) {
+// GetDistinctLanguages retrieves all distinct language codes that have translations, only those with
+// translations in the project when a project ID is given.
+func (f *fileBasedStore) GetDistinctLanguages(ctx context.Context, projectID string) ([]string, error) {
 	list, err := f.GenericFileBasedStore.List()
 	if err != nil {
 		return nil, err
 	}
 
+	seen := make(map[string]bool, len(list))
 	languages := make([]string, 0, len(list))
 	for _, item := range list {
-		if langTrans, ok := item.Data.(*LanguageTranslations); ok {
-			languages = append(languages, langTrans.Language)
+		langTrans, ok := item.Data.(*LanguageTranslations)
+		if !ok || seen[langTrans.Language] || (projectID != "" && langTrans.ProjectID != projectID) {
+			continue
 		}
+		seen[langTrans.Language] = true
+		languages = append(languages, langTrans.Language)
 	}
 	return languages, nil
 }
@@ -66,6 +71,7 @@ func (f *fileBasedStore) GetTranslations(ctx context.Context) (map[string]map[st
 						Language:  langTrans.Language,
 						Namespace: ns,
 						Value:     value,
+						ProjectID: langTrans.ProjectID,
 					}
 				}
 			}
@@ -99,6 +105,7 @@ func (f *fileBasedStore) GetTranslationsByNamespace(ctx context.Context,
 						Language:  langTrans.Language,
 						Namespace: ns,
 						Value:     v,
+						ProjectID: langTrans.ProjectID,
 					}
 				}
 			}
@@ -131,6 +138,7 @@ func (f *fileBasedStore) GetTranslationsByKey(ctx context.Context, key string,
 						Language:  langTrans.Language,
 						Namespace: ns,
 						Value:     v,
+						ProjectID: langTrans.ProjectID,
 					}
 				}
 			}
@@ -141,7 +149,7 @@ func (f *fileBasedStore) GetTranslationsByKey(ctx context.Context, key string,
 }
 
 // UpsertTranslationsByLanguage is not supported in file-based store.
-func (f *fileBasedStore) UpsertTranslationsByLanguage(ctx context.Context, language string,
+func (f *fileBasedStore) UpsertTranslationsByLanguage(ctx context.Context, language string, projectID string,
 	translations []Translation) error {
 	return errors.New("UpsertTranslationsByLanguage is not supported in file-based store")
 }
@@ -157,7 +165,8 @@ func (f *fileBasedStore) UpsertTranslations(_ context.Context, _ []Translation) 
 }
 
 // DeleteTranslationsByLanguage is not supported in file-based store.
-func (f *fileBasedStore) DeleteTranslationsByLanguage(ctx context.Context, language string) error {
+func (f *fileBasedStore) DeleteTranslationsByLanguage(ctx context.Context, language string,
+	projectID string) error {
 	return errors.New("DeleteTranslationsByLanguage is not supported in file-based store")
 }
 

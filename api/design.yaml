@@ -36,6 +36,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/limitQueryParam'
         - $ref: '#/components/parameters/offsetQueryParam'
+        - $ref: '#/components/parameters/projectIdQueryParam'
       responses:
         "200":
           description: List of theme configurations
@@ -355,6 +356,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/limitQueryParam'
         - $ref: '#/components/parameters/offsetQueryParam'
+        - $ref: '#/components/parameters/projectIdQueryParam'
       responses:
         "200":
           description: List of layout configurations
@@ -823,6 +825,15 @@ components:
         minimum: 0
         default: 0
 
+    projectIdQueryParam:
+      name: projectId
+      in: query
+      description: Lists only the resources that belong to this project. Omit to list them all.
+      required: false
+      schema:
+        type: string
+        format: uuid
+
   schemas:
     ThemeRequest:
       type: object
@@ -852,6 +863,11 @@ components:
             secondaryColor: "#dc004e"
             fontFamily: "Roboto"
             borderRadius: "4px"
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. One created without a project goes to the default project.
+          example: "0198b0a1-7c3e-7a4b-9f2d-3c4e5f6a7b8c"
 
     ThemeResponse:
       type: object
@@ -896,6 +912,11 @@ components:
           type: boolean
           description: Indicates whether the theme is read-only (declarative)
           example: false
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. One created without a project goes to the default project.
+          example: "0198b0a1-7c3e-7a4b-9f2d-3c4e5f6a7b8c"
 
     ThemeListItem:
       type: object
@@ -939,6 +960,11 @@ components:
           type: boolean
           description: Indicates whether the theme is read-only (declarative)
           example: false
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. One created without a project goes to the default project.
+          example: "0198b0a1-7c3e-7a4b-9f2d-3c4e5f6a7b8c"
 
     ThemeListResponse:
       type: object
@@ -1070,6 +1096,11 @@ components:
             maxWidth: "1200px"
             showLogo: true
             logoPosition: "top"
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. One created without a project goes to the default project.
+          example: "0198b0a1-7c3e-7a4b-9f2d-3c4e5f6a7b8c"
 
     LayoutResponse:
       type: object
@@ -1114,6 +1145,11 @@ components:
           type: boolean
           description: Indicates whether the layout is read-only (declarative)
           example: false
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. One created without a project goes to the default project.
+          example: "0198b0a1-7c3e-7a4b-9f2d-3c4e5f6a7b8c"
 
     LayoutListItem:
       type: object
@@ -1149,6 +1185,11 @@ components:
           type: boolean
           description: Indicates whether the layout is read-only (declarative)
           example: false
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. One created without a project goes to the default project.
+          example: "0198b0a1-7c3e-7a4b-9f2d-3c4e5f6a7b8c"
 
     LayoutListResponse:
       type: object

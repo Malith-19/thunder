@@ -50,7 +50,7 @@ func (e *themeExporter) GetAllResourceIDs(ctx context.Context) ([]string, *tidco
 	offset := 0
 
 	for {
-		themeList, err := e.service.GetThemeList(ctx, pageSize, offset)
+		themeList, err := e.service.GetThemeList(ctx, pageSize, offset, "")
 		if err != nil {
 			return nil, err
 		}
@@ -183,6 +183,7 @@ func parseToTheme(data []byte) (*Theme, error) {
 		Theme:       themeJSON,
 		CreatedAt:   "",
 		UpdatedAt:   "",
+		ProjectID:   themeRequest.ProjectID,
 	}
 
 	return theme, nil

@@ -53,7 +53,7 @@ func (suite *FlowToolsTestSuite) TestListFlows_Success() {
 		},
 	}
 
-	mockService.On("ListFlows", mock.Anything, 30, 0, providers.FlowType("")).Return(&FlowListResponse{
+	mockService.On("ListFlows", mock.Anything, 30, 0, providers.FlowType(""), "").Return(&FlowListResponse{
 		TotalResults: 2,
 		Flows:        expectedFlows,
 	}, nil)
@@ -95,6 +95,7 @@ func (suite *FlowToolsTestSuite) TestListFlows_WithFilter() {
 		30,
 		0,
 		providers.FlowTypeAuthentication,
+		"",
 	).Return(&FlowListResponse{
 		TotalResults: 1,
 		Flows:        expectedFlows,
@@ -121,7 +122,7 @@ func (suite *FlowToolsTestSuite) TestListFlows_Error() {
 	mockService := NewFlowMgtServiceInterfaceMock(suite.T())
 	tools := &flowTools{flowService: mockService}
 
-	mockService.On("ListFlows", mock.Anything, 30, 0, providers.FlowType("")).
+	mockService.On("ListFlows", mock.Anything, 30, 0, providers.FlowType(""), "").
 		Return(nil, &tidcommon.ServiceError{
 			ErrorDescription: tidcommon.I18nMessage{Key: "error.test.database_error", DefaultValue: "database error"},
 		})

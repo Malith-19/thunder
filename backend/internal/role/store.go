@@ -22,8 +22,8 @@ var getDBProvider = provider.GetDBProvider
 type roleStoreInterface interface {
 	GetRoleListCount(ctx context.Context) (int, error)
 	GetRoleList(ctx context.Context, limit, offset int) ([]Role, error)
-	GetRoleListCountByOUID(ctx context.Context, ouID string) (int, error)
-	GetRoleListByOUID(ctx context.Context, ouID string, limit, offset int) ([]Role, error)
+	GetRoleListCountByOUIDs(ctx context.Context, ouIDs []string) (int, error)
+	GetRoleListByOUIDs(ctx context.Context, ouIDs []string, limit, offset int) ([]Role, error)
 	CreateRole(ctx context.Context, id string, role RoleCreationDetail) error
 	GetRole(ctx context.Context, id string) (RoleWithPermissions, error)
 	GetRolesByNames(ctx context.Context, names []string) ([]Role, error)
@@ -129,14 +129,20 @@ func (s *roleStore) GetRoleList(ctx context.Context, limit, offset int) ([]Role,
 	return roles, nil
 }
 
-// GetRoleListCountByOUID retrieves the total count of roles belonging to the given organization unit.
-func (s *roleStore) GetRoleListCountByOUID(ctx context.Context, ouID string) (int, error) {
+// GetRoleListCountByOUIDs retrieves the total count of roles belonging to any of the given
+// organization units.
+func (s *roleStore) GetRoleListCountByOUIDs(ctx context.Context, ouIDs []string) (int, error) {
+	if len(ouIDs) == 0 {
+		return 0, nil
+	}
+
 	dbClient, err := s.getConfigDBClient()
 	if err != nil {
 		return 0, err
 	}
 
-	countResults, err := dbClient.QueryContext(ctx, queryGetRoleListCountByOUID, ouID, s.scope(ctx))
+	query, args := buildGetRoleListCountByOUIDsQuery(ouIDs, s.scope(ctx))
+	countResults, err := dbClient.QueryContext(ctx, query, args...)
 	if err != nil {
 		return 0, fmt.Errorf("failed to execute count query: %w", err)
 	}
@@ -144,14 +150,20 @@ func (s *roleStore) GetRoleListCountByOUID(ctx context.Context, ouID string) (in
 	return parseCountResult(countResults)
 }
 
-// GetRoleListByOUID retrieves roles belonging to the given organization unit with pagination.
-func (s *roleStore) GetRoleListByOUID(ctx context.Context, ouID string, limit, offset int) ([]Role, error) {
+// GetRoleListByOUIDs retrieves roles belonging to any of the given organization units with
+// pagination.
+func (s *roleStore) GetRoleListByOUIDs(ctx context.Context, ouIDs []string, limit, offset int) ([]Role, error) {
+	if len(ouIDs) == 0 {
+		return []Role{}, nil
+	}
+
 	dbClient, err := s.getConfigDBClient()
 	if err != nil {
 		return nil, err
 	}
 
-	results, err := dbClient.QueryContext(ctx, queryGetRoleListByOUID, ouID, limit, offset, s.scope(ctx))
+	query, args := buildGetRoleListByOUIDsQuery(ouIDs, limit, offset, s.scope(ctx))
+	results, err := dbClient.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute role list query: %w", err)
 	}

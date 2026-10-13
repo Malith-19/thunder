@@ -115,7 +115,7 @@ func (s *FileBasedStoreTestSuite) TestListFlows_NoFilter() {
 		require.NoError(s.T(), err)
 	}
 
-	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "")
+	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "", "")
 
 	require.NoError(s.T(), err)
 	assert.Equal(s.T(), 3, count)
@@ -135,7 +135,7 @@ func (s *FileBasedStoreTestSuite) TestListFlows_WithFlowTypeFilter() {
 	require.NoError(s.T(), err)
 
 	// List only AUTHENTICATION flows
-	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, testFlowTypeAuthentication)
+	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, testFlowTypeAuthentication, "")
 
 	require.NoError(s.T(), err)
 	assert.Equal(s.T(), 1, count)
@@ -152,19 +152,19 @@ func (s *FileBasedStoreTestSuite) TestListFlows_Pagination() {
 	}
 
 	// Test first page
-	flows, count, err := s.store.ListFlows(context.Background(), 2, 0, "")
+	flows, count, err := s.store.ListFlows(context.Background(), 2, 0, "", "")
 	require.NoError(s.T(), err)
 	assert.Equal(s.T(), 5, count)
 	assert.Len(s.T(), flows, 2)
 
 	// Test second page
-	flows, count, err = s.store.ListFlows(context.Background(), 2, 2, "")
+	flows, count, err = s.store.ListFlows(context.Background(), 2, 2, "", "")
 	require.NoError(s.T(), err)
 	assert.Equal(s.T(), 5, count)
 	assert.Len(s.T(), flows, 2)
 
 	// Test offset beyond total
-	flows, count, err = s.store.ListFlows(context.Background(), 10, 10, "")
+	flows, count, err = s.store.ListFlows(context.Background(), 10, 10, "", "")
 	require.NoError(s.T(), err)
 	assert.Equal(s.T(), 5, count)
 	assert.Len(s.T(), flows, 0)
@@ -262,7 +262,7 @@ func (s *FileBasedStoreTestSuite) TestCreate_ImplementsStorer() {
 }
 
 func (s *FileBasedStoreTestSuite) TestListFlows_EmptyStore() {
-	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "")
+	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "", "")
 
 	require.NoError(s.T(), err)
 	assert.Equal(s.T(), 0, count)
@@ -326,7 +326,7 @@ func (s *FileBasedStoreTestSuite) TestListFlows_TypeAssertionSkip() {
 	require.NoError(s.T(), err)
 
 	// List should skip the corrupted entry and return valid flows
-	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "")
+	flows, count, err := s.store.ListFlows(context.Background(), 10, 0, "", "")
 	require.NoError(s.T(), err)
 	assert.Equal(s.T(), 2, count)
 	assert.Len(s.T(), flows, 2)

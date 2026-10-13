@@ -30,6 +30,7 @@ type Template struct {
 	Description string          `json:"description,omitempty"`
 	Design      *TemplateDesign `json:"design,omitempty"`
 	Content     TemplateContent `json:"content"`
+	ProjectID   string          `json:"projectId,omitempty"`
 }
 
 // TemplateSummary is the list-item representation of a notification template.
@@ -38,6 +39,7 @@ type TemplateSummary struct {
 	Handle      string `json:"handle"`
 	DisplayName string `json:"displayName"`
 	Description string `json:"description,omitempty"`
+	ProjectID   string `json:"projectId,omitempty"`
 	Self        string `json:"self"`
 }
 
@@ -49,6 +51,7 @@ type CreateTemplateRequest struct {
 	Description string          `json:"description"`
 	Design      *TemplateDesign `json:"design,omitempty"`
 	Content     TemplateContent `json:"content"`
+	ProjectID   string          `json:"projectId,omitempty"`
 }
 
 // UpdateTemplateRequest is the request body for updating a template. The handle is immutable and is
@@ -58,6 +61,7 @@ type UpdateTemplateRequest struct {
 	Description string          `json:"description"`
 	Design      *TemplateDesign `json:"design,omitempty"`
 	Content     TemplateContent `json:"content"`
+	ProjectID   string          `json:"projectId,omitempty"`
 }
 
 // TemplateListResponse is the paginated response for listing templates of a channel.
@@ -117,4 +121,5 @@ type templateDAO struct {
 	Content     TemplateContent
 	Design      *TemplateDesign
 	IsReadOnly  bool
+	ProjectID   string
 }
