@@ -110,13 +110,17 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	cmodels.SetConfigCryptoProvider(configCryptoSvc)
 
 	runtime := config.GetServerRuntime()
+	jwksCACertificate, err := runtime.Config.Server.SecurityConfig.TrustedIssuer.ReadCACertificate(
+		runtime.ServerHome)
+	fatalOnError(ctx, logger, err, "Failed to read the trusted issuer certificate authority")
 	joseCfg := joseconfig.Config{
-		Issuer:         runtime.Config.JWT.Issuer,
-		ValidityPeriod: runtime.Config.JWT.ValidityPeriod,
-		Audience:       runtime.Config.JWT.Audience,
-		PreferredKeyID: runtime.Config.JWT.PreferredKeyID,
-		Leeway:         runtime.Config.JWT.Leeway,
-		JWKSCacheTTL:   time.Duration(runtime.Config.Server.SecurityConfig.JWKSCacheTTL) * time.Second,
+		Issuer:            runtime.Config.JWT.Issuer,
+		ValidityPeriod:    runtime.Config.JWT.ValidityPeriod,
+		Audience:          runtime.Config.JWT.Audience,
+		PreferredKeyID:    runtime.Config.JWT.PreferredKeyID,
+		Leeway:            runtime.Config.JWT.Leeway,
+		JWKSCacheTTL:      time.Duration(runtime.Config.Server.SecurityConfig.JWKSCacheTTL) * time.Second,
+		JWKSCACertificate: jwksCACertificate,
 	}
 	jwtService, jweService, err := jose.Initialize(runtimeCryptoSvc, joseCfg)
 	fatalOnError(ctx, logger, err, "Failed to initialize JOSE services")
