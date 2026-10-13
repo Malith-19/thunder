@@ -29,6 +29,7 @@ func (f *layoutFileBasedStore) Create(id string, data interface{}) error {
 		DisplayName: layout.DisplayName,
 		Description: layout.Description,
 		Layout:      layout.Layout,
+		ProjectID:   layout.ProjectID,
 	}
 	return f.CreateLayout(ctx, id, createReq)
 }
@@ -43,6 +44,7 @@ func (f *layoutFileBasedStore) CreateLayout(ctx context.Context, id string, layo
 		Layout:      layout.Layout,
 		CreatedAt:   "",
 		UpdatedAt:   "",
+		ProjectID:   layout.ProjectID,
 	}
 	return f.GenericFileBasedStore.Create(id, layoutData)
 }
@@ -68,14 +70,35 @@ func (f *layoutFileBasedStore) GetLayout(ctx context.Context, id string) (Layout
 
 // GetLayoutList implements layoutMgtStoreInterface.
 func (f *layoutFileBasedStore) GetLayoutList(ctx context.Context, limit, offset int) ([]Layout, error) {
-	// Validate input parameters to prevent panics
-	if offset < 0 {
-		offset = 0
+	layoutList, err := f.listLayouts("")
+	if err != nil {
+		return nil, err
 	}
-	if limit <= 0 {
-		return []Layout{}, nil
-	}
+	return paginateLayouts(layoutList, limit, offset), nil
+}
 
+// GetLayoutListCountByProject implements layoutMgtStoreInterface.
+func (f *layoutFileBasedStore) GetLayoutListCountByProject(ctx context.Context, projectID string) (int, error) {
+	layoutList, err := f.listLayouts(projectID)
+	if err != nil {
+		return 0, err
+	}
+	return len(layoutList), nil
+}
+
+// GetLayoutListByProject implements layoutMgtStoreInterface.
+func (f *layoutFileBasedStore) GetLayoutListByProject(
+	ctx context.Context, projectID string, limit, offset int,
+) ([]Layout, error) {
+	layoutList, err := f.listLayouts(projectID)
+	if err != nil {
+		return nil, err
+	}
+	return paginateLayouts(layoutList, limit, offset), nil
+}
+
+// listLayouts returns the layouts in the store, only those of the project when one is given.
+func (f *layoutFileBasedStore) listLayouts(projectID string) ([]Layout, error) {
 	list, err := f.GenericFileBasedStore.List()
 	if err != nil {
 		return nil, err
@@ -84,21 +107,36 @@ func (f *layoutFileBasedStore) GetLayoutList(ctx context.Context, limit, offset 
 	layoutList := make([]Layout, 0)
 	for _, item := range list {
 		if layout, ok := item.Data.(*Layout); ok {
+			if projectID != "" && layout.ProjectID != projectID {
+				continue
+			}
 			layoutList = append(layoutList, *layout)
 		}
+	}
+	return layoutList, nil
+}
+
+// paginateLayouts returns a page of layouts.
+func paginateLayouts(layoutList []Layout, limit, offset int) []Layout {
+	// Validate input parameters to prevent panics
+	if offset < 0 {
+		offset = 0
+	}
+	if limit <= 0 {
+		return []Layout{}
 	}
 
 	// Apply pagination
 	start := offset
 	if start >= len(layoutList) {
-		return []Layout{}, nil
+		return []Layout{}
 	}
 
 	end := start + limit
 	if end > len(layoutList) {
 		end = len(layoutList)
 	}
-	return layoutList[start:end], nil
+	return layoutList[start:end]
 }
 
 // GetLayoutListCount implements layoutMgtStoreInterface.

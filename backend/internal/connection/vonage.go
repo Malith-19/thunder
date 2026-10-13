@@ -12,6 +12,7 @@ import (
 type vonageConnectionRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
+	ProjectID   string `json:"projectId,omitempty"`
 	APIKey      string `json:"apiKey"`
 	APISecret   string `json:"apiSecret"`
 	SenderID    string `json:"senderId"`
@@ -22,6 +23,7 @@ type vonageConnectionResponse struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
+	ProjectID   string `json:"projectId,omitempty"`
 	Type        string `json:"type"`
 	APIKey      string `json:"apiKey,omitempty"`
 	APISecret   string `json:"apiSecret,omitempty"`
@@ -43,6 +45,7 @@ func vonageToSenderDTO(req vonageConnectionRequest) (*ncommon.NotificationSender
 	return &ncommon.NotificationSenderDTO{
 		Name:        req.Name,
 		Description: req.Description,
+		ProjectID:   req.ProjectID,
 		Type:        ncommon.NotificationSenderTypeMessage,
 		Provider:    ncommon.NotificationProviderTypeVonage,
 		Properties:  props,
@@ -58,6 +61,7 @@ func vonageFromSenderDTO(dto ncommon.NotificationSenderDTO) (vonageConnectionRes
 		ID:          dto.ID,
 		Name:        dto.Name,
 		Description: dto.Description,
+		ProjectID:   dto.ProjectID,
 		Type:        string(ncommon.NotificationProviderTypeVonage),
 		APIKey:      values[ncommon.VonagePropKeyAPIKey],
 		APISecret:   values[ncommon.VonagePropKeyAPISecret],

@@ -79,7 +79,8 @@ func (s *notificationStore) createSender(ctx context.Context, sender common.Noti
 	}
 
 	_, err = dbClient.ExecuteContext(ctx, queryCreateNotificationSender, sender.Name, sender.ID,
-		sender.Description, string(sender.Type), string(sender.Provider), propertiesJSON, s.scope(ctx))
+		sender.Description, string(sender.Type), string(sender.Provider), propertiesJSON,
+		nullableProjectID(sender.ProjectID), s.scope(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -220,7 +221,8 @@ func (s *notificationStore) updateSender(ctx context.Context, id string, sender 
 	}
 
 	_, err = dbClient.ExecuteContext(ctx, queryUpdateNotificationSender, sender.Name, sender.Description,
-		string(sender.Provider), propertiesJSON, id, string(sender.Type), s.scope(ctx))
+		string(sender.Provider), propertiesJSON, nullableProjectID(sender.ProjectID), id, string(sender.Type),
+		s.scope(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -284,6 +286,17 @@ func (s *notificationStore) buildSenderFromResultRow(
 		Provider:    common.NotificationProviderType(provider),
 		Properties:  []cmodels.Property{},
 	}
+	if projectID, ok := row["project_id"].(string); ok {
+		sender.ProjectID = projectID
+	}
 
 	return sender, nil
+}
+
+// nullableProjectID stores a notification sender outside every project as SQL NULL.
+func nullableProjectID(projectID string) interface{} {
+	if projectID == "" {
+		return nil
+	}
+	return projectID
 }

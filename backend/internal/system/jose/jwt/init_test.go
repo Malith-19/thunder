@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"math/big"
 	"os"
 	"testing"
 
@@ -147,4 +148,34 @@ func (suite *InitTestSuite) TestInitialize_WithoutPreferredKeyID() {
 	jwtService, err := Initialize(cryptoMock, cfg)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), jwtService)
+}
+
+func (suite *InitTestSuite) TestInitialize_WithJWKSCACertificate() {
+	template := &x509.Certificate{SerialNumber: big.NewInt(1), IsCA: true, BasicConstraintsValid: true}
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &suite.testPrivateKey.PublicKey,
+		suite.testPrivateKey)
+	suite.Require().NoError(err)
+	cfg := joseconfig.Config{
+		Issuer:            "https://auth.example.com",
+		JWKSCACertificate: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})),
+	}
+
+	cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
+	cryptoMock.EXPECT().GetPublicKeys(mock.Anything, mock.Anything).Return([]providers.PublicKeyInfo{{
+		Algorithm: string(cryptolib.AlgorithmRS256),
+		PublicKey: &suite.testPrivateKey.PublicKey,
+	}}, nil)
+	cryptoMock.EXPECT().GetSupportedSigningAlgorithms().Return([]string{string(cryptolib.AlgorithmRS256)})
+
+	jwtService, err := Initialize(cryptoMock, cfg)
+	suite.NoError(err)
+	suite.NotNil(jwtService)
+}
+
+func (suite *InitTestSuite) TestInitialize_InvalidJWKSCACertificate() {
+	cfg := joseconfig.Config{Issuer: "https://auth.example.com", JWKSCACertificate: "not a certificate"}
+
+	jwtService, err := Initialize(cryptomock.NewRuntimeCryptoProviderMock(suite.T()), cfg)
+	suite.ErrorContains(err, "not a PEM certificate")
+	suite.Nil(jwtService)
 }

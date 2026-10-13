@@ -5,9 +5,11 @@
 package authzenpdp
 
 import (
+	"context"
 	"strings"
 
 	"github.com/thunder-id/thunderid/internal/entitytype"
+	"github.com/thunder-id/thunderid/internal/project"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
@@ -18,12 +20,39 @@ import (
 func Initialize(
 	defaults config.AuthZENPDPConfig,
 	entityTypes entitytype.EntityTypeServiceInterface,
+	projects project.Registry,
 ) (AuthZENPDPServiceInterface, error) {
 	transactioner, err := provider.GetDBProvider().GetConfigDBTransactioner()
 	if err != nil {
 		return nil, err
 	}
-	return newAuthZENPDPService(initializeStore(defaults), defaults, transactioner, entityTypes), nil
+	store := initializeStore(defaults)
+	service := newAuthZENPDPService(store, defaults, transactioner, entityTypes)
+	if projects != nil {
+		service.projects = projects
+		projects.AddUsageChecker(&projectUsageChecker{store: store})
+	}
+	return service, nil
+}
+
+// projectUsageChecker keeps a project from being deleted while AuthZEN PDP connections still belong
+// to it.
+type projectUsageChecker struct {
+	store authZENPDPStoreInterface
+}
+
+// HasResourcesInProject reports whether any AuthZEN PDP connection belongs to the project.
+func (c *projectUsageChecker) HasResourcesInProject(ctx context.Context, projectID string) (bool, error) {
+	connections, err := c.store.ListAuthZENPDPs(ctx)
+	if err != nil {
+		return false, err
+	}
+	for _, connection := range connections {
+		if connection.ProjectID == projectID {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // ShouldLoadDeclarativeAuthZENPDPResources reports whether the file store is enabled.

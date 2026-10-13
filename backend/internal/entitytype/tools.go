@@ -55,7 +55,7 @@ func (t *entityTypeTools) listUserTypes(
 	_ *mcp.CallToolRequest,
 	_ any,
 ) (*mcp.CallToolResult, *entityTypeListMCPResponse, error) {
-	resp, svcErr := t.entityTypeService.GetEntityTypeList(ctx, TypeCategoryUser, serverconst.MaxPageSize, 0, false)
+	resp, svcErr := t.entityTypeService.GetEntityTypeList(ctx, TypeCategoryUser, serverconst.MaxPageSize, 0, "", false)
 	if svcErr != nil {
 		return nil, nil, fmt.Errorf("failed to list user types: %s", svcErr.ErrorDescription)
 	}

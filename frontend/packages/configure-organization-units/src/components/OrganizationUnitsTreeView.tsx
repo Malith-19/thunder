@@ -3,7 +3,7 @@
 
 import {useQueryClient} from '@tanstack/react-query';
 import {PageLoadingAnimation, QueryErrorNotice, ResourceAvatar} from '@thunderid/components';
-import {useConfig} from '@thunderid/contexts';
+import {useConfig, useProject} from '@thunderid/contexts';
 import {useLogger} from '@thunderid/logger/react';
 import {useThunderID} from '@thunderid/react';
 import {Box, IconButton, Typography, CircularProgress, TreeView, useTheme, Avatar, Tooltip} from '@wso2/oxygen-ui';
@@ -358,7 +358,9 @@ export default function OrganizationUnitsTreeView(): JSX.Element {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
   const queryClient = useQueryClient();
-  const {data, isLoading, error, refetch} = useGetOrganizationUnits();
+  // With a project selected, the tree starts at the project's root organization units.
+  const {selectedProject} = useProject();
+  const {data, isLoading, error, refetch} = useGetOrganizationUnits({projectId: selectedProject?.id});
   const {treeItems, setTreeItems, expandedItems, setExpandedItems, loadedItems, setLoadedItems, resetTreeState} =
     useOrganizationUnit();
 
@@ -473,12 +475,13 @@ export default function OrganizationUnitsTreeView(): JSX.Element {
       const result = await queryClient.fetchQuery<OrganizationUnitListResponse>({
         queryKey: [
           OrganizationUnitQueryKeys.ORGANIZATION_UNITS,
-          {limit: OrganizationUnitTreeConstants.PAGE_SIZE, offset: rootOffset},
+          {limit: OrganizationUnitTreeConstants.PAGE_SIZE, offset: rootOffset, projectId: selectedProject?.id},
         ],
         queryFn: async (): Promise<OrganizationUnitListResponse> =>
           fetchOrganizationUnits(http, getServerUrl(), {
             limit: OrganizationUnitTreeConstants.PAGE_SIZE,
             offset: rootOffset,
+            projectId: selectedProject?.id,
           }),
         staleTime: 0,
       });
@@ -506,7 +509,7 @@ export default function OrganizationUnitsTreeView(): JSX.Element {
     } finally {
       setRootLoadMoreLoading(false);
     }
-  }, [rootOffset, getServerUrl, queryClient, http, setTreeItems, logger]);
+  }, [rootOffset, selectedProject?.id, getServerUrl, queryClient, http, setTreeItems, logger]);
 
   const handleLoadMore = useCallback(
     async (parentId: string): Promise<void> => {

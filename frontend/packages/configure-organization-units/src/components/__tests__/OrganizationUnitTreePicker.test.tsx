@@ -17,8 +17,8 @@ vi.mock('@thunderid/logger/react', () => ({
 // Mock the API hooks
 const mockUseGetOrganizationUnits = vi.fn();
 vi.mock('@/api/useGetOrganizationUnits', () => ({
-  default: () =>
-    mockUseGetOrganizationUnits() as {
+  default: (params?: unknown, enabled?: boolean) =>
+    mockUseGetOrganizationUnits(params, enabled) as {
       data: OrganizationUnitListResponse | undefined;
       isLoading: boolean;
       error: Error | null;
@@ -58,11 +58,13 @@ vi.mock('@thunderid/react', async (importOriginal) => {
 
 // Mock config — stable reference to avoid useCallback churn
 const stableConfig = {getServerUrl: () => 'http://localhost:8080'};
+let mockSelectedProject: {id: string} | null = null;
 vi.mock('@thunderid/contexts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@thunderid/contexts')>();
   return {
     ...actual,
     useConfig: () => stableConfig,
+    useProject: () => ({selectedProject: mockSelectedProject}),
   };
 });
 
@@ -88,6 +90,7 @@ describe('OrganizationUnitTreePicker', () => {
   };
 
   beforeEach(() => {
+    mockSelectedProject = null;
     vi.clearAllMocks();
     mockUseGetOrganizationUnits.mockReturnValue({
       data: mockOUData,
@@ -1076,5 +1079,14 @@ describe('OrganizationUnitTreePicker', () => {
         expect(screen.getByText(t('organizationUnits:listing.treeView.noChildren'))).toBeInTheDocument();
       });
     });
+  });
+
+  it('should offer only the organization units of the selected project', () => {
+    mockSelectedProject = {id: 'prj-finance'};
+    mockUseGetOrganizationUnits.mockReturnValue({data: mockOUData, isLoading: false, error: null});
+
+    renderWithProviders(<OrganizationUnitTreePicker {...defaultProps} />);
+
+    expect(mockUseGetOrganizationUnits).toHaveBeenCalledWith({projectId: 'prj-finance'}, true);
   });
 });

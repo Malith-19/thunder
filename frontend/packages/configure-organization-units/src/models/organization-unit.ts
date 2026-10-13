@@ -66,6 +66,12 @@ export interface OrganizationUnit {
   parent?: string | null;
 
   /**
+   * Project the organization unit belongs to. A child organization unit belongs to its parent's
+   * project.
+   */
+  projectId?: string;
+
+  /**
    * Theme configuration ID
    * References a theme that customizes the visual styling
    * @example '96c62e6d-9297-4295-8195-d28dfe0c9ff7'

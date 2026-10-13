@@ -5,12 +5,15 @@ import {fireEvent, render, screen, waitFor} from '@thunderid/test-utils';
 import {describe, it, expect, vi, beforeEach} from 'vitest';
 import DesignPage from '../DesignPage';
 
-const {mockNavigate, mockShowToast, mockRefetchThemes, mockRefetchLayouts} = vi.hoisted(() => ({
-  mockNavigate: vi.fn(),
-  mockShowToast: vi.fn(),
-  mockRefetchThemes: vi.fn(),
-  mockRefetchLayouts: vi.fn(),
-}));
+const {mockNavigate, mockShowToast, mockRefetchThemes, mockRefetchLayouts, mockUseGetThemes, mockUseGetLayouts} =
+  vi.hoisted(() => ({
+    mockNavigate: vi.fn(),
+    mockShowToast: vi.fn(),
+    mockRefetchThemes: vi.fn(),
+    mockRefetchLayouts: vi.fn(),
+    mockUseGetThemes: vi.fn(),
+    mockUseGetLayouts: vi.fn(),
+  }));
 
 vi.mock('react-router', async () => {
   const actual = await vi.importActual('react-router');
@@ -25,6 +28,7 @@ vi.mock('@thunderid/contexts', async () => {
   return {
     ...actual,
     useToast: () => ({showToast: mockShowToast}),
+    useProject: () => ({selectedProject: {id: 'prj-finance'}}),
   };
 });
 
@@ -41,17 +45,14 @@ let themesList: MockTheme[] = [];
 let themesLoadingState = false;
 
 vi.mock('@thunderid/design', () => ({
-  useGetThemes: () => ({
-    data: {themes: themesList},
-    isLoading: themesLoadingState,
-    error: themesError,
-    refetch: mockRefetchThemes,
-  }),
-  useGetLayouts: () => ({
-    data: {layouts: layoutsList},
-    error: layoutsError,
-    refetch: mockRefetchLayouts,
-  }),
+  useGetThemes: (params: unknown) => {
+    mockUseGetThemes(params);
+    return {data: {themes: themesList}, isLoading: themesLoadingState, error: themesError, refetch: mockRefetchThemes};
+  },
+  useGetLayouts: (params: unknown) => {
+    mockUseGetLayouts(params);
+    return {data: {layouts: layoutsList}, error: layoutsError, refetch: mockRefetchLayouts};
+  },
   useDeleteTheme: () => ({mutate: vi.fn(), reset: vi.fn(), isPending: false, isError: false}),
   useGetThemeUsages: () => ({data: undefined, isLoading: false}),
 }));
@@ -64,6 +65,12 @@ describe('DesignPage', () => {
     layoutsList = [{id: 'layout-1', handle: 'centered', displayName: 'Centered', layout: {}}];
     themesList = [];
     themesLoadingState = false;
+  });
+
+  it('lists the themes and layouts of the selected project', () => {
+    render(<DesignPage />);
+    expect(mockUseGetThemes).toHaveBeenCalledWith({projectId: 'prj-finance'});
+    expect(mockUseGetLayouts).toHaveBeenCalledWith({projectId: 'prj-finance'});
   });
 
   it('renders the themes and layouts section headers', () => {

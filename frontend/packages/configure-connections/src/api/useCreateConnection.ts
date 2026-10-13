@@ -2,14 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {useMutation, useQueryClient, type UseMutationResult} from '@tanstack/react-query';
-import {useConfig, useToast} from '@thunderid/contexts';
+import {useConfig, useProject, useToast} from '@thunderid/contexts';
 import {useThunderID} from '@thunderid/react';
 import {useTranslation} from 'react-i18next';
 import ConnectionQueryKeys from '../constants/query-keys';
 import type {ConnectionRequest, ConnectionResponse, ConnectionType} from '../models/connection';
 
 /**
- * Create a connection instance of the given type (POST /connections/{type}).
+ * Create a connection instance of the given type (POST /connections/{type}). The connection is
+ * created in the selected project, when the server has projects.
  *
  * Failures are not toasted here — the caller surfaces them inline next to the name field
  * (409 duplicate name) or next to the create action (any other failure).
@@ -22,6 +23,8 @@ export default function useCreateConnection(
   const queryClient: ReturnType<typeof useQueryClient> = useQueryClient();
   const {t} = useTranslation('connections');
   const {showToast} = useToast();
+  const {selectedProject} = useProject();
+  const projectId = selectedProject?.id;
 
   return useMutation<ConnectionResponse, Error, ConnectionRequest>({
     mutationFn: async (data: ConnectionRequest): Promise<ConnectionResponse> => {
@@ -34,7 +37,7 @@ export default function useCreateConnection(
         headers: {
           'Content-Type': 'application/json',
         },
-        data,
+        data: projectId ? {...data, projectId} : data,
       } as unknown as Parameters<typeof http.request>[0]);
 
       return response.data;

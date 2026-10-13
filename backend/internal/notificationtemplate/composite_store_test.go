@@ -55,8 +55,9 @@ func (s *CompositeStoreTestSuite) newOrderingComposite(dbItems []templateDAO) no
 	loadDeclared(s.T(), fileStore, declaredAlphaYAML)
 
 	db := newNotificationTemplateStoreInterfaceMock(s.T())
-	db.On("CountTemplates", mock.Anything, ChannelTypeEmail).Return(len(dbItems), nil)
-	db.On("ListTemplates", mock.Anything, ChannelTypeEmail, mock.Anything, mock.Anything).Return(dbItems, nil)
+	db.On("CountTemplates", mock.Anything, ChannelTypeEmail, mock.Anything).Return(len(dbItems), nil)
+	db.On("ListTemplates", mock.Anything, ChannelTypeEmail, mock.Anything, mock.Anything, mock.Anything).
+		Return(dbItems, nil)
 	return newCompositeStore(fileStore, db)
 }
 
@@ -74,7 +75,7 @@ func handlesOf(items []templateDAO) []string {
 func (s *CompositeStoreTestSuite) TestListConcatenatesDeclaredThenDB() {
 	composite := s.newOrderingComposite([]templateDAO{emailDAO("mango", "mango"), emailDAO("apple", "apple")})
 
-	list, err := composite.ListTemplates(s.ctx, ChannelTypeEmail, 100, 0)
+	list, err := composite.ListTemplates(s.ctx, ChannelTypeEmail, 100, 0, "")
 	s.Require().NoError(err)
 	// Declared (file-store handle order: alpha, zebra) then DB (as returned: mango, apple).
 	s.Require().Equal([]string{"alpha", "zebra", "mango", "apple"}, handlesOf(list))
@@ -86,9 +87,9 @@ func (s *CompositeStoreTestSuite) TestListConcatenatesDeclaredThenDB() {
 func (s *CompositeStoreTestSuite) TestPaginationNoOverlapOrGap() {
 	composite := s.newOrderingComposite([]templateDAO{emailDAO("mango", "mango"), emailDAO("apple", "apple")})
 
-	page1, err := composite.ListTemplates(s.ctx, ChannelTypeEmail, 2, 0)
+	page1, err := composite.ListTemplates(s.ctx, ChannelTypeEmail, 2, 0, "")
 	s.Require().NoError(err)
-	page2, err := composite.ListTemplates(s.ctx, ChannelTypeEmail, 2, 2)
+	page2, err := composite.ListTemplates(s.ctx, ChannelTypeEmail, 2, 2, "")
 	s.Require().NoError(err)
 
 	combined := append(handlesOf(page1), handlesOf(page2)...)
@@ -101,7 +102,7 @@ func (s *CompositeStoreTestSuite) TestDeclaredWinsOnHandleCollision() {
 	dbAlpha := emailDAO("alpha", "DB Alpha") // collides with the declared "alpha"
 	composite := s.newOrderingComposite([]templateDAO{dbAlpha, emailDAO("mango", "mango")})
 
-	list, err := composite.ListTemplates(s.ctx, ChannelTypeEmail, 100, 0)
+	list, err := composite.ListTemplates(s.ctx, ChannelTypeEmail, 100, 0, "")
 	s.Require().NoError(err)
 	// Declared (alpha, zebra) then the surviving DB item (mango); the DB "alpha" is deduped out.
 	s.Require().Equal([]string{"alpha", "zebra", "mango"}, handlesOf(list))
@@ -121,17 +122,17 @@ func (s *CompositeStoreTestSuite) TestMergesAndRefusesDeclaredWrites() {
 	reset := templateDAO{ID: "db-1", Channel: ChannelTypeEmail, Handle: "reset", DisplayName: "Reset",
 		Content: TemplateContent{Subject: "S", Body: "B"}}
 	db := newNotificationTemplateStoreInterfaceMock(s.T())
-	db.On("CountTemplates", mock.Anything, ChannelTypeEmail).Return(1, nil)
-	db.On("ListTemplates", mock.Anything, ChannelTypeEmail, mock.Anything, mock.Anything).
+	db.On("CountTemplates", mock.Anything, ChannelTypeEmail, mock.Anything).Return(1, nil)
+	db.On("ListTemplates", mock.Anything, ChannelTypeEmail, mock.Anything, mock.Anything, mock.Anything).
 		Return([]templateDAO{reset}, nil)
 	db.On("UpdateTemplate", mock.Anything, reset).Return(nil).Once()
 	composite := newCompositeStore(fileStore, db)
 
-	list, err := composite.ListTemplates(s.ctx, ChannelTypeEmail, 100, 0)
+	list, err := composite.ListTemplates(s.ctx, ChannelTypeEmail, 100, 0, "")
 	s.Require().NoError(err)
 	s.Require().Len(list, 2, "expected both sources merged")
 
-	count, _ := composite.CountTemplates(s.ctx, ChannelTypeEmail)
+	count, _ := composite.CountTemplates(s.ctx, ChannelTypeEmail, "")
 	s.Require().Equal(2, count)
 
 	// A DB write goes through to the DB store.

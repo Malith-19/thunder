@@ -60,49 +60,49 @@ func (suite *CompositeRoleStoreTestSuite) TestGetRoleList_Pagination() {
 	suite.Len(roles, 2)
 }
 
-func (suite *CompositeRoleStoreTestSuite) TestGetRoleListCountByOUID_Deduplicates() {
+func (suite *CompositeRoleStoreTestSuite) TestGetRoleListCountByOUIDs_Deduplicates() {
 	dbRoles := []Role{{ID: "role1"}, {ID: "role2"}}
 	fileRoles := []Role{{ID: "role2"}, {ID: "role3"}}
 
-	suite.mockDBStore.On("GetRoleListCountByOUID", mock.Anything, "ou-1").Return(2, nil)
-	suite.mockFileStore.On("GetRoleListCountByOUID", mock.Anything, "ou-1").Return(2, nil)
-	suite.mockDBStore.On("GetRoleListByOUID", mock.Anything, "ou-1", 2, 0).Return(dbRoles, nil)
-	suite.mockFileStore.On("GetRoleListByOUID", mock.Anything, "ou-1", 2, 0).Return(fileRoles, nil)
+	suite.mockDBStore.On("GetRoleListCountByOUIDs", mock.Anything, []string{"ou-1"}).Return(2, nil)
+	suite.mockFileStore.On("GetRoleListCountByOUIDs", mock.Anything, []string{"ou-1"}).Return(2, nil)
+	suite.mockDBStore.On("GetRoleListByOUIDs", mock.Anything, []string{"ou-1"}, 2, 0).Return(dbRoles, nil)
+	suite.mockFileStore.On("GetRoleListByOUIDs", mock.Anything, []string{"ou-1"}, 2, 0).Return(fileRoles, nil)
 
-	count, err := suite.store.GetRoleListCountByOUID(context.Background(), "ou-1")
+	count, err := suite.store.GetRoleListCountByOUIDs(context.Background(), []string{"ou-1"})
 
 	suite.NoError(err)
 	suite.Equal(3, count)
 }
 
-func (suite *CompositeRoleStoreTestSuite) TestGetRoleListByOUID_Pagination() {
+func (suite *CompositeRoleStoreTestSuite) TestGetRoleListByOUIDs_Pagination() {
 	dbRoles := []Role{{ID: "role1"}, {ID: "role2"}}
 	fileRoles := []Role{{ID: "role2"}, {ID: "role3"}}
 
-	suite.mockDBStore.On("GetRoleListCountByOUID", mock.Anything, "ou-1").Return(2, nil)
-	suite.mockFileStore.On("GetRoleListCountByOUID", mock.Anything, "ou-1").Return(2, nil)
-	suite.mockDBStore.On("GetRoleListByOUID", mock.Anything, "ou-1", 2, 0).Return(dbRoles, nil)
-	suite.mockFileStore.On("GetRoleListByOUID", mock.Anything, "ou-1", 2, 0).Return(fileRoles, nil)
+	suite.mockDBStore.On("GetRoleListCountByOUIDs", mock.Anything, []string{"ou-1"}).Return(2, nil)
+	suite.mockFileStore.On("GetRoleListCountByOUIDs", mock.Anything, []string{"ou-1"}).Return(2, nil)
+	suite.mockDBStore.On("GetRoleListByOUIDs", mock.Anything, []string{"ou-1"}, 2, 0).Return(dbRoles, nil)
+	suite.mockFileStore.On("GetRoleListByOUIDs", mock.Anything, []string{"ou-1"}, 2, 0).Return(fileRoles, nil)
 
-	roles, err := suite.store.GetRoleListByOUID(context.Background(), "ou-1", 2, 1)
+	roles, err := suite.store.GetRoleListByOUIDs(context.Background(), []string{"ou-1"}, 2, 1)
 
 	suite.NoError(err)
 	suite.Len(roles, 2)
 }
 
-func (suite *CompositeRoleStoreTestSuite) TestGetRoleListCountByOUID_DBStoreError() {
-	suite.mockDBStore.On("GetRoleListCountByOUID", mock.Anything, "ou-1").Return(0, errors.New("db error"))
+func (suite *CompositeRoleStoreTestSuite) TestGetRoleListCountByOUIDs_DBStoreError() {
+	suite.mockDBStore.On("GetRoleListCountByOUIDs", mock.Anything, []string{"ou-1"}).Return(0, errors.New("db error"))
 
-	count, err := suite.store.GetRoleListCountByOUID(context.Background(), "ou-1")
+	count, err := suite.store.GetRoleListCountByOUIDs(context.Background(), []string{"ou-1"})
 
 	suite.Error(err)
 	suite.Equal(0, count)
 }
 
-func (suite *CompositeRoleStoreTestSuite) TestGetRoleListByOUID_DBStoreError() {
-	suite.mockDBStore.On("GetRoleListCountByOUID", mock.Anything, "ou-1").Return(0, errors.New("db error"))
+func (suite *CompositeRoleStoreTestSuite) TestGetRoleListByOUIDs_DBStoreError() {
+	suite.mockDBStore.On("GetRoleListCountByOUIDs", mock.Anything, []string{"ou-1"}).Return(0, errors.New("db error"))
 
-	roles, err := suite.store.GetRoleListByOUID(context.Background(), "ou-1", 5, 0)
+	roles, err := suite.store.GetRoleListByOUIDs(context.Background(), []string{"ou-1"}, 5, 0)
 
 	suite.Error(err)
 	suite.Nil(roles)
@@ -357,4 +357,23 @@ func (suite *CompositeRoleStoreTestSuite) TestCascadeHooks_UseDatabaseStoreOnly(
 	suite.mockFileStore.AssertNotCalled(suite.T(), "GetReferencedPermissions", mock.Anything)
 	suite.mockFileStore.AssertNotCalled(suite.T(), "DeleteRolePermission",
 		mock.Anything, mock.Anything, mock.Anything)
+}
+
+func (suite *CompositeRoleStoreTestSuite) TestGetRoleListByOUIDs_MultipleOUIDs() {
+	ouIDs := []string{"ou-1", "ou-2"}
+	dbRoles := []Role{{ID: "role1", OUID: "ou-1"}}
+	fileRoles := []Role{{ID: "role2", OUID: "ou-2"}}
+
+	suite.mockDBStore.On("GetRoleListCountByOUIDs", mock.Anything, ouIDs).Return(1, nil)
+	suite.mockFileStore.On("GetRoleListCountByOUIDs", mock.Anything, ouIDs).Return(1, nil)
+	suite.mockDBStore.On("GetRoleListByOUIDs", mock.Anything, ouIDs, 1, 0).Return(dbRoles, nil)
+	suite.mockFileStore.On("GetRoleListByOUIDs", mock.Anything, ouIDs, 1, 0).Return(fileRoles, nil)
+
+	count, err := suite.store.GetRoleListCountByOUIDs(context.Background(), ouIDs)
+	suite.NoError(err)
+	suite.Equal(2, count)
+
+	roles, err := suite.store.GetRoleListByOUIDs(context.Background(), ouIDs, 10, 0)
+	suite.NoError(err)
+	suite.Len(roles, 2)
 }

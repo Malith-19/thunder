@@ -17,6 +17,7 @@ hide_table_of_contents: false
 | Build frontend only | `make build_frontend` | `.\build.ps1 build_frontend` |
 | Package for distribution | `./build.sh package` | `.\build.ps1 package` |
 | Run everything (development) | `make run` | `.\build.ps1 run` |
+| Run everything without the Control Plane | `make run_dp` | - |
 | Run backend only | `make run_backend` | `.\build.ps1 run_backend` |
 | Run frontend only | `make run_frontend` | `.\build.ps1 run_frontend` |
 | Run all tests | `make test` | `.\build.ps1 test` |
@@ -39,7 +40,14 @@ While the examples below use `make` for cross-platform simplicity, all commands 
 make run
 ```
 
-This automatically sets up the complete development environment with backend, frontend apps, and seed data.
+This automatically sets up the complete development environment with backend, frontend apps, and seed data. The Console manages a Control Plane on port 8095 and signs in at the server on port 8090, which also serves as the data plane.
+
+**Run everything without the Control Plane:**
+```bash
+make run_dp
+```
+
+Only the server on port 8090 runs, and the Console manages it directly.
 
 If you built the project without the consent server, you must also run it with the flag to avoid startup errors:
 ```bash

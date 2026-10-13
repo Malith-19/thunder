@@ -18,6 +18,7 @@ import (
 	tidcommon "github.com/thunder-id/thunderid/pkg/thunderidengine/common"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine/providers"
 
+	"github.com/thunder-id/thunderid/internal/project"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/resourcedependency"
@@ -26,7 +27,7 @@ import (
 
 // NotificationTemplateServiceInterface defines the notification template management operations.
 type NotificationTemplateServiceInterface interface {
-	ListTemplates(ctx context.Context, channel ChannelType, limit, offset int) (
+	ListTemplates(ctx context.Context, channel ChannelType, limit, offset int, projectID string) (
 		*TemplateListResponse, *tidcommon.ServiceError)
 	CreateTemplate(ctx context.Context, channel ChannelType, request CreateTemplateRequest) (
 		*Template, *tidcommon.ServiceError)
@@ -45,6 +46,7 @@ type notificationTemplateService struct {
 	store              notificationTemplateStoreInterface
 	transactioner      providers.Transactioner
 	dependencyRegistry resourcedependency.Registry
+	projects           project.Resolver
 	logger             *log.Logger
 }
 
@@ -59,9 +61,10 @@ func newNotificationTemplateService(store notificationTemplateStoreInterface,
 	}
 }
 
-// ListTemplates lists a page of templates of a channel.
-func (ts *notificationTemplateService) ListTemplates(ctx context.Context, channel ChannelType, limit, offset int) (
-	*TemplateListResponse, *tidcommon.ServiceError) {
+// ListTemplates lists a page of templates of a channel, only those in the project when a project ID is
+// given.
+func (ts *notificationTemplateService) ListTemplates(ctx context.Context, channel ChannelType, limit, offset int,
+	projectID string) (*TemplateListResponse, *tidcommon.ServiceError) {
 	if svcErr := validateChannel(channel); svcErr != nil {
 		return nil, svcErr
 	}
@@ -69,7 +72,7 @@ func (ts *notificationTemplateService) ListTemplates(ctx context.Context, channe
 		return nil, svcErr
 	}
 
-	total, err := ts.store.CountTemplates(ctx, channel)
+	total, err := ts.store.CountTemplates(ctx, channel, projectID)
 	if err != nil {
 		if errors.Is(err, errResultLimitExceededInCompositeMode) {
 			return nil, &ErrorResultLimitExceededInCompositeMode
@@ -78,7 +81,7 @@ func (ts *notificationTemplateService) ListTemplates(ctx context.Context, channe
 		return nil, &tidcommon.InternalServerError
 	}
 
-	templates, err := ts.store.ListTemplates(ctx, channel, limit, offset)
+	templates, err := ts.store.ListTemplates(ctx, channel, limit, offset, projectID)
 	if err != nil {
 		if errors.Is(err, errResultLimitExceededInCompositeMode) {
 			return nil, &ErrorResultLimitExceededInCompositeMode
@@ -94,6 +97,7 @@ func (ts *notificationTemplateService) ListTemplates(ctx context.Context, channe
 			Handle:      t.Handle,
 			DisplayName: t.DisplayName,
 			Description: t.Description,
+			ProjectID:   t.ProjectID,
 			Self:        buildSelf(channel, t.ID),
 		})
 	}
@@ -103,7 +107,8 @@ func (ts *notificationTemplateService) ListTemplates(ctx context.Context, channe
 		StartIndex:   offset + 1,
 		Count:        len(summaries),
 		Templates:    summaries,
-		Links:        utils.BuildPaginationLinks(buildCollectionSelf(channel), limit, offset, total, ""),
+		Links: utils.BuildPaginationLinks(buildCollectionSelf(channel), limit, offset, total,
+			utils.ProjectIDQueryParam(projectID)),
 	}, nil
 }
 
@@ -128,6 +133,12 @@ func (ts *notificationTemplateService) CreateTemplate(ctx context.Context, chann
 		return nil, svcErr
 	}
 	dao.Handle = request.Handle
+
+	projectID, svcErr := project.ResolveProjectID(ctx, ts.projects, request.ProjectID, "")
+	if svcErr != nil {
+		return nil, svcErr
+	}
+	dao.ProjectID = projectID
 
 	id, err := utils.GenerateUUIDv7()
 	if err != nil {
@@ -226,6 +237,7 @@ func (ts *notificationTemplateService) UpdateTemplate(ctx context.Context, chann
 	}
 
 	var notFound bool
+	var projectErr *tidcommon.ServiceError
 	txErr := ts.transactioner.Transact(ctx, func(txCtx context.Context) error {
 		existing, err := ts.store.GetTemplate(txCtx, channel, id)
 		if err != nil {
@@ -239,6 +251,10 @@ func (ts *notificationTemplateService) UpdateTemplate(ctx context.Context, chann
 		if existing.IsReadOnly {
 			return errDeclarativeTemplate
 		}
+		dao.ProjectID, projectErr = ts.resolveUpdatedProjectID(txCtx, existing.ProjectID, request.ProjectID)
+		if projectErr != nil {
+			return errors.New("invalid project")
+		}
 		// The handle is immutable; carry the stored value so the response reflects it.
 		dao.Handle = existing.Handle
 		return ts.store.UpdateTemplate(txCtx, dao)
@@ -250,12 +266,33 @@ func (ts *notificationTemplateService) UpdateTemplate(ctx context.Context, chann
 		if errors.Is(txErr, errDeclarativeTemplate) {
 			return nil, &ErrorTemplateReadOnly
 		}
+		if projectErr != nil {
+			return nil, projectErr
+		}
 		ts.logger.Error(ctx, "Failed to update notification template", log.String("id", id), log.Error(txErr))
 		return nil, &tidcommon.InternalServerError
 	}
 
 	ts.logger.Debug(ctx, "Successfully updated notification template", log.String("id", id))
 	return daoToTemplate(dao), nil
+}
+
+// resolveUpdatedProjectID returns the project of an updated template. An update that leaves the project
+// out keeps the current one, and a template stays in the project it was created in.
+func (ts *notificationTemplateService) resolveUpdatedProjectID(
+	ctx context.Context, existing, requested string,
+) (string, *tidcommon.ServiceError) {
+	if requested == "" {
+		requested = existing
+	}
+	projectID, svcErr := project.ResolveProjectID(ctx, ts.projects, requested, "")
+	if svcErr != nil {
+		return "", svcErr
+	}
+	if ts.projects != nil && existing != "" && projectID != existing {
+		return "", &project.ErrorProjectChangeNotAllowed
+	}
+	return projectID, nil
 }
 
 // DeleteTemplate deletes a template, rejecting the delete with a conflict if a flow references it.
@@ -432,6 +469,7 @@ func daoToTemplate(dao templateDAO) *Template {
 		Design:      dao.Design,
 		Content:     dao.Content,
 		IsReadOnly:  dao.IsReadOnly,
+		ProjectID:   dao.ProjectID,
 	}
 }
 

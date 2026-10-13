@@ -16,6 +16,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/flow/core"
 	"github.com/thunder-id/thunderid/internal/flow/graphbuilder"
 	"github.com/thunder-id/thunderid/internal/flow/interceptor"
+	"github.com/thunder-id/thunderid/internal/project"
 
 	"github.com/thunder-id/thunderid/internal/system/cache"
 	"github.com/thunder-id/thunderid/internal/system/config"
@@ -41,6 +42,7 @@ func Initialize(
 	serverConfigSvc serverConfigProvider,
 	ouSvc ouProvider,
 	configHandler *FlowConfigHandler,
+	projects project.Registry,
 ) (FlowMgtServiceInterface, declarativeresource.ResourceExporter, error) {
 	flowValidator := newFlowValidator(executorRegistry, interceptorRegistry, graphBuilder)
 	store, compositeStore, transactioner, err := initializeStore(cacheManager, flowValidator)
@@ -53,6 +55,10 @@ func Initialize(
 		store, inferenceService, graphBuilder, executorRegistry,
 		interceptorRegistry, flowValidator, compositeStore, transactioner, serverConfigSvc, ouSvc,
 	)
+	if projects != nil {
+		service.(*flowMgtService).projects = projects
+		projects.AddUsageChecker(&projectUsageChecker{store: store})
+	}
 
 	// TODO: Check whether this can be improved to avoid injecting configHandler to flow mgt service
 	if configHandler != nil {
@@ -73,6 +79,20 @@ func Initialize(
 	// Create and return exporter
 	exporter := newFlowGraphExporter(service)
 	return service, exporter, nil
+}
+
+// projectUsageChecker keeps a project from being deleted while flows still belong to it.
+type projectUsageChecker struct {
+	store flowStoreInterface
+}
+
+// HasResourcesInProject reports whether any flow belongs to the project.
+func (c *projectUsageChecker) HasResourcesInProject(ctx context.Context, projectID string) (bool, error) {
+	_, total, err := c.store.ListFlows(ctx, 1, 0, "", projectID)
+	if err != nil {
+		return false, err
+	}
+	return total > 0, nil
 }
 
 // Store Selection (based on flow.store configuration):

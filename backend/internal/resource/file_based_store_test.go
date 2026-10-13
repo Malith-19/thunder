@@ -639,3 +639,26 @@ func (s *FileBasedResourceStoreTestSuite) TestCheckResourceServerIdentifierExist
 	assert.NoError(s.T(), err)
 	assert.False(s.T(), exists)
 }
+
+func (s *FileBasedResourceStoreTestSuite) TestGetResourceServerListByOUIDs() {
+	fileStore, ok := s.store.(*fileBasedResourceStore)
+	s.Require().True(ok)
+	s.Require().NoError(fileStore.Create("rs-scope-1",
+		&providers.ResourceServer{ID: "rs-scope-1", Name: "Scoped 1", OUID: "ou-scope-a", Delimiter: ":"}))
+	s.Require().NoError(fileStore.Create("rs-scope-2",
+		&providers.ResourceServer{ID: "rs-scope-2", Name: "Scoped 2", OUID: "ou-scope-b", Delimiter: ":"}))
+	s.Require().NoError(fileStore.Create("rs-scope-3",
+		&providers.ResourceServer{ID: "rs-scope-3", Name: "Other", OUID: "ou-scope-c", Delimiter: ":"}))
+
+	count, err := s.store.GetResourceServerListCountByOUIDs(s.ctx, []string{"ou-scope-a", "ou-scope-b"})
+	s.NoError(err)
+	s.Equal(2, count)
+
+	servers, err := s.store.GetResourceServerListByOUIDs(s.ctx, []string{"ou-scope-a", "ou-scope-b"}, 1, 1)
+	s.NoError(err)
+	s.Len(servers, 1)
+
+	servers, err = s.store.GetResourceServerListByOUIDs(s.ctx, []string{"ou-scope-a", "ou-scope-b"}, 10, 5)
+	s.NoError(err)
+	s.Empty(servers)
+}

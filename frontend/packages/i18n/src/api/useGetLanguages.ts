@@ -15,6 +15,10 @@ export interface UseGetLanguagesOptions {
    * Whether the query should be enabled. Defaults to true.
    */
   enabled?: boolean;
+  /**
+   * Lists only the languages that have translations in this project.
+   */
+  projectId?: string;
 }
 
 /**
@@ -44,16 +48,18 @@ export interface UseGetLanguagesOptions {
 export default function useGetLanguages(options?: UseGetLanguagesOptions): UseQueryResult<LanguagesResponse, Error> {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
-  const {enabled = true} = options ?? {};
+  const {enabled = true, projectId} = options ?? {};
 
   return useQuery<LanguagesResponse, Error>({
-    queryKey: [I18nQueryKeys.LANGUAGES],
+    queryKey: [I18nQueryKeys.LANGUAGES, {projectId}],
     queryFn: async (): Promise<LanguagesResponse> => {
       const serverUrl: string = getServerUrl();
       const response: {
         data: LanguagesResponse;
       } = await http.request({
-        url: `${serverUrl}/i18n/languages`,
+        url: projectId
+          ? `${serverUrl}/i18n/languages?projectId=${encodeURIComponent(projectId)}`
+          : `${serverUrl}/i18n/languages`,
         method: 'GET',
         attachToken: false,
         credentials: 'omit',

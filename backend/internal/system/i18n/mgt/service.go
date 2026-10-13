@@ -14,6 +14,7 @@ import (
 
 	goi18n "golang.org/x/text/language"
 
+	"github.com/thunder-id/thunderid/internal/project"
 	declarativeresource "github.com/thunder-id/thunderid/internal/system/declarative_resource"
 	sysi18n "github.com/thunder-id/thunderid/internal/system/i18n/core"
 	"github.com/thunder-id/thunderid/internal/system/log"
@@ -24,15 +25,18 @@ const loggerComponentName = "I18nMgtService"
 // I18nServiceInterface defines the interface for the i18n service.
 type I18nServiceInterface interface {
 	ListLanguages(ctx context.Context) ([]string, *tidcommon.ServiceError)
+	// ListLanguagesByProject lists the languages that have translations in a project, all languages
+	// when the project ID is empty. The system language is always included.
+	ListLanguagesByProject(ctx context.Context, projectID string) ([]string, *tidcommon.ServiceError)
 	ResolveTranslations(ctx context.Context, language string, namespace string) (
 		*providers.LanguageTranslationsResponse, *tidcommon.ServiceError)
-	SetTranslationOverrides(ctx context.Context, language string, translations map[string]map[string]string) (
-		*providers.LanguageTranslationsResponse, *tidcommon.ServiceError)
-	ClearTranslationOverrides(ctx context.Context, language string) *tidcommon.ServiceError
+	SetTranslationOverrides(ctx context.Context, language string, projectID string,
+		translations map[string]map[string]string) (*providers.LanguageTranslationsResponse, *tidcommon.ServiceError)
+	ClearTranslationOverrides(ctx context.Context, language string, projectID string) *tidcommon.ServiceError
 	ResolveTranslationsForKey(ctx context.Context, language string, namespace string, key string) (
 		*TranslationResponse, *tidcommon.ServiceError)
-	SetTranslationOverrideForKey(ctx context.Context, language string, namespace string, key string, value string) (
-		*TranslationResponse, *tidcommon.ServiceError)
+	SetTranslationOverrideForKey(ctx context.Context, language string, namespace string, key string, value string,
+		projectID string) (*TranslationResponse, *tidcommon.ServiceError)
 	SetTranslationOverridesForNamespace(ctx context.Context, namespace string,
 		entries map[string]map[string]string) *tidcommon.ServiceError
 	ClearTranslationOverrideForKey(ctx context.Context,
@@ -52,8 +56,9 @@ type I18nServiceInterface interface {
 
 // i18nService is the default implementation of I18nServiceInterface.
 type i18nService struct {
-	store  i18nStoreInterface
-	logger *log.Logger
+	store    i18nStoreInterface
+	projects project.Resolver
+	logger   *log.Logger
 }
 
 // newI18nService creates a new instance of i18nService with injected dependencies.
@@ -67,7 +72,14 @@ func newI18nService(store i18nStoreInterface) I18nServiceInterface {
 // ListLanguages retrieves all locale codes that have translations in the system.
 // The default locale is always included in the response, even if it has no translations in the DB.
 func (s *i18nService) ListLanguages(ctx context.Context) ([]string, *tidcommon.ServiceError) {
-	localeCodes, err := s.store.GetDistinctLanguages(ctx)
+	return s.ListLanguagesByProject(ctx, "")
+}
+
+// ListLanguagesByProject retrieves the locale codes that have translations in a project, or in the
+// system when the project ID is empty. The default locale is always included in the response.
+func (s *i18nService) ListLanguagesByProject(ctx context.Context, projectID string) (
+	[]string, *tidcommon.ServiceError) {
+	localeCodes, err := s.store.GetDistinctLanguages(ctx, projectID)
 	if err != nil {
 		s.logger.Error(ctx, "Failed to get locales from store", log.Error(err))
 		return nil, &tidcommon.InternalServerError
@@ -134,9 +146,10 @@ func (s *i18nService) ResolveTranslationsForKey(ctx context.Context,
 	return nil, &ErrorTranslationNotFound
 }
 
-// SetTranslationOverrideForKey creates or updates a custom override for a single translation.
+// SetTranslationOverrideForKey creates or updates a custom override for a single translation. A new
+// override goes to the requested project; an existing one stays in its project.
 func (s *i18nService) SetTranslationOverrideForKey(ctx context.Context,
-	language string, namespace string, key string, value string) (
+	language string, namespace string, key string, value string, projectID string) (
 	*TranslationResponse, *tidcommon.ServiceError) {
 	if isDeclarativeModeEnabled() {
 		return nil, &declarativeresource.ErrorDeclarativeResourceUpdateOperation
@@ -148,11 +161,22 @@ func (s *i18nService) SetTranslationOverrideForKey(ctx context.Context,
 		return nil, &ErrorMissingValue
 	}
 
+	existing, err := s.store.GetTranslationsByKey(ctx, key, namespace)
+	if err != nil {
+		s.logger.Error(ctx, "Failed to get translation from store", log.Error(err))
+		return nil, &tidcommon.InternalServerError
+	}
+	projectID, svcErr := s.resolveProjectID(ctx, projectID, existing[language].ProjectID)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+
 	trans := Translation{
 		Key:       key,
 		Language:  language,
 		Namespace: namespace,
 		Value:     value,
+		ProjectID: projectID,
 	}
 
 	// Use upsert to create or update
@@ -166,6 +190,7 @@ func (s *i18nService) SetTranslationOverrideForKey(ctx context.Context,
 		Namespace: namespace,
 		Key:       key,
 		Value:     value,
+		ProjectID: projectID,
 	}, nil
 }
 
@@ -307,9 +332,11 @@ func (s *i18nService) ResolveTranslations(ctx context.Context,
 	}, nil
 }
 
-// SetTranslationOverrides replaces all custom overrides for a language with provided values.
+// SetTranslationOverrides replaces the custom overrides a project has for a language with the provided
+// values. Overrides of the language in other projects are kept, and an override that already belongs
+// to another project cannot be moved into this one.
 func (s *i18nService) SetTranslationOverrides(ctx context.Context,
-	language string, translations map[string]map[string]string) (
+	language string, projectID string, translations map[string]map[string]string) (
 	*providers.LanguageTranslationsResponse, *tidcommon.ServiceError) {
 	if isDeclarativeModeEnabled() {
 		return nil, &declarativeresource.ErrorDeclarativeResourceUpdateOperation
@@ -339,19 +366,38 @@ func (s *i18nService) SetTranslationOverrides(ctx context.Context,
 		}
 	}
 
+	existing, err := s.store.GetTranslations(ctx)
+	if err != nil {
+		s.logger.Error(ctx, "Failed to get translations from store", log.Error(err))
+		return nil, &tidcommon.InternalServerError
+	}
+	// A request without a project targets the project the language's overrides already belong to.
+	if projectID == "" {
+		projectID = languageProjectID(existing, language)
+	}
+	projectID, svcErr := project.ResolveProjectID(ctx, s.projects, projectID, "")
+	if svcErr != nil {
+		return nil, svcErr
+	}
+
 	flattenedTranslations := []Translation{}
 	for ns, keys := range translations {
 		for key, value := range keys {
+			current := existing[ns+"|"+key][language].ProjectID
+			if s.projects != nil && current != "" && current != projectID {
+				return nil, &project.ErrorProjectChangeNotAllowed
+			}
 			flattenedTranslations = append(flattenedTranslations, Translation{
 				Key:       key,
 				Language:  language,
 				Namespace: ns,
 				Value:     value,
+				ProjectID: projectID,
 			})
 		}
 	}
 
-	if err := s.store.UpsertTranslationsByLanguage(ctx, language, flattenedTranslations); err != nil {
+	if err := s.store.UpsertTranslationsByLanguage(ctx, language, projectID, flattenedTranslations); err != nil {
 		s.logger.Error(ctx, "Failed to upsert translations", log.Error(err))
 		return nil, &tidcommon.InternalServerError
 	}
@@ -364,8 +410,10 @@ func (s *i18nService) SetTranslationOverrides(ctx context.Context,
 	}, nil
 }
 
-// ClearTranslationOverrides removes all custom overrides for a language.
-func (s *i18nService) ClearTranslationOverrides(ctx context.Context, language string) *tidcommon.ServiceError {
+// ClearTranslationOverrides removes all custom overrides for a language, only those of the project when
+// a project ID is given.
+func (s *i18nService) ClearTranslationOverrides(ctx context.Context, language string,
+	projectID string) *tidcommon.ServiceError {
 	if isDeclarativeModeEnabled() {
 		return &declarativeresource.ErrorDeclarativeResourceDeleteOperation
 	}
@@ -376,7 +424,7 @@ func (s *i18nService) ClearTranslationOverrides(ctx context.Context, language st
 		return &ErrorInvalidLanguage
 	}
 
-	if err := s.clearAllOverrides(ctx, language); err != nil {
+	if err := s.store.DeleteTranslationsByLanguage(ctx, language, projectID); err != nil {
 		s.logger.Error(ctx, "Failed to clear overrides", log.Error(err))
 		return &tidcommon.InternalServerError
 	}
@@ -476,12 +524,38 @@ func (s *i18nService) GetTranslationsByKeys(ctx context.Context, namespace strin
 	return result, nil
 }
 
-func (s *i18nService) clearAllOverrides(ctx context.Context, language string) error {
-	err := s.store.DeleteTranslationsByLanguage(ctx, language)
-	if err != nil {
-		return err
+// resolveProjectID returns the project of a translation override. A write that leaves the project out
+// keeps the current one, and an override stays in the project it was created in.
+func (s *i18nService) resolveProjectID(ctx context.Context, requested, current string) (
+	string, *tidcommon.ServiceError) {
+	if requested == "" {
+		requested = current
 	}
-	return nil
+	projectID, svcErr := project.ResolveProjectID(ctx, s.projects, requested, "")
+	if svcErr != nil {
+		return "", svcErr
+	}
+	if s.projects != nil && current != "" && projectID != current {
+		return "", &project.ErrorProjectChangeNotAllowed
+	}
+	return projectID, nil
+}
+
+// languageProjectID returns the project the overrides of a language belong to, or an empty string when
+// the language has none or they are split across projects.
+func languageProjectID(translations map[string]map[string]Translation, language string) string {
+	projectID := ""
+	for _, byLanguage := range translations {
+		trans, ok := byLanguage[language]
+		if !ok || trans.ProjectID == "" {
+			continue
+		}
+		if projectID != "" && projectID != trans.ProjectID {
+			return ""
+		}
+		projectID = trans.ProjectID
+	}
+	return projectID
 }
 
 func validate(language string, namespace string, key string) *tidcommon.ServiceError {

@@ -16,6 +16,7 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/entitytype"
 	"github.com/thunder-id/thunderid/internal/group"
+	"github.com/thunder-id/thunderid/internal/project"
 	"github.com/thunder-id/thunderid/internal/role"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	declarativeresource "github.com/thunder-id/thunderid/internal/system/declarative_resource"
@@ -58,6 +59,8 @@ type idpService struct {
 	dependencyRegistry resourcedependency.Registry
 	logger             *log.Logger
 	uuidGenerator      func() (string, error)
+	// projects decides the project of an identity provider.
+	projects project.Resolver
 }
 
 // userTypeAttributes holds a user type's non-credential schema attributes.
@@ -113,6 +116,11 @@ func (is *idpService) CreateIdentityProvider(
 	if svcErr := is.validateAttributeConfiguration(ctx, idp); svcErr != nil {
 		return nil, svcErr
 	}
+	projectID, svcErr := project.ResolveProjectID(ctx, is.projects, idp.ProjectID, "")
+	if svcErr != nil {
+		return nil, svcErr
+	}
+	idp.ProjectID = projectID
 
 	if idp.ID == "" {
 		id, genErr := is.uuidGenerator()
@@ -123,11 +131,7 @@ func (is *idpService) CreateIdentityProvider(
 		idp.ID = id
 	}
 
-	var (
-		err    error
-		svcErr *tidcommon.ServiceError
-	)
-	err = is.transactioner.Transact(ctx, func(txCtx context.Context) error {
+	err := is.transactioner.Transact(ctx, func(txCtx context.Context) error {
 		// Check if an identity provider with the same name already exists
 		existingIDP, err := is.idpStore.GetIdentityProviderByName(txCtx, idp.Name)
 		if err != nil && !errors.Is(err, ErrIDPNotFound) {
@@ -278,6 +282,13 @@ func (is *idpService) UpdateIdentityProvider(
 			return err
 		}
 
+		projectID, projectErr := is.resolveUpdatedProjectID(txCtx, existingIDP, idp)
+		if projectErr != nil {
+			svcErr = projectErr
+			return errors.New("invalid project")
+		}
+		idp.ProjectID = projectID
+
 		// If the name is being updated, check whether another IdP with the same name exists
 		if existingIDP.Name != idp.Name {
 			existingIDPByName, err := is.idpStore.GetIdentityProviderByName(txCtx, idp.Name)
@@ -311,6 +322,26 @@ func (is *idpService) UpdateIdentityProvider(
 	}
 
 	return idp, nil
+}
+
+// resolveUpdatedProjectID returns the project of an updated identity provider. An update that leaves
+// the project out keeps the current one, and an identity provider stays in the project it was created
+// in.
+func (is *idpService) resolveUpdatedProjectID(
+	ctx context.Context, existing, updated *providers.IDPDTO,
+) (string, *tidcommon.ServiceError) {
+	requested := updated.ProjectID
+	if requested == "" {
+		requested = existing.ProjectID
+	}
+	projectID, svcErr := project.ResolveProjectID(ctx, is.projects, requested, "")
+	if svcErr != nil {
+		return "", svcErr
+	}
+	if is.projects != nil && existing.ProjectID != "" && projectID != existing.ProjectID {
+		return "", &project.ErrorProjectChangeNotAllowed
+	}
+	return projectID, nil
 }
 
 // DeleteIdentityProvider deletes an identity provider.
@@ -407,7 +438,7 @@ func (is *idpService) ApplySchemaAwareDefaults(ctx context.Context, idp *provide
 // linking attribute that another type allows duplicates of.
 func (is *idpService) loadCandidateUserTypes(ctx context.Context) []userTypeAttributes {
 	response, svcErr := is.entityTypeService.GetEntityTypeList(
-		ctx, entitytype.TypeCategoryUser, serverconst.MaxPageSize, 0, false)
+		ctx, entitytype.TypeCategoryUser, serverconst.MaxPageSize, 0, "", false)
 	if svcErr != nil || response == nil {
 		is.logger.Warn(ctx, "Could not list user types, skipping connection default seeding")
 		return nil

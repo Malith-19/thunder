@@ -17,6 +17,7 @@ type FlowDefinition struct {
 	Handle       string                            `json:"handle"                                               jsonschema:"Unique identifier for the flow (lowercase, alphanumeric with dashes/underscores). Example: 'basic-login', 'invite-registration'"          validate:"required"`
 	Name         string                            `json:"name"                                                 jsonschema:"Display name for the flow. Example: 'Basic Login Flow', 'Invite Registration'"                                                            validate:"required"`
 	FlowType     providers.FlowType                `json:"flowType"                                             jsonschema:"Type of flow: 'AUTHENTICATION' for login flows or 'REGISTRATION' for signup flows"                                                        validate:"required"`
+	ProjectID    string                            `json:"projectId,omitempty"    yaml:"projectId,omitempty"    jsonschema:"Optional project the flow belongs to. When omitted the flow goes to the default project."`
 	Interceptors []providers.InterceptorDefinition `json:"interceptors,omitempty" yaml:"interceptors,omitempty" jsonschema:"Optional array of interceptor declarations for cross-cutting concerns (e.g., CAPTCHA, rate limiting)."`
 	Nodes        []providers.NodeDefinition        `json:"nodes"                                                jsonschema:"Array of nodes defining the flow steps. Must include START and END nodes. Use get_flow on existing flows to see node structure examples." validate:"required"`
 }
@@ -27,6 +28,7 @@ type FlowDefinitionRequest struct {
 	Handle       string                            `json:"handle"                 validate:"required"`
 	Name         string                            `json:"name"                   validate:"required"`
 	FlowType     providers.FlowType                `json:"flowType"               validate:"required"`
+	ProjectID    string                            `json:"projectId,omitempty"`
 	Interceptors []providers.InterceptorDefinition `json:"interceptors,omitempty"`
 	Nodes        []providers.NodeDefinition        `json:"nodes"                  validate:"required"`
 }
@@ -37,6 +39,7 @@ type BasicFlowDefinition struct {
 	Handle        string             `json:"handle"        jsonschema:"URL-friendly handle."`
 	FlowType      providers.FlowType `json:"flowType"      jsonschema:"Type of flow (AUTHENTICATION or REGISTRATION)."`
 	Name          string             `json:"name"          jsonschema:"Display name of the flow."`
+	ProjectID     string             `json:"projectId,omitempty" jsonschema:"Project the flow belongs to."`
 	ActiveVersion int                `json:"activeVersion" jsonschema:"Current active version number."`
 	CreatedAt     string             `json:"createdAt"     jsonschema:"Creation timestamp."`
 	UpdatedAt     string             `json:"updatedAt"     jsonschema:"Last update timestamp."`

@@ -38,4 +38,6 @@ export interface GroupListParams {
   limit?: number;
   /** Number of records to skip */
   offset?: number;
+  /** Lists only the groups of the organization units in this project */
+  projectId?: string;
 }

@@ -11,6 +11,8 @@ export interface UseConnectionsParams {
   category?: ConnectionInstanceCategory;
   limit?: number;
   offset?: number;
+  /** Lists only the connections of this project. */
+  projectId?: string;
 }
 
 export interface UseConnectionsOptions {
@@ -27,10 +29,10 @@ export default function useConnections(
 ): UseQueryResult<ConnectionListResponse> {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
-  const {category, limit, offset} = params ?? {};
+  const {category, limit, offset, projectId} = params ?? {};
 
   return useQuery<ConnectionListResponse>({
-    queryKey: [ConnectionQueryKeys.CONNECTIONS, {category, limit, offset}],
+    queryKey: [ConnectionQueryKeys.CONNECTIONS, {category, limit, offset, projectId}],
     enabled: options?.enabled ?? true,
     queryFn: async (): Promise<ConnectionListResponse> => {
       const serverUrl: string = getServerUrl();
@@ -43,6 +45,9 @@ export default function useConnections(
       }
       if (offset !== undefined) {
         searchParams.set('offset', String(offset));
+      }
+      if (projectId) {
+        searchParams.set('projectId', projectId);
       }
       const queryString: string = searchParams.toString();
       const query: string = queryString ? `?${queryString}` : '';

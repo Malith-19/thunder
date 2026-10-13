@@ -70,7 +70,7 @@ func (s *FileBasedStoreTestSuite) TestDeclaredTemplateIsFlaggedReadOnly() {
 	s.Require().NoError(err)
 	s.Require().True(byID.IsReadOnly, "a declared template read by id must be read-only")
 
-	listed, err := s.fileStore.ListTemplates(s.ctx, ChannelTypeEmail, 100, 0)
+	listed, err := s.fileStore.ListTemplates(s.ctx, ChannelTypeEmail, 100, 0, "")
 	s.Require().NoError(err)
 	s.Require().Len(listed, 1)
 	s.Require().True(listed[0].IsReadOnly, "a declared template in a listing must be read-only")
@@ -93,11 +93,11 @@ func (s *FileBasedStoreTestSuite) TestListByChannelOrdersByHandleAndFiltersChann
 	loadDeclared(s.T(), s.fileStore, declaredAlphaYAML)
 	loadDeclared(s.T(), s.fileStore, declaredSMSYAML)
 
-	email, err := s.fileStore.ListTemplates(s.ctx, ChannelTypeEmail, 100, 0)
+	email, err := s.fileStore.ListTemplates(s.ctx, ChannelTypeEmail, 100, 0, "")
 	s.Require().NoError(err)
 	s.Require().Equal([]string{"alpha", "zebra"}, handlesOf(email))
 
-	sms, err := s.fileStore.ListTemplates(s.ctx, ChannelTypeSMS, 100, 0)
+	sms, err := s.fileStore.ListTemplates(s.ctx, ChannelTypeSMS, 100, 0, "")
 	s.Require().NoError(err)
 	s.Require().Equal([]string{"otp"}, handlesOf(sms))
 }
@@ -108,17 +108,17 @@ func (s *FileBasedStoreTestSuite) TestListTemplatesPagination() {
 	loadDeclared(s.T(), s.fileStore, declaredZebraYAML)
 	loadDeclared(s.T(), s.fileStore, declaredAlphaYAML)
 
-	first, err := s.fileStore.ListTemplates(s.ctx, ChannelTypeEmail, 1, 0)
+	first, err := s.fileStore.ListTemplates(s.ctx, ChannelTypeEmail, 1, 0, "")
 	s.Require().NoError(err)
 	s.Require().Equal([]string{"alpha"}, handlesOf(first))
 
 	// limit runs past the end: the window is clamped to what remains.
-	last, err := s.fileStore.ListTemplates(s.ctx, ChannelTypeEmail, 10, 1)
+	last, err := s.fileStore.ListTemplates(s.ctx, ChannelTypeEmail, 10, 1, "")
 	s.Require().NoError(err)
 	s.Require().Equal([]string{"zebra"}, handlesOf(last))
 
 	// offset past the end returns an empty (non-nil) page.
-	beyond, err := s.fileStore.ListTemplates(s.ctx, ChannelTypeEmail, 10, 5)
+	beyond, err := s.fileStore.ListTemplates(s.ctx, ChannelTypeEmail, 10, 5, "")
 	s.Require().NoError(err)
 	s.Require().Empty(beyond)
 }
@@ -128,11 +128,11 @@ func (s *FileBasedStoreTestSuite) TestCountTemplatesByChannel() {
 	loadDeclared(s.T(), s.fileStore, declaredAlphaYAML)
 	loadDeclared(s.T(), s.fileStore, declaredSMSYAML)
 
-	emailCount, err := s.fileStore.CountTemplates(s.ctx, ChannelTypeEmail)
+	emailCount, err := s.fileStore.CountTemplates(s.ctx, ChannelTypeEmail, "")
 	s.Require().NoError(err)
 	s.Require().Equal(1, emailCount)
 
-	smsCount, err := s.fileStore.CountTemplates(s.ctx, ChannelTypeSMS)
+	smsCount, err := s.fileStore.CountTemplates(s.ctx, ChannelTypeSMS, "")
 	s.Require().NoError(err)
 	s.Require().Equal(1, smsCount)
 }

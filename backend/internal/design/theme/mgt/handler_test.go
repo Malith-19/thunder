@@ -39,9 +39,12 @@ type mockThemeService struct {
 	isThemeExistFunc   func(id string) (bool, *tidcommon.ServiceError)
 	getThemeUsagesFunc func(id string, limit, offset int) (
 		*resourcedependency.DependenciesResponse, *tidcommon.ServiceError)
+	listProjectID string
 }
 
-func (m *mockThemeService) GetThemeList(_ context.Context, limit, offset int) (*ThemeList, *tidcommon.ServiceError) {
+func (m *mockThemeService) GetThemeList(
+	_ context.Context, limit, offset int, projectID string) (*ThemeList, *tidcommon.ServiceError) {
+	m.listProjectID = projectID
 	return m.getThemeListFunc(limit, offset)
 }
 

@@ -1175,6 +1175,7 @@ Enabling a trusted issuer is additive and non-breaking. <ProductName /> still ac
 | `server.security.trusted_issuer.jwks_url` | `""` | URL of the external authorization server's JWKS endpoint used to fetch signing keys. Must use HTTPS (HTTP allowed only for `localhost`) |
 | `server.security.trusted_issuer.audience` | `""` | Expected value of the token's `aud` claim. This should be this server's own identifier (typically its public URL) |
 | `server.security.trusted_issuer.required_claims` | `[]` | List of claims that every accepted token must contain. Each entry has a `claim` name and an expected `value`. If any required claim is missing or does not match, the token is rejected |
+| `server.security.trusted_issuer.ca_cert_file` | `""` | Path to a PEM file of certificate authorities to trust, in addition to the system ones, when fetching the JWKS. Use it when a private certificate authority signed the authorization server's certificate. A relative path is resolved against the server home |
 
 **Example:**
 ```yaml

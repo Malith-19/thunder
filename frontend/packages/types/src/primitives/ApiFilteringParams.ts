@@ -25,4 +25,9 @@ export interface ApiFilteringParams {
    * Filter expression used to narrow the result set.
    */
   filter?: string;
+
+  /**
+   * Lists only the resources that belong to this project.
+   */
+  projectId?: string;
 }

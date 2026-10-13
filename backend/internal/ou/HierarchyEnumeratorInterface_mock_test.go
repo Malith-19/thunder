@@ -171,3 +171,73 @@ func (_c *HierarchyEnumeratorInterfaceMock_DescendantOUIDs_Call) RunAndReturn(ru
 	_c.Call.Return(run)
 	return _c
 }
+
+// ProjectOUIDs provides a mock function for the type HierarchyEnumeratorInterfaceMock
+func (_mock *HierarchyEnumeratorInterfaceMock) ProjectOUIDs(ctx context.Context, projectID string) ([]string, *common.ServiceError) {
+	ret := _mock.Called(ctx, projectID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ProjectOUIDs")
+	}
+
+	var r0 []string
+	var r1 *common.ServiceError
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]string, *common.ServiceError)); ok {
+		return returnFunc(ctx, projectID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []string); ok {
+		r0 = returnFunc(ctx, projectID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) *common.ServiceError); ok {
+		r1 = returnFunc(ctx, projectID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*common.ServiceError)
+		}
+	}
+	return r0, r1
+}
+
+// HierarchyEnumeratorInterfaceMock_ProjectOUIDs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ProjectOUIDs'
+type HierarchyEnumeratorInterfaceMock_ProjectOUIDs_Call struct {
+	*mock.Call
+}
+
+// ProjectOUIDs is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID string
+func (_e *HierarchyEnumeratorInterfaceMock_Expecter) ProjectOUIDs(ctx interface{}, projectID interface{}) *HierarchyEnumeratorInterfaceMock_ProjectOUIDs_Call {
+	return &HierarchyEnumeratorInterfaceMock_ProjectOUIDs_Call{Call: _e.mock.On("ProjectOUIDs", ctx, projectID)}
+}
+
+func (_c *HierarchyEnumeratorInterfaceMock_ProjectOUIDs_Call) Run(run func(ctx context.Context, projectID string)) *HierarchyEnumeratorInterfaceMock_ProjectOUIDs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *HierarchyEnumeratorInterfaceMock_ProjectOUIDs_Call) Return(strings []string, serviceError *common.ServiceError) *HierarchyEnumeratorInterfaceMock_ProjectOUIDs_Call {
+	_c.Call.Return(strings, serviceError)
+	return _c
+}
+
+func (_c *HierarchyEnumeratorInterfaceMock_ProjectOUIDs_Call) RunAndReturn(run func(ctx context.Context, projectID string) ([]string, *common.ServiceError)) *HierarchyEnumeratorInterfaceMock_ProjectOUIDs_Call {
+	_c.Call.Return(run)
+	return _c
+}

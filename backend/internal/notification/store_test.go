@@ -96,7 +96,7 @@ func (suite *StoreTestSuite) TestCreateSender() {
 	suite.mockDBClient.EXPECT().ExecuteContext(
 		context.Background(),
 		queryCreateNotificationSender, sender.Name, sender.ID, sender.Description,
-		string(sender.Type), string(sender.Provider), propsJSON, testDeploymentID,
+		string(sender.Type), string(sender.Provider), propsJSON, nil, testDeploymentID,
 	).Return(int64(1), nil).Once()
 
 	err = suite.store.createSender(context.Background(), sender)
@@ -125,7 +125,7 @@ func (suite *StoreTestSuite) TestCreateSender_DBExecuteError() {
 	suite.NoError(err)
 	suite.mockDBClient.EXPECT().ExecuteContext(context.Background(), queryCreateNotificationSender,
 		sender.Name, sender.ID,
-		sender.Description, string(sender.Type), string(sender.Provider), propsJSON, testDeploymentID).Return(
+		sender.Description, string(sender.Type), string(sender.Provider), propsJSON, nil, testDeploymentID).Return(
 		int64(0), errors.New("exec fail")).Once()
 
 	err = suite.store.createSender(context.Background(), sender)
@@ -431,7 +431,7 @@ func (suite *StoreTestSuite) TestUpdateSender() {
 	suite.mockDBProvider.EXPECT().GetConfigDBClient().Return(suite.mockDBClient, nil).Once()
 	suite.mockDBClient.EXPECT().ExecuteContext(context.Background(), queryUpdateNotificationSender,
 		sender.Name, sender.Description,
-		string(sender.Provider), "", "s1", string(sender.Type), testDeploymentID).Return(int64(1), nil).Once()
+		string(sender.Provider), "", nil, "s1", string(sender.Type), testDeploymentID).Return(int64(1), nil).Once()
 
 	err := suite.store.updateSender(context.Background(), "s1", sender)
 	suite.NoError(err)
@@ -448,7 +448,8 @@ func (suite *StoreTestSuite) TestUpdateSender_WithProperties() {
 	suite.NoError(err)
 	suite.mockDBClient.EXPECT().ExecuteContext(context.Background(), queryUpdateNotificationSender,
 		sender.Name, sender.Description,
-		string(sender.Provider), propsJSON, "s1", string(sender.Type), testDeploymentID).Return(int64(1), nil).Once()
+		string(sender.Provider), propsJSON, nil, "s1", string(sender.Type), testDeploymentID).
+		Return(int64(1), nil).Once()
 
 	err = suite.store.updateSender(context.Background(), "s1", sender)
 	suite.NoError(err)
@@ -480,7 +481,7 @@ func (suite *StoreTestSuite) TestUpdateSender_WithError() {
 				suite.mockDBProvider.EXPECT().GetConfigDBClient().Return(suite.mockDBClient, nil).Once()
 				suite.mockDBClient.EXPECT().ExecuteContext(context.Background(), queryUpdateNotificationSender,
 					sender.Name,
-					sender.Description, string(sender.Provider), "", "s1", string(sender.Type), testDeploymentID).
+					sender.Description, string(sender.Provider), "", nil, "s1", string(sender.Type), testDeploymentID).
 					Return(int64(0), errors.New("exec fail")).Once()
 			},
 			wantErr: "failed to execute query",
@@ -505,7 +506,7 @@ func (suite *StoreTestSuite) TestUpdateSender_ExecuteError() {
 	suite.mockDBProvider.EXPECT().GetConfigDBClient().Return(suite.mockDBClient, nil).Once()
 	suite.mockDBClient.EXPECT().ExecuteContext(context.Background(), queryUpdateNotificationSender,
 		sender.Name, sender.Description,
-		string(sender.Provider), "", "s1", string(sender.Type), testDeploymentID).
+		string(sender.Provider), "", nil, "s1", string(sender.Type), testDeploymentID).
 		Return(int64(0), errors.New("exec fail")).Once()
 
 	err := suite.store.updateSender(context.Background(), "s1", sender)

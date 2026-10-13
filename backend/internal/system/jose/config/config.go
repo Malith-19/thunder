@@ -14,4 +14,7 @@ type Config struct {
 	PreferredKeyID string
 	Leeway         int64
 	JWKSCacheTTL   time.Duration
+	// JWKSCACertificate is a PEM certificate authority trusted, in addition to the system roots, when
+	// fetching a JWKS.
+	JWKSCACertificate string
 }

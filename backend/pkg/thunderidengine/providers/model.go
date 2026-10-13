@@ -204,6 +204,7 @@ type CompleteFlowDefinition struct {
 	Handle        string                  `json:"handle"                  yaml:"handle"                 jsonschema:"URL-friendly handle for the flow."`
 	Name          string                  `json:"name"                    yaml:"name"                   jsonschema:"Display name of the flow."`
 	FlowType      FlowType                `json:"flowType"                yaml:"flowType"               jsonschema:"Type of flow (AUTHENTICATION or REGISTRATION)."`
+	ProjectID     string                  `json:"projectId,omitempty"     yaml:"projectId,omitempty"    jsonschema:"Project the flow belongs to."`
 	ActiveVersion int                     `json:"activeVersion,omitempty" yaml:"activeVersion"          jsonschema:"Current active version number of the flow."`
 	Interceptors  []InterceptorDefinition `json:"interceptors,omitempty"  yaml:"interceptors,omitempty" jsonschema:"Interceptor declarations for cross-cutting concerns."`
 	Nodes         []NodeDefinition        `json:"nodes,omitempty"         yaml:"nodes"                  jsonschema:"List of nodes defining the flow logic."`
@@ -798,6 +799,7 @@ type IDPDTO struct {
 	Name                   string                  `yaml:"name"`
 	Description            string                  `yaml:"description,omitempty"`
 	Type                   IDPType                 `yaml:"type"`
+	ProjectID              string                  `yaml:"projectId,omitempty"`
 	Properties             []cmodels.Property      `yaml:"properties,omitempty"`
 	AttributeConfiguration *AttributeConfiguration `yaml:"attribute_configuration,omitempty"`
 }

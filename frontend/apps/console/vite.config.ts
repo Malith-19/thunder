@@ -42,6 +42,11 @@ const DEV_SERVER_URL = process.env.THUNDERID_DEV_SERVER_URL?.trim();
 // __DEV_GATE_URL__ only for the dev server; production builds receive an empty string.
 const DEV_GATE_URL = process.env.THUNDERID_DEV_GATE_URL?.trim();
 
+// Dev token issuer URL, from THUNDERID_DEV_TRUSTED_ISSUER_URL (unset by default). When set, the dev
+// server signs in at this issuer and sends API calls to the dev backend, as the console does for a
+// Control Plane. Injected into __DEV_TRUSTED_ISSUER_URL__ only for the dev server.
+const DEV_TRUSTED_ISSUER_URL = process.env.THUNDERID_DEV_TRUSTED_ISSUER_URL?.trim();
+
 // https://vite.dev/config/
 export default defineConfig(({command}) => ({
   base: BASE_URL,
@@ -88,6 +93,7 @@ export default defineConfig(({command}) => ({
     __DEV_GATE_URL__: JSON.stringify(
       command === 'serve' ? (DEV_GATE_URL && DEV_GATE_URL.length > 0 ? DEV_GATE_URL : 'https://localhost:5190') : '',
     ),
+    __DEV_TRUSTED_ISSUER_URL__: JSON.stringify(command === 'serve' ? (DEV_TRUSTED_ISSUER_URL ?? '') : ''),
   },
   plugins: [
     linkWorkspaceSource(),

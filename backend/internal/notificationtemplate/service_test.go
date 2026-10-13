@@ -398,8 +398,8 @@ func (s *NotificationTemplateServiceTestSuite) TestGetAndList() {
 	s.mockStore.On("GetTemplate", mock.Anything, ChannelTypeEmail, created.ID).Return(createdDao, nil)
 	s.mockStore.On("GetTemplate", mock.Anything, ChannelTypeEmail, "missing").Return(templateDAO{}, errTemplateNotFound)
 	s.mockStore.On("GetTemplate", mock.Anything, ChannelTypeSMS, created.ID).Return(templateDAO{}, errTemplateNotFound)
-	s.mockStore.On("CountTemplates", mock.Anything, ChannelTypeEmail).Return(1, nil)
-	s.mockStore.On("ListTemplates", mock.Anything, ChannelTypeEmail, 30, 0).Return([]templateDAO{createdDao}, nil)
+	s.mockStore.On("CountTemplates", mock.Anything, ChannelTypeEmail, "").Return(1, nil)
+	s.mockStore.On("ListTemplates", mock.Anything, ChannelTypeEmail, 30, 0, "").Return([]templateDAO{createdDao}, nil)
 
 	got, err := s.svc.GetTemplate(s.ctx, ChannelTypeEmail, created.ID)
 	s.Require().Nil(err)
@@ -413,7 +413,7 @@ func (s *NotificationTemplateServiceTestSuite) TestGetAndList() {
 	_, err = s.svc.GetTemplate(s.ctx, ChannelTypeSMS, created.ID)
 	s.Require().Equal(ErrorTemplateNotFound.Code, err.Code)
 
-	list, err := s.svc.ListTemplates(s.ctx, ChannelTypeEmail, 30, 0)
+	list, err := s.svc.ListTemplates(s.ctx, ChannelTypeEmail, 30, 0, "")
 	s.Require().Nil(err)
 	s.Require().Equal(1, list.TotalResults)
 	s.Require().Equal(1, list.Count)
@@ -453,12 +453,12 @@ func (s *NotificationTemplateServiceTestSuite) TestListTemplates_Pagination() {
 		{ID: "b", Channel: ChannelTypeEmail, Handle: "b", DisplayName: "b", Content: TemplateContent{Body: "b"}},
 		{ID: "c", Channel: ChannelTypeEmail, Handle: "c", DisplayName: "c", Content: TemplateContent{Body: "b"}},
 	}
-	s.mockStore.On("CountTemplates", mock.Anything, ChannelTypeEmail).Return(3, nil)
-	s.mockStore.On("ListTemplates", mock.Anything, ChannelTypeEmail, 2, 0).Return(daos[:2], nil)
-	s.mockStore.On("ListTemplates", mock.Anything, ChannelTypeEmail, 2, 2).Return(daos[2:], nil)
+	s.mockStore.On("CountTemplates", mock.Anything, ChannelTypeEmail, "").Return(3, nil)
+	s.mockStore.On("ListTemplates", mock.Anything, ChannelTypeEmail, 2, 0, "").Return(daos[:2], nil)
+	s.mockStore.On("ListTemplates", mock.Anything, ChannelTypeEmail, 2, 2, "").Return(daos[2:], nil)
 
 	// First page of two: total 3, count 2, a next link.
-	page, err := s.svc.ListTemplates(s.ctx, ChannelTypeEmail, 2, 0)
+	page, err := s.svc.ListTemplates(s.ctx, ChannelTypeEmail, 2, 0, "")
 	s.Require().Nil(err)
 	s.Require().Equal(3, page.TotalResults)
 	s.Require().Equal(2, page.Count)
@@ -466,21 +466,21 @@ func (s *NotificationTemplateServiceTestSuite) TestListTemplates_Pagination() {
 	s.Require().NotEmpty(page.Links)
 
 	// Second page: remaining one.
-	page, err = s.svc.ListTemplates(s.ctx, ChannelTypeEmail, 2, 2)
+	page, err = s.svc.ListTemplates(s.ctx, ChannelTypeEmail, 2, 2, "")
 	s.Require().Nil(err)
 	s.Require().Equal(1, page.Count)
 	s.Require().Equal(3, page.StartIndex)
 }
 
 func (s *NotificationTemplateServiceTestSuite) TestListTemplates_InvalidPagination() {
-	_, err := s.svc.ListTemplates(s.ctx, ChannelTypeEmail, 0, 0)
+	_, err := s.svc.ListTemplates(s.ctx, ChannelTypeEmail, 0, 0, "")
 	s.Require().Equal(ErrorInvalidLimit.Code, err.Code)
 
 	// Above the maximum page size (serverconst.MaxPageSize = 100) is rejected too.
-	_, err = s.svc.ListTemplates(s.ctx, ChannelTypeEmail, 101, 0)
+	_, err = s.svc.ListTemplates(s.ctx, ChannelTypeEmail, 101, 0, "")
 	s.Require().Equal(ErrorInvalidLimit.Code, err.Code)
 
-	_, err = s.svc.ListTemplates(s.ctx, ChannelTypeEmail, 30, -1)
+	_, err = s.svc.ListTemplates(s.ctx, ChannelTypeEmail, 30, -1, "")
 	s.Require().Equal(ErrorInvalidOffset.Code, err.Code)
 }
 

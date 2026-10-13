@@ -4,8 +4,10 @@
 package mgt
 
 import (
+	"context"
 	"net/http"
 
+	"github.com/thunder-id/thunderid/internal/project"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	declarativeresource "github.com/thunder-id/thunderid/internal/system/declarative_resource"
@@ -15,6 +17,7 @@ import (
 // Initialize initializes the i18n service and registers its routes.
 func Initialize(mux *http.ServeMux,
 	translationConfig config.TranslationConfig,
+	projects project.Registry,
 ) (I18nServiceInterface, declarativeresource.ResourceExporter, error) {
 	var store i18nStoreInterface
 
@@ -37,12 +40,30 @@ func Initialize(mux *http.ServeMux,
 	}
 
 	service := newI18nService(store)
+	if projects != nil {
+		service.(*i18nService).projects = projects
+		projects.AddUsageChecker(&projectUsageChecker{store: store})
+	}
 
 	handler := newI18nHandler(service)
 	registerRoutes(mux, handler)
 
 	exporter := newTranslationExporter(store)
 	return service, exporter, nil
+}
+
+// projectUsageChecker keeps a project from being deleted while translations still belong to it.
+type projectUsageChecker struct {
+	store i18nStoreInterface
+}
+
+// HasResourcesInProject reports whether any translation belongs to the project.
+func (c *projectUsageChecker) HasResourcesInProject(ctx context.Context, projectID string) (bool, error) {
+	languages, err := c.store.GetDistinctLanguages(ctx, projectID)
+	if err != nil {
+		return false, err
+	}
+	return len(languages) > 0, nil
 }
 
 // registerRoutes registers the routes for i18n management operations.

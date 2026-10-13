@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {QueryErrorNotice, ResourceAvatar} from '@thunderid/components';
+import {useProject} from '@thunderid/contexts';
 import {useDataGridLocaleText} from '@thunderid/hooks';
 import {getDisplayNameForCode, toFlagEmoji, useGetLanguages} from '@thunderid/i18n';
 import {useLogger} from '@thunderid/logger/react';
@@ -24,7 +25,8 @@ export default function TranslationsList(): JSX.Element {
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
 
-  const {data, isLoading, error, refetch} = useGetLanguages();
+  const {selectedProject} = useProject();
+  const {data, isLoading, error, refetch} = useGetLanguages({projectId: selectedProject?.id});
 
   const handleEditClick = useCallback(
     (language: string): void => {

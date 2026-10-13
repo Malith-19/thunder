@@ -17,6 +17,7 @@ type OrganizationUnitRequest struct {
 	Name                      string  `json:"name" native:"required,min=1,max=100"`
 	Description               string  `json:"description,omitempty"`
 	Parent                    *string `json:"parent" native:"omitempty,max=255"`
+	ProjectID                 string  `json:"projectId,omitempty" native:"omitempty,max=36"`
 	ThemeID                   string  `json:"themeId,omitempty"`
 	LayoutID                  string  `json:"layoutId,omitempty"`
 	AuthFlowID                string  `json:"authFlowId,omitempty"`
@@ -41,6 +42,7 @@ type OrganizationUnit struct {
 	Name                      string    `json:"name" yaml:"name"`
 	Description               string    `json:"description,omitempty" yaml:"description,omitempty"`
 	Parent                    *string   `json:"parent" yaml:"parent"`
+	ProjectID                 string    `json:"projectId,omitempty" yaml:"projectId,omitempty"`
 	ThemeID                   string    `json:"themeId,omitempty" yaml:"themeId,omitempty"`
 	LayoutID                  string    `json:"layoutId,omitempty" yaml:"layoutId,omitempty"`
 	AuthFlowID                string    `json:"authFlowId,omitempty" yaml:"authFlowId,omitempty"`
@@ -66,6 +68,7 @@ type OrganizationUnitRequestWithID struct {
 	Name                      string  `json:"name" yaml:"name" native:"required,min=1,max=100"`
 	Description               string  `json:"description,omitempty" yaml:"description,omitempty"`
 	Parent                    *string `json:"parent" yaml:"parent"`
+	ProjectID                 string  `json:"projectId,omitempty" yaml:"projectId,omitempty"`
 	ThemeID                   string  `json:"themeId,omitempty" yaml:"themeId,omitempty"`
 	LayoutID                  string  `json:"layoutId,omitempty" yaml:"layoutId,omitempty"`
 	AuthFlowID                string  `json:"authFlowId,omitempty" yaml:"authFlowId,omitempty"`
@@ -98,6 +101,7 @@ type OrganizationUnitBasic struct {
 	Handle      string    `json:"handle"`
 	Name        string    `json:"name"`
 	Description string    `json:"description,omitempty"`
+	ProjectID   string    `json:"projectId,omitempty"`
 	LogoURL     string    `json:"logoUrl,omitempty"`
 	IsReadOnly  bool      `json:"isReadOnly"`
 	CreatedAt   time.Time `json:"createdAt"`

@@ -47,6 +47,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/notification"
 	"github.com/thunder-id/thunderid/internal/notificationtemplate"
 	"github.com/thunder-id/thunderid/internal/ou"
+	"github.com/thunder-id/thunderid/internal/project"
 	"github.com/thunder-id/thunderid/internal/resource"
 	"github.com/thunder-id/thunderid/internal/role"
 	"github.com/thunder-id/thunderid/internal/serverconfig"
@@ -109,13 +110,17 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	cmodels.SetConfigCryptoProvider(configCryptoSvc)
 
 	runtime := config.GetServerRuntime()
+	jwksCACertificate, err := runtime.Config.Server.SecurityConfig.TrustedIssuer.ReadCACertificate(
+		runtime.ServerHome)
+	fatalOnError(ctx, logger, err, "Failed to read the trusted issuer certificate authority")
 	joseCfg := joseconfig.Config{
-		Issuer:         runtime.Config.JWT.Issuer,
-		ValidityPeriod: runtime.Config.JWT.ValidityPeriod,
-		Audience:       runtime.Config.JWT.Audience,
-		PreferredKeyID: runtime.Config.JWT.PreferredKeyID,
-		Leeway:         runtime.Config.JWT.Leeway,
-		JWKSCacheTTL:   time.Duration(runtime.Config.Server.SecurityConfig.JWKSCacheTTL) * time.Second,
+		Issuer:            runtime.Config.JWT.Issuer,
+		ValidityPeriod:    runtime.Config.JWT.ValidityPeriod,
+		Audience:          runtime.Config.JWT.Audience,
+		PreferredKeyID:    runtime.Config.JWT.PreferredKeyID,
+		Leeway:            runtime.Config.JWT.Leeway,
+		JWKSCacheTTL:      time.Duration(runtime.Config.Server.SecurityConfig.JWKSCacheTTL) * time.Second,
+		JWKSCACertificate: jwksCACertificate,
 	}
 	jwtService, jweService, err := jose.Initialize(runtimeCryptoSvc, joseCfg)
 	fatalOnError(ctx, logger, err, "Failed to initialize JOSE services")
@@ -134,9 +139,14 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	// reaches the default gateway's store under the name the export refers to it by. It is bound to the
 	// export and the gateways once both exist below, since the export is built from these services.
 	valueCapture := gateway.NewValueCapture()
+	// Projects live in this plane only. A project is a collection of organization units plus the
+	// resources that are not bound to one; the data plane keeps the project ID as a label.
+	projectService, err := project.Initialize(mux)
+	fatalOnError(ctx, logger, err, "Failed to initialize ProjectService")
 
 	// Initialize i18n service for internationalization support.
-	i18nService, i18nExporter, err := i18nmgt.Initialize(mux, config.GetServerRuntime().Config.Translation)
+	i18nService, i18nExporter, err := i18nmgt.Initialize(mux, config.GetServerRuntime().Config.Translation,
+		projectService)
 	fatalOnError(ctx, logger, err, "Failed to initialize i18n service")
 	exporters = append(exporters, i18nExporter)
 
@@ -146,6 +156,8 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	ouService, ouHierarchyResolver, ouEnumerator, ouExporter, err := ou.Initialize(
 		mux, mcpServer, cacheManager, ouAuthzService)
 	fatalOnError(ctx, logger, err, "Failed to initialize OrganizationUnitService")
+	ouService.SetProjectResolver(projectService)
+	projectService.AddUsageChecker(ou.NewProjectUsageChecker(ouService))
 	exporters = append(exporters, ouExporter)
 
 	// Complete the two-phase initialization: inject the OU hierarchy resolver into the
@@ -180,7 +192,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	fatalOnError(ctx, logger, err, "Failed to initialize GroupService")
 	exporters = append(exporters, groupExporter)
 
-	authZENPDPService, err := authzenpdp.Initialize(runtime.Config.AuthZENPDP, entityTypeService)
+	authZENPDPService, err := authzenpdp.Initialize(runtime.Config.AuthZENPDP, entityTypeService, projectService)
 	fatalOnError(ctx, logger, err, "Failed to initialize AuthZENPDPService")
 
 	resourceService, resourceExporter, err := resource.Initialize(mux, ouService, authZENPDPService)
@@ -188,8 +200,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	exporters = append(exporters, resourceExporter)
 
 	roleService, roleAssignmentService, ouRoleResolver, roleExporter, err := role.Initialize(
-		mux, entityService, groupService, ouService, resourceService, entityTypeService, ouAuthzService,
-	)
+		mux, entityService, groupService, ouService, resourceService, entityTypeService, ouAuthzService)
 	fatalOnError(ctx, logger, err, "Failed to initialize RoleService")
 	exporters = append(exporters, roleExporter)
 
@@ -205,15 +216,17 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	ouAuthzService.SetPermissionResolver(
 		role.NewEffectivePermissionResolver(roleService, groupService, entityService))
 
-	idpService, err := idp.Initialize(cacheManager, entityTypeService, roleService, groupService, resourceService)
+	idpService, err := idp.Initialize(cacheManager, entityTypeService, roleService, groupService, resourceService,
+		projectService)
 	fatalOnError(ctx, logger, err, "Failed to initialize IDPService")
 
 	// Notification: only the sender-management (CRUD) service is kept. The OTP and sender runtime
 	// services this returns are data plane concerns and are dropped.
-	notifSenderMgtSvc, _, _, err := notification.Initialize(jwtService)
+	notifSenderMgtSvc, _, _, err := notification.Initialize(jwtService, projectService)
 	fatalOnError(ctx, logger, err, "Failed to initialize NotificationService")
 
-	notifTemplateSvc, _, notifTemplateExporter, err := notificationtemplate.Initialize(mux, cacheManager, i18nService)
+	notifTemplateSvc, _, notifTemplateExporter, err := notificationtemplate.Initialize(mux, cacheManager, i18nService,
+		projectService)
 	fatalOnError(ctx, logger, err, "Failed to initialize NotificationTemplateService")
 	exporters = append(exporters, notifTemplateExporter)
 
@@ -268,7 +281,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 
 	flowMgtService, flowMgtExporter, err := flowmgt.Initialize(
 		mux, mcpServer, cacheManager, flowFactory, execRegistry, interceptorRegistry, graphBuilder,
-		serverConfigService, ouService, flowConfigHandler)
+		serverConfigService, ouService, flowConfigHandler, projectService)
 	fatalOnError(ctx, logger, err, "Failed to initialize FlowMgtService")
 
 	// Two-phase initialization: inject the flow resolver into the OU service.
@@ -278,11 +291,11 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	certservice, err := cert.Initialize(cacheManager, dbprovider.GetDBProvider())
 	fatalOnError(ctx, logger, err, "Failed to initialize CertificateService")
 
-	themeMgtService, themeExporter, err := thememgt.Initialize(mux, mcpServer)
+	themeMgtService, themeExporter, err := thememgt.Initialize(mux, mcpServer, projectService)
 	fatalOnError(ctx, logger, err, "Failed to initialize ThemeMgtService")
 	exporters = append(exporters, themeExporter)
 
-	layoutMgtService, layoutExporter, err := layoutmgt.Initialize(mux)
+	layoutMgtService, layoutExporter, err := layoutmgt.Initialize(mux, projectService)
 	fatalOnError(ctx, logger, err, "Failed to initialize LayoutMgtService")
 	exporters = append(exporters, layoutExporter)
 

@@ -6,6 +6,7 @@ CREATE TABLE "ORGANIZATION_UNIT" (
     HANDLE      VARCHAR(100)        NOT NULL,
     NAME        VARCHAR(100)        NOT NULL,
     DESCRIPTION VARCHAR(255),
+    PROJECT_ID      VARCHAR(36),
     METADATA     TEXT,
     CREATED_AT  TEXT NOT NULL,
     UPDATED_AT  TEXT NOT NULL,
@@ -14,6 +15,9 @@ CREATE TABLE "ORGANIZATION_UNIT" (
 
 -- Composite index for handle-based OU lookups (queryGetRootOrganizationUnitByHandle, queryGetOrganizationUnitByHandle)
 CREATE INDEX idx_ou_handle_parent ON "ORGANIZATION_UNIT" (DEPLOYMENT_ID, HANDLE, PARENT_ID);
+
+-- Lists organization units by project
+CREATE INDEX idx_ou_project ON "ORGANIZATION_UNIT" (DEPLOYMENT_ID, PROJECT_ID);
 
 -- Table to store Entities (unified identity principals: users, applications, agents)
 CREATE TABLE "ENTITY" (

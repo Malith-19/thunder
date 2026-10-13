@@ -10,28 +10,28 @@ var (
 	queryCreateNotificationSender = dbmodel.DBQuery{
 		ID: "NMQ-SM-01",
 		Query: `INSERT INTO "NOTIFICATION_SENDER" ` +
-			`(NAME, ID, DESCRIPTION, TYPE, PROVIDER, PROPERTIES, DEPLOYMENT_ID) ` +
-			`VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+			`(NAME, ID, DESCRIPTION, TYPE, PROVIDER, PROPERTIES, PROJECT_ID, DEPLOYMENT_ID) ` +
+			`VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 	}
 
 	// queryGetNotificationSenderByID is the query to get a notification sender by its ID.
 	queryGetNotificationSenderByID = dbmodel.DBQuery{
 		ID: "NMQ-SM-03",
-		Query: `SELECT ID, NAME, DESCRIPTION, TYPE, PROVIDER, PROPERTIES ` +
+		Query: `SELECT ID, NAME, DESCRIPTION, TYPE, PROVIDER, PROPERTIES, PROJECT_ID ` +
 			`FROM "NOTIFICATION_SENDER" WHERE ID = $1 AND DEPLOYMENT_ID = $2`,
 	}
 
 	// queryGetAllNotificationSenders is the query to get all notification senders.
 	queryGetAllNotificationSenders = dbmodel.DBQuery{
 		ID: "NMQ-SM-05",
-		Query: `SELECT ID, NAME, DESCRIPTION, TYPE, PROVIDER, PROPERTIES ` +
+		Query: `SELECT ID, NAME, DESCRIPTION, TYPE, PROVIDER, PROPERTIES, PROJECT_ID ` +
 			`FROM "NOTIFICATION_SENDER" WHERE DEPLOYMENT_ID = $1`,
 	}
 
 	// queryGetNotificationSendersByType is the query to get all notification senders of a given type.
 	queryGetNotificationSendersByType = dbmodel.DBQuery{
 		ID: "NMQ-SM-10",
-		Query: `SELECT ID, NAME, DESCRIPTION, TYPE, PROVIDER, PROPERTIES ` +
+		Query: `SELECT ID, NAME, DESCRIPTION, TYPE, PROVIDER, PROPERTIES, PROJECT_ID ` +
 			`FROM "NOTIFICATION_SENDER" WHERE TYPE = $1 AND DEPLOYMENT_ID = $2`,
 	}
 
@@ -39,12 +39,14 @@ var (
 	queryUpdateNotificationSender = dbmodel.DBQuery{
 		ID: "NMQ-SM-06",
 		PostgresQuery: `UPDATE "NOTIFICATION_SENDER" ` +
-			`SET NAME = $1, DESCRIPTION = $2, PROVIDER = $3, PROPERTIES = $4, ` +
-			`UPDATED_AT = NOW() WHERE ID = $5 AND TYPE = $6 AND DEPLOYMENT_ID = $7`,
-		SQLiteQuery: `UPDATE "NOTIFICATION_SENDER" SET NAME = $1, DESCRIPTION = $2, PROVIDER = $3, PROPERTIES = $4, ` +
-			`UPDATED_AT = datetime('now') WHERE ID = $5 AND TYPE = $6 AND DEPLOYMENT_ID = $7`,
-		Query: `UPDATE "NOTIFICATION_SENDER" SET NAME = $1, DESCRIPTION = $2, PROVIDER = $3, PROPERTIES = $4, ` +
-			`UPDATED_AT = datetime('now') WHERE ID = $5 AND TYPE = $6 AND DEPLOYMENT_ID = $7`,
+			`SET NAME = $1, DESCRIPTION = $2, PROVIDER = $3, PROPERTIES = $4, PROJECT_ID = $5, ` +
+			`UPDATED_AT = NOW() WHERE ID = $6 AND TYPE = $7 AND DEPLOYMENT_ID = $8`,
+		SQLiteQuery: `UPDATE "NOTIFICATION_SENDER" SET NAME = $1, DESCRIPTION = $2, PROVIDER = $3, ` +
+			`PROPERTIES = $4, PROJECT_ID = $5, ` +
+			`UPDATED_AT = datetime('now') WHERE ID = $6 AND TYPE = $7 AND DEPLOYMENT_ID = $8`,
+		Query: `UPDATE "NOTIFICATION_SENDER" SET NAME = $1, DESCRIPTION = $2, PROVIDER = $3, ` +
+			`PROPERTIES = $4, PROJECT_ID = $5, ` +
+			`UPDATED_AT = datetime('now') WHERE ID = $6 AND TYPE = $7 AND DEPLOYMENT_ID = $8`,
 	}
 
 	// queryDeleteNotificationSender is the query to delete a notification sender
@@ -56,7 +58,7 @@ var (
 	// queryGetNotificationSenderByName is the query to get a notification sender by name
 	queryGetNotificationSenderByName = dbmodel.DBQuery{
 		ID: "NMQ-SM-09",
-		Query: `SELECT ID, NAME, DESCRIPTION, TYPE, PROVIDER, PROPERTIES ` +
+		Query: `SELECT ID, NAME, DESCRIPTION, TYPE, PROVIDER, PROPERTIES, PROJECT_ID ` +
 			`FROM "NOTIFICATION_SENDER" WHERE NAME = $1 AND DEPLOYMENT_ID = $2`,
 	}
 )

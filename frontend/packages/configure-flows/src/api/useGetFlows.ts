@@ -24,6 +24,10 @@ export interface UseGetFlowsParams {
    * Number of records to skip for pagination (default: 0)
    */
   offset?: number;
+  /**
+   * Lists only the flows that belong to this project
+   */
+  projectId?: string;
 }
 
 /**
@@ -37,6 +41,7 @@ export interface UseGetFlowsParams {
  * @param params.flowType - Filter flows by type (AUTHENTICATION or REGISTRATION)
  * @param params.limit - Maximum number of records to return (default: 30, max: 100)
  * @param params.offset - Number of records to skip for pagination (default: 0)
+ * @param params.projectId - List only the flows that belong to this project
  * @returns TanStack Query result object containing flows list data, loading state, and error information
  *
  * @example
@@ -91,10 +96,10 @@ export interface UseGetFlowsParams {
 export default function useGetFlows(params?: UseGetFlowsParams): UseQueryResult<FlowListResponse> {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
-  const {flowType, limit = 30, offset = 0} = params ?? {};
+  const {flowType, limit = 30, offset = 0, projectId} = params ?? {};
 
   return useQuery<FlowListResponse>({
-    queryKey: [FlowQueryKeys.FLOWS, {flowType, limit, offset}],
+    queryKey: [FlowQueryKeys.FLOWS, {flowType, limit, offset, projectId}],
     queryFn: async (): Promise<FlowListResponse> => {
       const serverUrl: string = getServerUrl();
       const queryParams: URLSearchParams = new URLSearchParams({
@@ -104,6 +109,10 @@ export default function useGetFlows(params?: UseGetFlowsParams): UseQueryResult<
 
       if (flowType) {
         queryParams.append('flowType', flowType);
+      }
+
+      if (projectId) {
+        queryParams.append('projectId', projectId);
       }
 
       const response: {

@@ -82,10 +82,11 @@ func (s *flowInferenceService) InferRegistrationFlow(
 	}
 
 	return &FlowDefinition{
-		Name:     regFlowName,
-		FlowType: providers.FlowTypeRegistration,
-		Handle:   authFlow.Handle,
-		Nodes:    regNodes,
+		Name:      regFlowName,
+		FlowType:  providers.FlowTypeRegistration,
+		Handle:    authFlow.Handle,
+		ProjectID: authFlow.ProjectID,
+		Nodes:     regNodes,
 	}, nil
 }
 

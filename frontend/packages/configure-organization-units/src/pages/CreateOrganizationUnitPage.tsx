@@ -3,6 +3,7 @@
 
 import {zodResolver} from '@hookform/resolvers/zod';
 import {FullScreenCreationWizardLayout, NameSuggestion, OrganizationUnitSummaryChip} from '@thunderid/components';
+import {useProject} from '@thunderid/contexts';
 import {useLogger} from '@thunderid/logger/react';
 import {generateHandle, getErrorMessage} from '@thunderid/utils';
 import {Box, Stack, Typography, Button, TextField, Alert, FormControl, FormLabel} from '@wso2/oxygen-ui';
@@ -70,6 +71,8 @@ export default function CreateOrganizationUnitPage(): JSX.Element {
   const createOrganizationUnit = useCreateOrganizationUnit();
   const {resetTreeState} = useOrganizationUnit();
 
+  // A new organization unit joins the selected project; a child would take its parent's anyway.
+  const {selectedProject} = useProject();
   const navigationState = location.state as {parentId?: string; parentName?: string; parentHandle?: string} | null;
   const preselectedParentId = navigationState?.parentId ?? null;
   const parentDisplayName = navigationState?.parentName ?? null;
@@ -136,6 +139,7 @@ export default function CreateOrganizationUnitPage(): JSX.Element {
       handle: data.handle,
       name: data.name,
       parent: data.parentId,
+      ...(selectedProject && {projectId: selectedProject.id}),
     };
 
     createOrganizationUnit.mutate(requestData, {

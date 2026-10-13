@@ -80,7 +80,8 @@ func (s *IDPStoreTestSuite) TestCreateIdentityProvider_Success() {
 
 	s.mockDBProvider.On("GetConfigDBClient").Return(s.mockDBClient, nil)
 	s.mockDBClient.On("ExecuteContext", context.Background(), queryCreateIdentityProvider, idp.ID, idp.Name,
-		idp.Description, idp.Type, `{"client_id":{"value":"test-client","isSecret":false}}`, nil, testDeploymentID).
+		idp.Description, idp.Type, `{"client_id":{"value":"test-client","isSecret":false}}`, nil, nil,
+		testDeploymentID).
 		Return(int64(1), nil)
 
 	err := s.store.CreateIdentityProvider(context.Background(), idp)
@@ -102,7 +103,7 @@ func (s *IDPStoreTestSuite) TestCreateIdentityProvider_NoProperties() {
 
 	s.mockDBProvider.On("GetConfigDBClient").Return(s.mockDBClient, nil)
 	s.mockDBClient.On("ExecuteContext", context.Background(), queryCreateIdentityProvider, idp.ID, idp.Name,
-		idp.Description, idp.Type, "", nil, testDeploymentID).Return(int64(1), nil)
+		idp.Description, idp.Type, "", nil, nil, testDeploymentID).Return(int64(1), nil)
 
 	err := s.store.CreateIdentityProvider(context.Background(), idp)
 
@@ -130,7 +131,7 @@ func (s *IDPStoreTestSuite) TestCreateIdentityProvider_ExecuteError() {
 
 	s.mockDBProvider.On("GetConfigDBClient").Return(s.mockDBClient, nil)
 	s.mockDBClient.On("ExecuteContext", context.Background(), queryCreateIdentityProvider, idp.ID, idp.Name,
-		idp.Description, idp.Type, "", nil, testDeploymentID).Return(int64(0), errors.New("execute error"))
+		idp.Description, idp.Type, "", nil, nil, testDeploymentID).Return(int64(0), errors.New("execute error"))
 
 	err := s.store.CreateIdentityProvider(context.Background(), idp)
 
@@ -459,7 +460,7 @@ func (s *IDPStoreTestSuite) TestUpdateIdentityProvider_Success() {
 
 	s.mockDBProvider.On("GetConfigDBClient").Return(s.mockDBClient, nil)
 	s.mockDBClient.On("ExecuteContext", context.Background(), queryUpdateIdentityProviderByID, idp.ID, idp.Name,
-		idp.Description, idp.Type, "", nil, testDeploymentID).Return(int64(1), nil)
+		idp.Description, idp.Type, "", nil, nil, testDeploymentID).Return(int64(1), nil)
 
 	err := s.store.UpdateIdentityProvider(context.Background(), idp)
 
@@ -481,7 +482,7 @@ func (s *IDPStoreTestSuite) TestUpdateIdentityProvider_WithProperties() {
 
 	s.mockDBProvider.On("GetConfigDBClient").Return(s.mockDBClient, nil)
 	s.mockDBClient.On("ExecuteContext", context.Background(), queryUpdateIdentityProviderByID, idp.ID, idp.Name,
-		idp.Description, idp.Type, `{"client_id":{"value":"test","isSecret":false}}`, nil, testDeploymentID).
+		idp.Description, idp.Type, `{"client_id":{"value":"test","isSecret":false}}`, nil, nil, testDeploymentID).
 		Return(int64(1), nil)
 
 	err := s.store.UpdateIdentityProvider(context.Background(), idp)
@@ -510,7 +511,7 @@ func (s *IDPStoreTestSuite) TestUpdateIdentityProvider_ExecuteError() {
 
 	s.mockDBProvider.On("GetConfigDBClient").Return(s.mockDBClient, nil)
 	s.mockDBClient.On("ExecuteContext", context.Background(), queryUpdateIdentityProviderByID, idp.ID, idp.Name,
-		idp.Description, idp.Type, "", nil, testDeploymentID).Return(int64(0), errors.New("execute error"))
+		idp.Description, idp.Type, "", nil, nil, testDeploymentID).Return(int64(0), errors.New("execute error"))
 
 	err := s.store.UpdateIdentityProvider(context.Background(), idp)
 

@@ -5,6 +5,8 @@
 package jwt
 
 import (
+	"crypto/x509"
+	"errors"
 	"time"
 
 	httpservice "github.com/thunder-id/thunderid/internal/system/http"
@@ -12,10 +14,23 @@ import (
 	"github.com/thunder-id/thunderid/pkg/thunderidengine/providers"
 )
 
+// jwksFetchTimeout bounds one JWKS fetch.
+const jwksFetchTimeout = 10 * time.Second
+
 // Initialize initializes the JWT service.
 func Initialize(
 	runtimeProvider providers.RuntimeCryptoProvider, cfg joseconfig.Config,
 ) (JWTServiceInterface, error) {
-	httpClient := httpservice.NewHTTPClientWithTimeout(10 * time.Second)
+	httpClient := httpservice.NewHTTPClientWithTimeout(jwksFetchTimeout)
+	if cfg.JWKSCACertificate != "" {
+		roots, err := x509.SystemCertPool()
+		if err != nil || roots == nil {
+			roots = x509.NewCertPool()
+		}
+		if !roots.AppendCertsFromPEM([]byte(cfg.JWKSCACertificate)) {
+			return nil, errors.New("the JWKS certificate authority is not a PEM certificate")
+		}
+		httpClient = httpservice.NewHTTPClientWithRootCAs(jwksFetchTimeout, roots)
+	}
 	return newJWTService(httpClient, runtimeProvider, cfg)
 }

@@ -208,7 +208,8 @@ func (suite *InboundClientServiceTestSuite) TestCreateInboundClient_PrunesSeeded
 
 	et := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
 	et.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryUser, mock.Anything, mock.Anything, false).
+		GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryUser, mock.Anything, mock.Anything,
+			mock.Anything, false).
 		Return(&entitytypepkg.EntityTypeListResponse{
 			TotalResults: 1,
 			Types:        []entitytypepkg.EntityTypeListItem{{Handle: "users"}},
@@ -770,7 +771,8 @@ func (suite *InboundClientServiceTestSuite) TestUpdateInboundClient_StripsUndecl
 
 	et := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
 	et.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryUser, mock.Anything, mock.Anything, false).
+		GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryUser, mock.Anything, mock.Anything,
+			mock.Anything, false).
 		Return(&entitytypepkg.EntityTypeListResponse{
 			TotalResults: 1,
 			Types:        []entitytypepkg.EntityTypeListItem{{Handle: "users"}},
@@ -817,7 +819,8 @@ func (suite *InboundClientServiceTestSuite) TestUpdateInboundClient_PrunesScopeC
 
 	et := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
 	et.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryUser, mock.Anything, mock.Anything, false).
+		GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryUser, mock.Anything, mock.Anything,
+			mock.Anything, false).
 		Return(&entitytypepkg.EntityTypeListResponse{
 			TotalResults: 1,
 			Types:        []entitytypepkg.EntityTypeListItem{{Handle: "users"}},
@@ -858,7 +861,8 @@ func (suite *InboundClientServiceTestSuite) TestCreateInboundClient_SeedsAttribu
 
 	et := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
 	et.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryUser, mock.Anything, mock.Anything, false).
+		GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryUser, mock.Anything, mock.Anything,
+			mock.Anything, false).
 		Return(&entitytypepkg.EntityTypeListResponse{
 			TotalResults: 1,
 			Types:        []entitytypepkg.EntityTypeListItem{{Handle: "users"}},
@@ -899,7 +903,8 @@ func (suite *InboundClientServiceTestSuite) TestCreateInboundClient_NoAttributes
 
 	et := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
 	et.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryUser, mock.Anything, mock.Anything, false).
+		GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryUser, mock.Anything, mock.Anything,
+			mock.Anything, false).
 		Return(&entitytypepkg.EntityTypeListResponse{
 			TotalResults: 1,
 			Types:        []entitytypepkg.EntityTypeListItem{{Handle: "users"}},
@@ -931,7 +936,8 @@ func (suite *InboundClientServiceTestSuite) TestCreateInboundClient_KeepsSupplie
 
 	et := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
 	et.EXPECT().
-		GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryUser, mock.Anything, mock.Anything, false).
+		GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryUser, mock.Anything, mock.Anything,
+			mock.Anything, false).
 		Return(&entitytypepkg.EntityTypeListResponse{
 			TotalResults: 1,
 			Types:        []entitytypepkg.EntityTypeListItem{{Handle: "users"}},
@@ -2157,7 +2163,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateAllowedUserTypes_NoOpWhe
 
 func (suite *InboundClientServiceTestSuite) TestValidateAllowedUserTypes_AllExist() {
 	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
-	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, false).Return(
+	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, mock.Anything, false).Return(
 		&entitytypepkg.EntityTypeListResponse{
 			TotalResults: 1,
 			Types:        []entitytypepkg.EntityTypeListItem{{Handle: "person"}},
@@ -2168,7 +2174,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateAllowedUserTypes_AllExis
 
 func (suite *InboundClientServiceTestSuite) TestValidateAllowedUserTypes_MissingType() {
 	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
-	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, false).Return(
+	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, mock.Anything, false).Return(
 		&entitytypepkg.EntityTypeListResponse{
 			TotalResults: 1,
 			Types:        []entitytypepkg.EntityTypeListItem{{Handle: "person"}},
@@ -2180,7 +2186,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateAllowedUserTypes_Missing
 
 func (suite *InboundClientServiceTestSuite) TestValidateAllowedUserTypes_EmptyTypeRejected() {
 	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
-	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, false).Return(
+	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, mock.Anything, false).Return(
 		&entitytypepkg.EntityTypeListResponse{TotalResults: 0}, nil)
 	svc := &inboundClientService{entityType: us, logger: log.GetLogger()}
 	assert.ErrorIs(suite.T(), svc.validateAllowedUserTypes(context.Background(), []string{""}), ErrFKInvalidUserType)
@@ -2188,7 +2194,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateAllowedUserTypes_EmptyTy
 
 func (suite *InboundClientServiceTestSuite) TestValidateAllowedUserTypes_ServiceErrorPropagated() {
 	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
-	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, false).
+	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, mock.Anything, false).
 		Return(nil, &tidcommon.ServiceError{Code: "ERR"})
 	svc := &inboundClientService{entityType: us, logger: log.GetLogger()}
 	err := svc.validateAllowedUserTypes(context.Background(), []string{"a"})
@@ -2202,7 +2208,8 @@ func (suite *InboundClientServiceTestSuite) TestValidateAllowedAgentTypes_NoOpWh
 
 func (suite *InboundClientServiceTestSuite) TestValidateAllowedAgentTypes_AllExist() {
 	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
-	us.EXPECT().GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryAgent, mock.Anything, 0, false).Return(
+	us.EXPECT().GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryAgent, mock.Anything, 0,
+		mock.Anything, false).Return(
 		&entitytypepkg.EntityTypeListResponse{
 			TotalResults: 1,
 			Types:        []entitytypepkg.EntityTypeListItem{{Handle: "default"}},
@@ -2213,7 +2220,8 @@ func (suite *InboundClientServiceTestSuite) TestValidateAllowedAgentTypes_AllExi
 
 func (suite *InboundClientServiceTestSuite) TestValidateAllowedAgentTypes_MissingType() {
 	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
-	us.EXPECT().GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryAgent, mock.Anything, 0, false).Return(
+	us.EXPECT().GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryAgent, mock.Anything, 0,
+		mock.Anything, false).Return(
 		&entitytypepkg.EntityTypeListResponse{
 			TotalResults: 1,
 			Types:        []entitytypepkg.EntityTypeListItem{{Handle: "default"}},
@@ -2225,7 +2233,8 @@ func (suite *InboundClientServiceTestSuite) TestValidateAllowedAgentTypes_Missin
 
 func (suite *InboundClientServiceTestSuite) TestValidateAllowedAgentTypes_ServiceErrorPropagated() {
 	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
-	us.EXPECT().GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryAgent, mock.Anything, 0, false).
+	us.EXPECT().GetEntityTypeList(mock.Anything, entitytypepkg.TypeCategoryAgent, mock.Anything, 0,
+		mock.Anything, false).
 		Return(nil, &tidcommon.ServiceError{Code: "ERR"})
 	svc := &inboundClientService{entityType: us, logger: log.GetLogger()}
 	err := svc.validateAllowedAgentTypes(context.Background(), []string{"default"})
@@ -3334,7 +3343,7 @@ func (suite *InboundClientServiceTestSuite) TestCreateInboundClient_RejectsInval
 
 	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
 	// validateAllowedUserTypes (called by validateFKs) checks entity type existence via GetEntityTypeList.
-	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, false).Return(
+	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, mock.Anything, false).Return(
 		&entitytypepkg.EntityTypeListResponse{
 			TotalResults: 1,
 			Types:        []entitytypepkg.EntityTypeListItem{{Handle: "employee"}},
@@ -3359,7 +3368,7 @@ func (suite *InboundClientServiceTestSuite) TestValidate_RejectsInvalidUserAttri
 
 	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
 	// validateAllowedUserTypes (called by validateFKs) checks entity type existence via GetEntityTypeList.
-	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, false).Return(
+	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, mock.Anything, false).Return(
 		&entitytypepkg.EntityTypeListResponse{
 			TotalResults: 1,
 			Types:        []entitytypepkg.EntityTypeListItem{{Handle: "employee"}},

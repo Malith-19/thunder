@@ -110,7 +110,7 @@ func (t *flowTools) listFlows(
 
 	flowType := providers.FlowType(input.FlowType)
 
-	listResponse, svcErr := t.flowService.ListFlows(ctx, limit, input.Offset, flowType)
+	listResponse, svcErr := t.flowService.ListFlows(ctx, limit, input.Offset, flowType, "")
 	if svcErr != nil {
 		return nil, flowListOutput{}, fmt.Errorf("failed to list flows: %s", svcErr.ErrorDescription)
 	}

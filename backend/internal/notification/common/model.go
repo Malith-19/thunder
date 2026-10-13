@@ -29,6 +29,7 @@ type NotificationSenderDTO struct {
 	ID          string                   `yaml:"id,omitempty"`
 	Name        string                   `yaml:"name"`
 	Description string                   `yaml:"description,omitempty"`
+	ProjectID   string                   `yaml:"projectId,omitempty"`
 	Type        NotificationSenderType   `yaml:"-"`
 	Provider    NotificationProviderType `yaml:"provider"`
 	Properties  []cmodels.Property       `yaml:"properties,omitempty"`

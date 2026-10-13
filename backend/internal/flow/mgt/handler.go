@@ -62,8 +62,9 @@ func (h *flowMgtHandler) listFlows(w http.ResponseWriter, r *http.Request) {
 
 	flowTypeStr := r.URL.Query().Get(queryParamFlowType)
 	flowType := providers.FlowType(flowTypeStr)
+	projectID := r.URL.Query().Get(utils.QueryParamProjectID)
 
-	flowList, svcErr := h.service.ListFlows(ctx, limit, offset, flowType)
+	flowList, svcErr := h.service.ListFlows(ctx, limit, offset, flowType, projectID)
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
 		return
@@ -294,6 +295,7 @@ func sanitizeFlowDefinitionRequest(req *FlowDefinitionRequest) *FlowDefinition {
 		Handle:       utils.SanitizeString(req.Handle),
 		Name:         utils.SanitizeString(req.Name),
 		FlowType:     req.FlowType,
+		ProjectID:    utils.SanitizeString(req.ProjectID),
 		Interceptors: interceptors,
 		Nodes:        req.Nodes,
 	}

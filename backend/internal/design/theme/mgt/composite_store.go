@@ -60,6 +60,38 @@ func (c *compositeThemeStore) GetThemeList(ctx context.Context, limit, offset in
 	return items, nil
 }
 
+// GetThemeListCountByProject retrieves the number of themes of a project from both stores.
+func (c *compositeThemeStore) GetThemeListCountByProject(ctx context.Context, projectID string) (int, error) {
+	return declarativeresource.CompositeMergeCountHelper(
+		func() (int, error) { return c.dbStore.GetThemeListCountByProject(ctx, projectID) },
+		func() (int, error) { return c.fileStore.GetThemeListCountByProject(ctx, projectID) },
+	)
+}
+
+// GetThemeListByProject retrieves the themes of a project from both stores with pagination.
+// Applies the same 1000-record limit as GetThemeList.
+func (c *compositeThemeStore) GetThemeListByProject(
+	ctx context.Context, projectID string, limit, offset int,
+) ([]Theme, error) {
+	items, limitExceeded, err := declarativeresource.CompositeMergeListHelperWithLimit(
+		func() (int, error) { return c.dbStore.GetThemeListCountByProject(ctx, projectID) },
+		func() (int, error) { return c.fileStore.GetThemeListCountByProject(ctx, projectID) },
+		func(count int) ([]Theme, error) { return c.dbStore.GetThemeListByProject(ctx, projectID, count, 0) },
+		func(count int) ([]Theme, error) { return c.fileStore.GetThemeListByProject(ctx, projectID, count, 0) },
+		mergeAndDeduplicateThemes,
+		limit,
+		offset,
+		serverconst.MaxCompositeStoreRecords,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if limitExceeded {
+		return nil, errResultLimitExceededInCompositeMode
+	}
+	return items, nil
+}
+
 // CreateTheme creates a new theme in the database store only.
 // Conflict checking is handled at the service layer.
 func (c *compositeThemeStore) CreateTheme(ctx context.Context, id string, theme CreateThemeRequest) error {

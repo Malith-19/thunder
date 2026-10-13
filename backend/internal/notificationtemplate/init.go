@@ -4,9 +4,11 @@
 package notificationtemplate
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
+	"github.com/thunder-id/thunderid/internal/project"
 	"github.com/thunder-id/thunderid/internal/system/cache"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
@@ -18,8 +20,8 @@ import (
 // Only the DB store is wrapped with a read cache for the runtime hot path; the file store is already
 // in memory.
 func Initialize(mux *http.ServeMux, cacheManager cache.CacheManagerInterface,
-	translation translationResolver) (NotificationTemplateServiceInterface, TemplateRendererInterface,
-	declarativeresource.ResourceExporter, error) {
+	translation translationResolver, projects project.Registry,
+) (NotificationTemplateServiceInterface, TemplateRendererInterface, declarativeresource.ResourceExporter, error) {
 	transactioner, err := provider.GetDBProvider().GetConfigDBTransactioner()
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to get config database transactioner: %w", err)
@@ -32,6 +34,10 @@ func Initialize(mux *http.ServeMux, cacheManager cache.CacheManagerInterface,
 	}
 
 	service := newNotificationTemplateService(store, transactioner)
+	if projects != nil {
+		service.(*notificationTemplateService).projects = projects
+		projects.AddUsageChecker(&projectUsageChecker{store: store})
+	}
 	handler := newNotificationTemplateHandler(service)
 	registerRoutes(mux, handler)
 
@@ -68,6 +74,25 @@ func selectStore(byHandle cache.CacheInterface[templateDAO]) (notificationTempla
 		return newCompositeStore(fileStore, dbStore), nil
 	}
 	return fileStore, nil
+}
+
+// projectUsageChecker keeps a project from being deleted while notification templates still belong to it.
+type projectUsageChecker struct {
+	store notificationTemplateStoreInterface
+}
+
+// HasResourcesInProject reports whether a template of any channel belongs to the project.
+func (c *projectUsageChecker) HasResourcesInProject(ctx context.Context, projectID string) (bool, error) {
+	for channel := range channelRulesByChannel {
+		count, err := c.store.CountTemplates(ctx, channel, projectID)
+		if err != nil {
+			return false, err
+		}
+		if count > 0 {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // registerRoutes registers the notification template management routes.

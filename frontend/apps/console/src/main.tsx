@@ -17,7 +17,7 @@ if (typeof window !== 'undefined') {
   setCnPrefix(window.__THUNDERID_RUNTIME_CONFIG__?.brand?.product_name ?? '');
 }
 
-// Seed the runtime config with the dev backend and gate URLs when unset (dev only).
+// Seed the runtime config with the dev backend, gate and token issuer URLs when unset (dev only).
 if (import.meta.env.DEV && typeof window !== 'undefined') {
   const runtimeConfig = window.__THUNDERID_RUNTIME_CONFIG__;
   if (runtimeConfig && !runtimeConfig.server) {
@@ -25,6 +25,17 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
   }
   if (runtimeConfig && !runtimeConfig.gate_client) {
     runtimeConfig.gate_client = {public_url: __DEV_GATE_URL__};
+  }
+  if (runtimeConfig && !runtimeConfig.trusted_issuer && __DEV_TRUSTED_ISSUER_URL__) {
+    const issuer = new URL(__DEV_TRUSTED_ISSUER_URL__);
+    runtimeConfig.trusted_issuer = {
+      hostname: issuer.hostname,
+      port: Number(issuer.port || (issuer.protocol === 'http:' ? 80 : 443)),
+      http_only: issuer.protocol === 'http:',
+      public_url: issuer.origin,
+      client_id: runtimeConfig.client?.client_id,
+      scopes: runtimeConfig.client?.scopes,
+    };
   }
 }
 

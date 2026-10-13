@@ -20,6 +20,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/flow/graphbuilder"
 	"github.com/thunder-id/thunderid/internal/flow/interceptor"
 	"github.com/thunder-id/thunderid/internal/ou"
+	"github.com/thunder-id/thunderid/internal/project"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/resourcedependency"
@@ -36,7 +37,7 @@ var (
 
 // FlowMgtServiceInterface defines the interface for the flow management service.
 type FlowMgtServiceInterface interface {
-	ListFlows(ctx context.Context, limit, offset int, flowType providers.FlowType) (
+	ListFlows(ctx context.Context, limit, offset int, flowType providers.FlowType, projectID string) (
 		*FlowListResponse, *tidcommon.ServiceError)
 	CreateFlow(
 		ctx context.Context,
@@ -86,7 +87,9 @@ type flowMgtService struct {
 	dependencyRegistry  resourcedependency.Registry
 	serverConfigSvc     serverConfigProvider
 	ouSvc               ouProvider
-	logger              *log.Logger
+	// projects decides the project of a flow.
+	projects project.Resolver
+	logger   *log.Logger
 }
 
 // newFlowMgtService creates a new instance of flowMgtService.
@@ -119,8 +122,10 @@ func newFlowMgtService(
 
 // Flow management methods
 
-// ListFlows retrieves a paginated list of flow definitions. Supports optional filtering by flow type.
-func (s *flowMgtService) ListFlows(ctx context.Context, limit, offset int, flowType providers.FlowType) (
+// ListFlows retrieves a paginated list of flow definitions. Supports optional filtering by flow type
+// and project.
+func (s *flowMgtService) ListFlows(ctx context.Context, limit, offset int, flowType providers.FlowType,
+	projectID string) (
 	*FlowListResponse, *tidcommon.ServiceError) {
 	if limit <= 0 {
 		limit = defaultPageSize
@@ -136,7 +141,7 @@ func (s *flowMgtService) ListFlows(ctx context.Context, limit, offset int, flowT
 		return nil, &ErrorInvalidFlowType
 	}
 
-	flows, totalCount, err := s.store.ListFlows(ctx, limit, offset, string(flowType))
+	flows, totalCount, err := s.store.ListFlows(ctx, limit, offset, string(flowType), projectID)
 	if err != nil {
 		s.logger.Error(ctx, "Failed to list flows", log.Error(err))
 		return nil, &tidcommon.InternalServerError
@@ -147,7 +152,7 @@ func (s *flowMgtService) ListFlows(ctx context.Context, limit, offset int, flowT
 		StartIndex:   offset + 1,
 		Count:        len(flows),
 		Flows:        flows,
-		Links:        buildPaginationLinks(limit, offset, totalCount),
+		Links:        buildPaginationLinks(limit, offset, totalCount, utils.ProjectIDQueryParam(projectID)),
 	}
 
 	return listResponse, nil
@@ -159,6 +164,12 @@ func (s *flowMgtService) CreateFlow(ctx context.Context, flowDef *FlowDefinition
 	if err := s.flowValidator.ValidateFlowDefinition(ctx, flowDef); err != nil {
 		return nil, err
 	}
+
+	projectID, svcErr := project.ResolveProjectID(ctx, s.projects, flowDef.ProjectID, "")
+	if svcErr != nil {
+		return nil, svcErr
+	}
+	flowDef.ProjectID = projectID
 
 	flowID := flowDef.ID
 	if flowID == "" {
@@ -444,6 +455,13 @@ func (s *flowMgtService) UpdateFlow(ctx context.Context, flowID string, flowDef 
 			return errClientValidation
 		}
 
+		projectID, projectErr := s.resolveUpdatedProjectID(txCtx, existingFlow, flowDef)
+		if projectErr != nil {
+			validationSvcErr = projectErr
+			return errClientValidation
+		}
+		flowDef.ProjectID = projectID
+
 		storeWriteAttempted = true
 		var updateErr error
 		updatedFlow, updateErr = s.store.UpdateFlow(txCtx, flowID, flowDef)
@@ -491,6 +509,25 @@ func (s *flowMgtService) UpdateFlow(ctx context.Context, flowID string, flowDef 
 	logger.Debug(ctx, "Flow updated successfully")
 
 	return updatedFlow, nil
+}
+
+// resolveUpdatedProjectID returns the project of an updated flow. An update that leaves the project
+// out keeps the current one, and a flow stays in the project it was created in.
+func (s *flowMgtService) resolveUpdatedProjectID(
+	ctx context.Context, existing *providers.CompleteFlowDefinition, updated *FlowDefinition,
+) (string, *tidcommon.ServiceError) {
+	requested := updated.ProjectID
+	if requested == "" {
+		requested = existing.ProjectID
+	}
+	projectID, svcErr := project.ResolveProjectID(ctx, s.projects, requested, "")
+	if svcErr != nil {
+		return "", svcErr
+	}
+	if s.projects != nil && existing.ProjectID != "" && projectID != existing.ProjectID {
+		return "", &project.ErrorProjectChangeNotAllowed
+	}
+	return projectID, nil
 }
 
 // DeleteFlow deletes a flow definition and all its version history.
@@ -763,14 +800,15 @@ func (s *flowMgtService) resolveDefaultFlowHandle(ctx context.Context, flowType 
 	}
 }
 
-// buildPaginationLinks constructs pagination links for the flow list response.
-func buildPaginationLinks(limit, offset, totalCount int) []Link {
+// buildPaginationLinks constructs pagination links for the flow list response. extraQuery is appended
+// to every link so a filtered listing stays filtered across pages.
+func buildPaginationLinks(limit, offset, totalCount int, extraQuery string) []Link {
 	links := make([]Link, 0)
 
 	// Add first and previous links if not on first page
 	if offset > 0 {
 		links = append(links, Link{
-			Href: fmt.Sprintf("/flows?offset=0&limit=%d", limit),
+			Href: fmt.Sprintf("/flows?offset=0&limit=%d%s", limit, extraQuery),
 			Rel:  "first",
 		})
 
@@ -779,7 +817,7 @@ func buildPaginationLinks(limit, offset, totalCount int) []Link {
 			prevOffset = 0
 		}
 		links = append(links, Link{
-			Href: fmt.Sprintf("/flows?offset=%d&limit=%d", prevOffset, limit),
+			Href: fmt.Sprintf("/flows?offset=%d&limit=%d%s", prevOffset, limit, extraQuery),
 			Rel:  "prev",
 		})
 	}
@@ -788,7 +826,7 @@ func buildPaginationLinks(limit, offset, totalCount int) []Link {
 	if offset+limit < totalCount {
 		nextOffset := offset + limit
 		links = append(links, Link{
-			Href: fmt.Sprintf("/flows?offset=%d&limit=%d", nextOffset, limit),
+			Href: fmt.Sprintf("/flows?offset=%d&limit=%d%s", nextOffset, limit, extraQuery),
 			Rel:  "next",
 		})
 	}
@@ -797,7 +835,7 @@ func buildPaginationLinks(limit, offset, totalCount int) []Link {
 	lastPageOffset := ((totalCount - 1) / limit) * limit
 	if totalCount > 0 && offset < lastPageOffset {
 		links = append(links, Link{
-			Href: fmt.Sprintf("/flows?offset=%d&limit=%d", lastPageOffset, limit),
+			Href: fmt.Sprintf("/flows?offset=%d&limit=%d%s", lastPageOffset, limit, extraQuery),
 			Rel:  "last",
 		})
 	}

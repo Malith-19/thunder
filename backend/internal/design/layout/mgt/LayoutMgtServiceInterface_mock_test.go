@@ -239,8 +239,8 @@ func (_c *LayoutMgtServiceInterfaceMock_GetLayout_Call) RunAndReturn(run func(ct
 }
 
 // GetLayoutList provides a mock function for the type LayoutMgtServiceInterfaceMock
-func (_mock *LayoutMgtServiceInterfaceMock) GetLayoutList(ctx context.Context, limit int, offset int) (*LayoutList, *common.ServiceError) {
-	ret := _mock.Called(ctx, limit, offset)
+func (_mock *LayoutMgtServiceInterfaceMock) GetLayoutList(ctx context.Context, limit int, offset int, projectID string) (*LayoutList, *common.ServiceError) {
+	ret := _mock.Called(ctx, limit, offset, projectID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetLayoutList")
@@ -248,18 +248,18 @@ func (_mock *LayoutMgtServiceInterfaceMock) GetLayoutList(ctx context.Context, l
 
 	var r0 *LayoutList
 	var r1 *common.ServiceError
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int) (*LayoutList, *common.ServiceError)); ok {
-		return returnFunc(ctx, limit, offset)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, string) (*LayoutList, *common.ServiceError)); ok {
+		return returnFunc(ctx, limit, offset, projectID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int) *LayoutList); ok {
-		r0 = returnFunc(ctx, limit, offset)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, string) *LayoutList); ok {
+		r0 = returnFunc(ctx, limit, offset, projectID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*LayoutList)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, int, int) *common.ServiceError); ok {
-		r1 = returnFunc(ctx, limit, offset)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int, int, string) *common.ServiceError); ok {
+		r1 = returnFunc(ctx, limit, offset, projectID)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*common.ServiceError)
@@ -277,11 +277,12 @@ type LayoutMgtServiceInterfaceMock_GetLayoutList_Call struct {
 //   - ctx context.Context
 //   - limit int
 //   - offset int
-func (_e *LayoutMgtServiceInterfaceMock_Expecter) GetLayoutList(ctx interface{}, limit interface{}, offset interface{}) *LayoutMgtServiceInterfaceMock_GetLayoutList_Call {
-	return &LayoutMgtServiceInterfaceMock_GetLayoutList_Call{Call: _e.mock.On("GetLayoutList", ctx, limit, offset)}
+//   - projectID string
+func (_e *LayoutMgtServiceInterfaceMock_Expecter) GetLayoutList(ctx interface{}, limit interface{}, offset interface{}, projectID interface{}) *LayoutMgtServiceInterfaceMock_GetLayoutList_Call {
+	return &LayoutMgtServiceInterfaceMock_GetLayoutList_Call{Call: _e.mock.On("GetLayoutList", ctx, limit, offset, projectID)}
 }
 
-func (_c *LayoutMgtServiceInterfaceMock_GetLayoutList_Call) Run(run func(ctx context.Context, limit int, offset int)) *LayoutMgtServiceInterfaceMock_GetLayoutList_Call {
+func (_c *LayoutMgtServiceInterfaceMock_GetLayoutList_Call) Run(run func(ctx context.Context, limit int, offset int, projectID string)) *LayoutMgtServiceInterfaceMock_GetLayoutList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -295,10 +296,15 @@ func (_c *LayoutMgtServiceInterfaceMock_GetLayoutList_Call) Run(run func(ctx con
 		if args[2] != nil {
 			arg2 = args[2].(int)
 		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -309,7 +315,7 @@ func (_c *LayoutMgtServiceInterfaceMock_GetLayoutList_Call) Return(layoutList *L
 	return _c
 }
 
-func (_c *LayoutMgtServiceInterfaceMock_GetLayoutList_Call) RunAndReturn(run func(ctx context.Context, limit int, offset int) (*LayoutList, *common.ServiceError)) *LayoutMgtServiceInterfaceMock_GetLayoutList_Call {
+func (_c *LayoutMgtServiceInterfaceMock_GetLayoutList_Call) RunAndReturn(run func(ctx context.Context, limit int, offset int, projectID string) (*LayoutList, *common.ServiceError)) *LayoutMgtServiceInterfaceMock_GetLayoutList_Call {
 	_c.Call.Return(run)
 	return _c
 }

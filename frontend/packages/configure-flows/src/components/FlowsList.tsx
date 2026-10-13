@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {QueryErrorNotice} from '@thunderid/components';
+import {useProject} from '@thunderid/contexts';
 import {useDataGridLocaleText} from '@thunderid/hooks';
 import {useLogger} from '@thunderid/logger/react';
 import {Chip, IconButton, Tooltip, ListingTable, DataGrid} from '@wso2/oxygen-ui';
@@ -20,7 +21,8 @@ export default function FlowsList(): JSX.Element {
   const {t} = useTranslation();
   const logger = useLogger('FlowsList');
   const dataGridLocaleText = useDataGridLocaleText();
-  const {data, isLoading, error, refetch} = useGetFlows();
+  const {selectedProject} = useProject();
+  const {data, isLoading, error, refetch} = useGetFlows({projectId: selectedProject?.id});
 
   // Resolves an error through the `flows` catalog. `t` defaults to the `common` namespace, so
   // this forwards explicit `ns:` prefixes unchanged and prefixes bare keys with `flows:`, per

@@ -296,7 +296,7 @@ func (suite *GroupServiceTestSuite) TestGroupService_GetGroupList() {
 				groupStore:   storeMock,
 			}
 
-			response, err := service.GetGroupList(context.Background(), tc.limit, tc.offset, false)
+			response, err := service.GetGroupList(context.Background(), tc.limit, tc.offset, "", false)
 
 			if tc.wantErr != nil {
 				suite.Require().Nil(response)
@@ -1086,7 +1086,7 @@ func (suite *GroupServiceTestSuite) TestGroupService_GetGroupList_WithIncludeDis
 	}
 
 	response, err := service.GetGroupList(
-		context.Background(), 10, 0, true)
+		context.Background(), 10, 0, "", true)
 	suite.Require().Nil(err)
 	suite.Require().NotNil(response)
 	suite.Require().Len(response.Groups, 2)
@@ -2724,7 +2724,7 @@ func TestListGroupsByOUIDs_CountError(t *testing.T) {
 		groupStore:   storeMock,
 	}
 
-	response, err := service.GetGroupList(context.Background(), 5, 0, false)
+	response, err := service.GetGroupList(context.Background(), 5, 0, "", false)
 	require.Nil(t, response)
 	require.NotNil(t, err)
 	require.Equal(t, tidcommon.InternalServerError.Code, err.Code)
@@ -2742,7 +2742,7 @@ func TestListGroupsByOUIDs_ListError(t *testing.T) {
 		groupStore:   storeMock,
 	}
 
-	response, err := service.GetGroupList(context.Background(), 5, 0, false)
+	response, err := service.GetGroupList(context.Background(), 5, 0, "", false)
 	require.Nil(t, response)
 	require.NotNil(t, err)
 	require.Equal(t, tidcommon.InternalServerError.Code, err.Code)
@@ -3075,4 +3075,90 @@ func TestResolveAppDisplay_AppUsesSystemAttributesName(t *testing.T) {
 		SystemAttributes: json.RawMessage(`{"name":"My App"}`),
 	}
 	require.Equal(t, "My App", resolveAppDisplay(app))
+}
+
+func TestGetGroupList_OUProjectScope(t *testing.T) {
+	subtree := []string{"root-ou", "child-ou"}
+
+	t.Run("AllAllowed_ScopesToProject", func(t *testing.T) {
+		storeMock := newGroupStoreInterfaceMock(t)
+		storeMock.On("GetGroupListCountByOUIDs", mock.Anything, subtree).Return(3, nil).Once()
+		storeMock.On("GetGroupListByOUIDs", mock.Anything, subtree, 1, 0).
+			Return([]GroupBasicDAO{{ID: "grp-1", Name: "Group", OUID: "child-ou"}}, nil).Once()
+		ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+		ouServiceMock.On("GetOrganizationUnitIDsByProject", mock.Anything, "root-ou").Return(subtree, nil).Once()
+
+		service := &groupService{
+			authzService: newAllowAllAuthz(t),
+			groupStore:   storeMock,
+			ouService:    ouServiceMock,
+		}
+
+		response, err := service.GetGroupList(context.Background(), 1, 0, "root-ou", false)
+		require.Nil(t, err)
+		require.NotNil(t, response)
+		require.Equal(t, 3, response.TotalResults)
+		require.Len(t, response.Groups, 1)
+		require.NotEmpty(t, response.Links)
+		for _, link := range response.Links {
+			require.Contains(t, link.Href, "&projectId=root-ou")
+		}
+		storeMock.AssertNotCalled(t, "GetGroupList", mock.Anything, mock.Anything, mock.Anything)
+	})
+
+	t.Run("Restricted_IntersectsWithAccessibleOUs", func(t *testing.T) {
+		storeMock := newGroupStoreInterfaceMock(t)
+		storeMock.On("GetGroupListCountByOUIDs", mock.Anything, []string{testOUID1}).Return(1, nil).Once()
+		storeMock.On("GetGroupListByOUIDs", mock.Anything, []string{testOUID1}, 5, 0).
+			Return([]GroupBasicDAO{{ID: "grp-1", Name: "Group", OUID: testOUID1}}, nil).Once()
+		ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+		ouServiceMock.On("GetOrganizationUnitIDsByProject", mock.Anything, "root-ou").
+			Return([]string{"root-ou", testOUID1}, nil).Once()
+
+		service := &groupService{
+			authzService: newScopedListAuthz(t),
+			groupStore:   storeMock,
+			ouService:    ouServiceMock,
+		}
+
+		response, err := service.GetGroupList(context.Background(), 5, 0, "root-ou", false)
+		require.Nil(t, err)
+		require.NotNil(t, response)
+		require.Equal(t, 1, response.TotalResults)
+	})
+
+	t.Run("Restricted_NoOverlap_ReturnsEmpty", func(t *testing.T) {
+		storeMock := newGroupStoreInterfaceMock(t)
+		ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+		ouServiceMock.On("GetOrganizationUnitIDsByProject", mock.Anything, "root-ou").Return(subtree, nil).Once()
+
+		service := &groupService{
+			authzService: newScopedListAuthz(t),
+			groupStore:   storeMock,
+			ouService:    ouServiceMock,
+		}
+
+		response, err := service.GetGroupList(context.Background(), 5, 0, "root-ou", false)
+		require.Nil(t, err)
+		require.NotNil(t, response)
+		require.Equal(t, 0, response.TotalResults)
+		require.Empty(t, response.Groups)
+	})
+
+	t.Run("ProjectError_IsReturned", func(t *testing.T) {
+		ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+		ouServiceMock.On("GetOrganizationUnitIDsByProject", mock.Anything, "missing-ou").
+			Return(nil, &oupkg.ErrorOrganizationUnitNotFound).Once()
+
+		service := &groupService{
+			authzService: newAllowAllAuthz(t),
+			groupStore:   newGroupStoreInterfaceMock(t),
+			ouService:    ouServiceMock,
+		}
+
+		response, err := service.GetGroupList(context.Background(), 5, 0, "missing-ou", false)
+		require.Nil(t, response)
+		require.NotNil(t, err)
+		require.Equal(t, oupkg.ErrorOrganizationUnitNotFound.Code, err.Code)
+	})
 }

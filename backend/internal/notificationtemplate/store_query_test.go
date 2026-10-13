@@ -45,7 +45,7 @@ func (s *NotificationTemplateStoreTestSuite) TestCreateTemplate_EmailWithDesign(
 	s.mockDBProvider.On("GetConfigDBClient").Return(s.mockDBClient, nil)
 	s.mockDBClient.On("ExecuteContext", mock.Anything, queryCreateTemplate,
 		"id-1", "email", "otp", "OTP", "desc",
-		`{"subject":"s","body":"b"}`, `{"colorScheme":"dark"}`, "test-deployment").Return(int64(1), nil)
+		`{"subject":"s","body":"b"}`, `{"colorScheme":"dark"}`, nil, "test-deployment").Return(int64(1), nil)
 
 	err := s.store.CreateTemplate(depCtx("test-deployment"), templateDAO{
 		ID: "id-1", Channel: ChannelTypeEmail, Handle: "otp", DisplayName: "OTP", Description: "desc",
@@ -59,7 +59,7 @@ func (s *NotificationTemplateStoreTestSuite) TestCreateTemplate_NoDesignStoresEm
 	s.mockDBProvider.On("GetConfigDBClient").Return(s.mockDBClient, nil)
 	// DESIGN is NOT NULL, so a template without a design persists "{}".
 	s.mockDBClient.On("ExecuteContext", mock.Anything, queryCreateTemplate,
-		"id-2", "sms", "otp", "OTP", "", `{"body":"b"}`, "{}", "test-deployment").Return(int64(1), nil)
+		"id-2", "sms", "otp", "OTP", "", `{"body":"b"}`, "{}", nil, "test-deployment").Return(int64(1), nil)
 
 	err := s.store.CreateTemplate(depCtx("test-deployment"), templateDAO{
 		ID: "id-2", Channel: ChannelTypeSMS, Handle: "otp", DisplayName: "OTP",
@@ -126,7 +126,7 @@ func (s *NotificationTemplateStoreTestSuite) TestListTemplates() {
 			{"id": "b", "channel": "email", "handle": "b", "display_name": "B"},
 		}, nil)
 
-	list, err := s.store.ListTemplates(depCtx("test-deployment"), ChannelTypeEmail, 10, 0)
+	list, err := s.store.ListTemplates(depCtx("test-deployment"), ChannelTypeEmail, 10, 0, "")
 	s.Require().NoError(err)
 	s.Require().Len(list, 2)
 	s.Require().Equal("a", list[0].Handle)
@@ -137,7 +137,7 @@ func (s *NotificationTemplateStoreTestSuite) TestCountTemplates() {
 	s.mockDBClient.On("QueryContext", mock.Anything, queryCountTemplates, "email", "test-deployment").
 		Return([]map[string]interface{}{{"total": int64(3)}}, nil)
 
-	n, err := s.store.CountTemplates(depCtx("test-deployment"), ChannelTypeEmail)
+	n, err := s.store.CountTemplates(depCtx("test-deployment"), ChannelTypeEmail, "")
 	s.Require().NoError(err)
 	s.Require().Equal(3, n)
 }
@@ -156,7 +156,7 @@ func (s *NotificationTemplateStoreTestSuite) TestUpdateTemplate() {
 	s.mockDBProvider.On("GetConfigDBClient").Return(s.mockDBClient, nil)
 	s.mockDBClient.On("ExecuteContext", mock.Anything, queryUpdateTemplate,
 		"OTP", "desc", `{"subject":"s","body":"b"}`, `{"colorScheme":"dark"}`,
-		"id-1", "email", "test-deployment").Return(int64(1), nil)
+		"id-1", "email", "test-deployment", nil).Return(int64(1), nil)
 
 	err := s.store.UpdateTemplate(depCtx("test-deployment"), templateDAO{
 		ID: "id-1", Channel: ChannelTypeEmail, DisplayName: "OTP", Description: "desc",
@@ -194,7 +194,7 @@ func (s *NotificationTemplateStoreTestSuite) TestGetTemplate_QueryError() {
 func (s *NotificationTemplateStoreTestSuite) TestListTemplates_DBClientError() {
 	s.mockDBProvider.On("GetConfigDBClient").Return(nil, errors.New("connection error"))
 
-	_, err := s.store.ListTemplates(depCtx("test-deployment"), ChannelTypeEmail, 10, 0)
+	_, err := s.store.ListTemplates(depCtx("test-deployment"), ChannelTypeEmail, 10, 0, "")
 	s.Require().Error(err)
 }
 
@@ -203,7 +203,7 @@ func (s *NotificationTemplateStoreTestSuite) TestListTemplates_QueryError() {
 	s.mockDBClient.On("QueryContext", mock.Anything, queryListTemplates, "email", 10, 0, "test-deployment").
 		Return(nil, errors.New("query failed"))
 
-	_, err := s.store.ListTemplates(depCtx("test-deployment"), ChannelTypeEmail, 10, 0)
+	_, err := s.store.ListTemplates(depCtx("test-deployment"), ChannelTypeEmail, 10, 0, "")
 	s.Require().Error(err)
 }
 
@@ -211,7 +211,7 @@ func (s *NotificationTemplateStoreTestSuite) TestCreateTemplate_ExecError() {
 	s.mockDBProvider.On("GetConfigDBClient").Return(s.mockDBClient, nil)
 	s.mockDBClient.On("ExecuteContext", mock.Anything, queryCreateTemplate,
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything).Return(int64(0), errors.New("insert failed"))
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(int64(0), errors.New("insert failed"))
 
 	err := s.store.CreateTemplate(depCtx("test-deployment"), templateDAO{
 		ID: "id", Channel: ChannelTypeEmail, Handle: "h", DisplayName: "D",

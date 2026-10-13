@@ -41,7 +41,9 @@ func (h *resourceHandler) HandleResourceServerListRequest(w http.ResponseWriter,
 		return
 	}
 
-	result, svcErr := h.resourceService.GetResourceServerList(ctx, limit, offset)
+	projectID := r.URL.Query().Get(sysutils.QueryParamProjectID)
+
+	result, svcErr := h.resourceService.GetResourceServerList(ctx, limit, offset, projectID)
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
 		return

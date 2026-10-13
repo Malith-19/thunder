@@ -23,8 +23,9 @@ type notificationTemplateStoreInterface interface {
 	CreateTemplate(ctx context.Context, template templateDAO) error
 	GetTemplate(ctx context.Context, channel ChannelType, id string) (templateDAO, error)
 	GetTemplateByHandle(ctx context.Context, channel ChannelType, handle string) (templateDAO, error)
-	ListTemplates(ctx context.Context, channel ChannelType, limit, offset int) ([]templateDAO, error)
-	CountTemplates(ctx context.Context, channel ChannelType) (int, error)
+	ListTemplates(ctx context.Context, channel ChannelType, limit, offset int, projectID string) (
+		[]templateDAO, error)
+	CountTemplates(ctx context.Context, channel ChannelType, projectID string) (int, error)
 	UpdateTemplate(ctx context.Context, template templateDAO) error
 	DeleteTemplate(ctx context.Context, channel ChannelType, id string) error
 	IsHandleExists(ctx context.Context, channel ChannelType, handle string) (bool, error)
@@ -68,7 +69,7 @@ func (s *notificationTemplateStore) CreateTemplate(ctx context.Context, t templa
 
 	if _, err := dbClient.ExecuteContext(ctx, queryCreateTemplate,
 		t.ID, string(t.Channel), t.Handle, t.DisplayName, t.Description, string(contentJSON),
-		designJSON, s.scope(ctx)); err != nil {
+		designJSON, nullableProjectID(t.ProjectID), s.scope(ctx)); err != nil {
 		return fmt.Errorf("failed to execute create query: %w", err)
 	}
 
@@ -122,15 +123,22 @@ func (s *notificationTemplateStore) GetTemplateByHandle(ctx context.Context, cha
 	return buildTemplateFromRow(results[0])
 }
 
-// ListTemplates retrieves a page of templates of a channel.
-func (s *notificationTemplateStore) ListTemplates(ctx context.Context, channel ChannelType, limit, offset int) (
-	[]templateDAO, error) {
+// ListTemplates retrieves a page of templates of a channel, only those in the project when a project ID
+// is given.
+func (s *notificationTemplateStore) ListTemplates(ctx context.Context, channel ChannelType, limit, offset int,
+	projectID string) ([]templateDAO, error) {
 	dbClient, err := s.getConfigDBClient()
 	if err != nil {
 		return nil, err
 	}
 
-	results, err := dbClient.QueryContext(ctx, queryListTemplates, string(channel), limit, offset, s.scope(ctx))
+	var results []map[string]interface{}
+	if projectID != "" {
+		results, err = dbClient.QueryContext(ctx, queryListTemplatesByProject, string(channel), limit, offset,
+			s.scope(ctx), projectID)
+	} else {
+		results, err = dbClient.QueryContext(ctx, queryListTemplates, string(channel), limit, offset, s.scope(ctx))
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute list query: %w", err)
 	}
@@ -147,14 +155,22 @@ func (s *notificationTemplateStore) ListTemplates(ctx context.Context, channel C
 	return templates, nil
 }
 
-// CountTemplates returns the number of templates in a channel, for pagination totals.
-func (s *notificationTemplateStore) CountTemplates(ctx context.Context, channel ChannelType) (int, error) {
+// CountTemplates returns the number of templates in a channel, for pagination totals. Only templates
+// in the project are counted when a project ID is given.
+func (s *notificationTemplateStore) CountTemplates(ctx context.Context, channel ChannelType,
+	projectID string) (int, error) {
 	dbClient, err := s.getConfigDBClient()
 	if err != nil {
 		return 0, err
 	}
 
-	results, err := dbClient.QueryContext(ctx, queryCountTemplates, string(channel), s.scope(ctx))
+	var results []map[string]interface{}
+	if projectID != "" {
+		results, err = dbClient.QueryContext(ctx, queryCountTemplatesByProject, string(channel), projectID,
+			s.scope(ctx))
+	} else {
+		results, err = dbClient.QueryContext(ctx, queryCountTemplates, string(channel), s.scope(ctx))
+	}
 	if err != nil {
 		return 0, fmt.Errorf("failed to execute count query: %w", err)
 	}
@@ -181,7 +197,7 @@ func (s *notificationTemplateStore) UpdateTemplate(ctx context.Context, t templa
 
 	if _, err := dbClient.ExecuteContext(ctx, queryUpdateTemplate,
 		t.DisplayName, t.Description, string(contentJSON), designJSON,
-		t.ID, string(t.Channel), s.scope(ctx)); err != nil {
+		t.ID, string(t.Channel), s.scope(ctx), nullableProjectID(t.ProjectID)); err != nil {
 		return fmt.Errorf("failed to execute update query: %w", err)
 	}
 
@@ -276,6 +292,7 @@ func buildTemplateFromRow(row map[string]interface{}) (templateDAO, error) {
 		Handle:      handle,
 		DisplayName: displayName,
 		Description: stringOrEmpty(row["description"]),
+		ProjectID:   stringOrEmpty(row["project_id"]),
 	}
 
 	if contentStr := jsonColumnToString(row["content"]); contentStr != "" {
@@ -311,6 +328,14 @@ func isUniqueViolation(err error) bool {
 	}
 	msg := strings.ToLower(err.Error())
 	return strings.Contains(msg, "unique constraint") || strings.Contains(msg, "duplicate key")
+}
+
+// nullableProjectID stores a template outside every project as SQL NULL.
+func nullableProjectID(projectID string) interface{} {
+	if projectID == "" {
+		return nil
+	}
+	return projectID
 }
 
 // stringOrEmpty returns the string value of a (possibly NULL) column or "".

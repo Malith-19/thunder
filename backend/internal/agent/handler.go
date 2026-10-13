@@ -49,7 +49,9 @@ func (h *agentHandler) HandleAgentListRequest(w http.ResponseWriter, r *http.Req
 
 	includeDisplay := r.URL.Query().Get(sysutils.QueryParamInclude) == sysutils.IncludeValueDisplay
 
-	resp, svcErr := h.service.GetAgentList(ctx, limit, offset, filters, includeDisplay)
+	projectID := r.URL.Query().Get(sysutils.QueryParamProjectID)
+
+	resp, svcErr := h.service.GetAgentList(ctx, limit, offset, projectID, filters, includeDisplay)
 	if svcErr != nil {
 		writeServiceError(ctx, w, svcErr)
 		return

@@ -6,6 +6,8 @@ package mgt
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 
 	tidcommon "github.com/thunder-id/thunderid/pkg/thunderidengine/common"
 
@@ -18,6 +20,9 @@ import (
 const (
 	paramTypeTranslation    = "Translation"
 	resourceTypeTranslation = "translation"
+	// translationProjectSeparator joins a language and a project in the ID of the translations of a
+	// language that are split across projects.
+	translationProjectSeparator = "@"
 )
 
 // translationExporter implements declarativeresource.ResourceExporter for translations.
@@ -41,10 +46,10 @@ func (e *translationExporter) GetParameterizerType() string {
 }
 
 // GetAllResourceIDs retrieves all languages from the database store.
-// One file per language.
+// One file per language, or one per language and project when the translations of a language belong
+// to more than one project.
 func (e *translationExporter) GetAllResourceIDs(ctx context.Context) ([]string, *tidcommon.ServiceError) {
-	// Get all translations from store
-	languages, err := e.store.GetDistinctLanguages(ctx)
+	translations, err := e.store.GetTranslations(ctx)
 	if err != nil {
 		return nil, &tidcommon.ServiceError{
 			Code: "I18N_EXPORT_ERROR",
@@ -55,10 +60,33 @@ func (e *translationExporter) GetAllResourceIDs(ctx context.Context) ([]string, 
 			},
 		}
 	}
-	return languages, nil
+
+	projectsByLanguage := make(map[string]map[string]bool)
+	for _, translationsByLang := range translations {
+		for _, translation := range translationsByLang {
+			if projectsByLanguage[translation.Language] == nil {
+				projectsByLanguage[translation.Language] = make(map[string]bool)
+			}
+			projectsByLanguage[translation.Language][translation.ProjectID] = true
+		}
+	}
+
+	ids := make([]string, 0, len(projectsByLanguage))
+	for language, projects := range projectsByLanguage {
+		if len(projects) == 1 {
+			ids = append(ids, language)
+			continue
+		}
+		for projectID := range projects {
+			ids = append(ids, language+translationProjectSeparator+projectID)
+		}
+	}
+	slices.Sort(ids)
+	return ids, nil
 }
 
-// GetResourceByID retrieves all translations for a specific language.
+// GetResourceByID retrieves all translations for a specific language, or for a language in a project
+// when the ID names one.
 func (e *translationExporter) GetResourceByID(ctx context.Context, id string) (
 	interface{}, string, *tidcommon.ServiceError,
 ) {
@@ -74,11 +102,14 @@ func (e *translationExporter) GetResourceByID(ctx context.Context, id string) (
 		}
 	}
 
+	language, projectID, inProject := strings.Cut(id, translationProjectSeparator)
 	result := make(map[string]map[string]string)
+	projects := make(map[string]bool)
 
 	for _, translationsByLang := range translations {
 		for _, translation := range translationsByLang {
-			if translation.Language == id {
+			if translation.Language == language && (!inProject || translation.ProjectID == projectID) {
+				projects[translation.ProjectID] = true
 				if result[translation.Namespace] == nil {
 					result[translation.Namespace] = make(map[string]string)
 				}
@@ -99,8 +130,15 @@ func (e *translationExporter) GetResourceByID(ctx context.Context, id string) (
 		}
 	}
 
+	if !inProject && len(projects) == 1 {
+		for p := range projects {
+			projectID = p
+		}
+	}
+
 	return &LanguageTranslations{
-		Language:     id,
+		Language:     language,
+		ProjectID:    projectID,
 		Translations: result,
 	}, id, nil
 }
@@ -150,8 +188,7 @@ func loadDeclarativeResources(fileStore i18nStoreInterface) error {
 			return validateTranslationWrapper(data, store)
 		},
 		IDExtractor: func(data interface{}) string {
-			trans := data.(*LanguageTranslations)
-			return trans.Language
+			return declarativeTranslationID(data.(*LanguageTranslations))
 		},
 	}
 
@@ -172,6 +209,7 @@ func parseToTranslationWrapper(data []byte) (interface{}, error) {
 func parseToLangTranslation(data []byte) (*LanguageTranslations, error) {
 	var transRequest struct {
 		Language     string                       `yaml:"language"`
+		ProjectID    string                       `yaml:"projectId"`
 		Translations map[string]map[string]string `yaml:"translations"`
 	}
 
@@ -182,10 +220,20 @@ func parseToLangTranslation(data []byte) (*LanguageTranslations, error) {
 
 	trans := &LanguageTranslations{
 		Language:     transRequest.Language,
+		ProjectID:    transRequest.ProjectID,
 		Translations: transRequest.Translations,
 	}
 
 	return trans, nil
+}
+
+// declarativeTranslationID identifies a declarative translation file: its language, and its project
+// when it names one, so the translations of a language can be split across projects.
+func declarativeTranslationID(trans *LanguageTranslations) string {
+	if trans.ProjectID == "" {
+		return trans.Language
+	}
+	return trans.Language + translationProjectSeparator + trans.ProjectID
 }
 
 // validateTranslationWrapper wraps validation logic.
@@ -202,7 +250,7 @@ func validateTranslationWrapper(data interface{}, fileStore *fileBasedStore) err
 		return fmt.Errorf("translation translations is required")
 	}
 
-	id := trans.Language
+	id := declarativeTranslationID(trans)
 
 	// Check for duplicate ID in the file store
 	if existingData, err := fileStore.GenericFileBasedStore.Get(id); err == nil && existingData != nil {

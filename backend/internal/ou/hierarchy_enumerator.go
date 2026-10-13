@@ -25,6 +25,8 @@ type HierarchyEnumeratorInterface interface {
 	DescendantOUIDs(ctx context.Context, ouID string) ([]string, *tidcommon.ServiceError)
 	// AllOUIDs returns every organization unit in the deployment, every tree included.
 	AllOUIDs(ctx context.Context) ([]string, *tidcommon.ServiceError)
+	// ProjectOUIDs returns every organization unit in a project, at any depth.
+	ProjectOUIDs(ctx context.Context, projectID string) ([]string, *tidcommon.ServiceError)
 }
 
 // ouHierarchyEnumerator implements HierarchyEnumeratorInterface using direct store access,
@@ -86,11 +88,37 @@ func (r *ouHierarchyEnumerator) DescendantOUIDs(
 
 // AllOUIDs returns every organization unit in the deployment, every tree included.
 func (r *ouHierarchyEnumerator) AllOUIDs(ctx context.Context) ([]string, *tidcommon.ServiceError) {
-	roots, svcErr := r.rootOUIDs(ctx)
+	roots, svcErr := r.rootOUIDs(ctx, nil)
 	if svcErr != nil {
 		return nil, svcErr
 	}
+	return r.withDescendants(ctx, roots)
+}
 
+// ProjectOUIDs returns every organization unit in a project, at any depth. A child belongs to its
+// parent's project, so the project's trees are the root organization units that name it.
+func (r *ouHierarchyEnumerator) ProjectOUIDs(
+	ctx context.Context, projectID string,
+) ([]string, *tidcommon.ServiceError) {
+	if projectID == "" {
+		return []string{}, nil
+	}
+	filter := &tidcommon.FilterGroup{Clauses: []tidcommon.FilterClause{{
+		Expr: tidcommon.FilterExpression{
+			Attribute: projectIDAttribute, Operator: tidcommon.OperatorEq, Value: projectID,
+		},
+	}}}
+	roots, svcErr := r.rootOUIDs(ctx, filter)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+	return r.withDescendants(ctx, roots)
+}
+
+// withDescendants returns the given organization units followed by everything beneath them.
+func (r *ouHierarchyEnumerator) withDescendants(
+	ctx context.Context, roots []string,
+) ([]string, *tidcommon.ServiceError) {
 	out := make([]string, 0, len(roots))
 	for _, root := range roots {
 		out = append(out, root)
@@ -123,11 +151,13 @@ func (r *ouHierarchyEnumerator) childOUIDs(
 	}
 }
 
-// rootOUIDs pages through the organization units that have no parent.
-func (r *ouHierarchyEnumerator) rootOUIDs(ctx context.Context) ([]string, *tidcommon.ServiceError) {
+// rootOUIDs pages through the organization units that have no parent and match the filter.
+func (r *ouHierarchyEnumerator) rootOUIDs(
+	ctx context.Context, filter *tidcommon.FilterGroup,
+) ([]string, *tidcommon.ServiceError) {
 	var out []string
 	for offset := 0; ; offset += hierarchyPageSize {
-		page, err := r.store.GetOrganizationUnitList(ctx, hierarchyPageSize, offset, nil)
+		page, err := r.store.GetOrganizationUnitList(ctx, hierarchyPageSize, offset, filter)
 		if err != nil {
 			r.logger.Error(ctx, "Failed to list root organization units", log.Error(err))
 			return nil, &tidcommon.InternalServerError

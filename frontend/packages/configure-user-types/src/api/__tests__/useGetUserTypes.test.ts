@@ -285,4 +285,19 @@ describe('useGetUserTypes', () => {
     expect(result.current.data?.types).toHaveLength(0);
     expect(result.current.data?.totalResults).toBe(0);
   });
+
+  it('should list only the user types of the given project', async () => {
+    mockHttpRequest.mockResolvedValueOnce({
+      data: mockUserTypeListResponse,
+    });
+
+    renderHook(() => useGetUserTypes({projectId: 'prj-finance'}));
+
+    await waitFor(() => {
+      expect(mockHttpRequest).toHaveBeenCalledTimes(1);
+    });
+
+    const callArgs = mockHttpRequest.mock.calls[0][0] as {url: string};
+    expect(callArgs.url).toBe('https://api.test.com/user-types?projectId=prj-finance&include=display');
+  });
 });

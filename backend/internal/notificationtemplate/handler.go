@@ -44,7 +44,9 @@ func (h *notificationTemplateHandler) HandleTemplateListRequest(w http.ResponseW
 		return
 	}
 
-	list, svcErr := h.service.ListTemplates(ctx, channel, limit, offset)
+	projectID := sysutils.SanitizeString(r.URL.Query().Get(sysutils.QueryParamProjectID))
+
+	list, svcErr := h.service.ListTemplates(ctx, channel, limit, offset, projectID)
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
 		return

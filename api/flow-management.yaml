@@ -75,6 +75,13 @@ paths:
             enum:
               - AUTHENTICATION
               - REGISTRATION
+        - name: projectId
+          in: query
+          description: Lists only the flows that belong to this project
+          required: false
+          schema:
+            type: string
+            format: uuid
         - name: limit
           in: query
           description: Maximum number of flows to return
@@ -835,6 +842,10 @@ components:
           enum:
             - AUTHENTICATION
             - REGISTRATION
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. One created without a project goes to the default project.
         name:
           type: string
           description: Name of the flow
@@ -890,6 +901,10 @@ components:
           description: |
             Type of flow
           example: AUTHENTICATION
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. One created without a project goes to the default project.
         nodes:
           type: array
           minItems: 2
@@ -1123,6 +1138,10 @@ components:
           description: |
             Type of flow
           example: AUTHENTICATION
+        projectId:
+          type: string
+          format: uuid
+          description: Project the resource belongs to. One created without a project goes to the default project.
         handle:
           type: string
           description: |

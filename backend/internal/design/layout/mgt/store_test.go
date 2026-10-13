@@ -127,7 +127,7 @@ func (suite *LayoutStoreTestSuite) TestGetLayoutList_DBClientError() {
 func (suite *LayoutStoreTestSuite) TestCreateLayout_Success() {
 	suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 	suite.mockDBClient.On("Execute", mock.Anything, "layout-1", "classic", "Test", "Desc",
-		mock.Anything, "test-deployment").Return(int64(1), nil)
+		mock.Anything, nil, "test-deployment").Return(int64(1), nil)
 
 	err := suite.store.CreateLayout(context.Background(), "layout-1", CreateLayoutRequest{
 		Handle:      "classic",

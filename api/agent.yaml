@@ -31,6 +31,7 @@ paths:
         - Agents
       summary: List agents
       parameters:
+        - $ref: '#/components/parameters/projectIdQueryParam'
         - $ref: '#/components/parameters/limitQueryParam'
         - $ref: '#/components/parameters/offsetQueryParam'
         - $ref: '#/components/parameters/filterParam'
@@ -1345,6 +1346,7 @@ paths:
         Retrieves the list of agent type schemas. Agent types are restricted to a single
         bootstrap-provisioned `default` schema; this endpoint returns that one schema.
       parameters:
+        - $ref: '#/components/parameters/projectIdQueryParam'
         - $ref: '#/components/parameters/limitQueryParam'
         - $ref: '#/components/parameters/offsetQueryParam'
         - $ref: '#/components/parameters/includeQueryParam'
@@ -1776,6 +1778,16 @@ components:
               defaultValue: "You do not have sufficient permissions to access this resource"
 
   parameters:
+    projectIdQueryParam:
+      in: query
+      name: projectId
+      required: false
+      description: >-
+        Lists only the resources bound to the organization units of this project. A resource bound to an
+        organization unit belongs to the unit's project.
+      schema:
+        type: string
+        format: uuid
     limitQueryParam:
       in: query
       name: limit

@@ -29,6 +29,7 @@ func (f *themeFileBasedStore) Create(id string, data interface{}) error {
 		DisplayName: theme.DisplayName,
 		Description: theme.Description,
 		Theme:       theme.Theme,
+		ProjectID:   theme.ProjectID,
 	}
 	return f.CreateTheme(ctx, id, createReq)
 }
@@ -43,6 +44,7 @@ func (f *themeFileBasedStore) CreateTheme(ctx context.Context, id string, theme 
 		Theme:       theme.Theme,
 		CreatedAt:   "",
 		UpdatedAt:   "",
+		ProjectID:   theme.ProjectID,
 	}
 	return f.GenericFileBasedStore.Create(id, themeData)
 }
@@ -68,14 +70,35 @@ func (f *themeFileBasedStore) GetTheme(ctx context.Context, id string) (Theme, e
 
 // GetThemeList implements themeMgtStoreInterface.
 func (f *themeFileBasedStore) GetThemeList(ctx context.Context, limit, offset int) ([]Theme, error) {
-	// Validate input parameters to prevent panics
-	if offset < 0 {
-		offset = 0
+	themeList, err := f.listThemes("")
+	if err != nil {
+		return nil, err
 	}
-	if limit <= 0 {
-		return []Theme{}, nil
-	}
+	return paginateThemes(themeList, limit, offset), nil
+}
 
+// GetThemeListCountByProject implements themeMgtStoreInterface.
+func (f *themeFileBasedStore) GetThemeListCountByProject(ctx context.Context, projectID string) (int, error) {
+	themeList, err := f.listThemes(projectID)
+	if err != nil {
+		return 0, err
+	}
+	return len(themeList), nil
+}
+
+// GetThemeListByProject implements themeMgtStoreInterface.
+func (f *themeFileBasedStore) GetThemeListByProject(
+	ctx context.Context, projectID string, limit, offset int,
+) ([]Theme, error) {
+	themeList, err := f.listThemes(projectID)
+	if err != nil {
+		return nil, err
+	}
+	return paginateThemes(themeList, limit, offset), nil
+}
+
+// listThemes returns the themes in the store, only those of the project when one is given.
+func (f *themeFileBasedStore) listThemes(projectID string) ([]Theme, error) {
 	list, err := f.GenericFileBasedStore.List()
 	if err != nil {
 		return nil, err
@@ -84,21 +107,36 @@ func (f *themeFileBasedStore) GetThemeList(ctx context.Context, limit, offset in
 	themeList := make([]Theme, 0)
 	for _, item := range list {
 		if theme, ok := item.Data.(*Theme); ok {
+			if projectID != "" && theme.ProjectID != projectID {
+				continue
+			}
 			themeList = append(themeList, *theme)
 		}
+	}
+	return themeList, nil
+}
+
+// paginateThemes returns a page of themes.
+func paginateThemes(themeList []Theme, limit, offset int) []Theme {
+	// Validate input parameters to prevent panics
+	if offset < 0 {
+		offset = 0
+	}
+	if limit <= 0 {
+		return []Theme{}
 	}
 
 	// Apply pagination
 	start := offset
 	if start >= len(themeList) {
-		return []Theme{}, nil
+		return []Theme{}
 	}
 
 	end := start + limit
 	if end > len(themeList) {
 		end = len(themeList)
 	}
-	return themeList[start:end], nil
+	return themeList[start:end]
 }
 
 // GetThemeListCount implements themeMgtStoreInterface.

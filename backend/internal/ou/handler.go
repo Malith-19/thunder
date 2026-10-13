@@ -262,6 +262,7 @@ func (ouh *organizationUnitHandler) sanitizeOrganizationUnitRequest(
 		Name:                      sysutils.SanitizeString(request.Name),
 		Description:               sysutils.SanitizeString(request.Description),
 		Parent:                    request.Parent,
+		ProjectID:                 request.ProjectID,
 		ThemeID:                   request.ThemeID,
 		LayoutID:                  request.LayoutID,
 		AuthFlowID:                request.AuthFlowID,

@@ -15,6 +15,7 @@ type Theme struct {
 	CreatedAt   string          `json:"createdAt" yaml:"createdAt,omitempty"`
 	UpdatedAt   string          `json:"updatedAt" yaml:"updatedAt,omitempty"`
 	IsReadOnly  bool            `json:"isReadOnly" yaml:"isReadOnly"`
+	ProjectID   string          `json:"projectId,omitempty" yaml:"projectId,omitempty"`
 }
 
 // ThemeListItem represents a theme item in the list response.
@@ -28,6 +29,7 @@ type ThemeListItem struct {
 	CreatedAt          string `json:"createdAt"`
 	UpdatedAt          string `json:"updatedAt"`
 	IsReadOnly         bool   `json:"isReadOnly"`
+	ProjectID          string `json:"projectId,omitempty"`
 }
 
 // themeColorSchemeInfo is a minimal struct for extracting color info from theme JSON.
@@ -69,6 +71,7 @@ type CreateThemeRequest struct {
 	DisplayName string          `json:"displayName"`
 	Description string          `json:"description"`
 	Theme       json.RawMessage `json:"theme"`
+	ProjectID   string          `json:"projectId,omitempty"`
 }
 
 // CreateThemeRequestWithID represents the service-level request for creating a theme, including an optional ID.
@@ -78,6 +81,7 @@ type CreateThemeRequestWithID struct {
 	DisplayName string          `json:"displayName"`
 	Description string          `json:"description"`
 	Theme       json.RawMessage `json:"theme"`
+	ProjectID   string          `json:"projectId,omitempty"`
 }
 
 // UpdateThemeRequest represents the request body for updating a theme configuration.
@@ -86,6 +90,7 @@ type UpdateThemeRequest struct {
 	DisplayName string          `json:"displayName"`
 	Description string          `json:"description"`
 	Theme       json.RawMessage `json:"theme"`
+	ProjectID   string          `json:"projectId,omitempty"`
 }
 
 // themeRequestWithID represents the request structure for creating a theme from file-based config.
@@ -95,6 +100,7 @@ type themeRequestWithID struct {
 	DisplayName string      `yaml:"displayName"`
 	Description string      `yaml:"description,omitempty"`
 	Theme       interface{} `yaml:"theme"`
+	ProjectID   string      `yaml:"projectId,omitempty"`
 }
 
 // ThemeListResponse represents the response for listing theme configurations with pagination.

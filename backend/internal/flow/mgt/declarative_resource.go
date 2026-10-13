@@ -49,7 +49,7 @@ func (e *flowGraphExporter) GetParameterizerType() string {
 
 // GetAllResourceIDs retrieves all flow graph IDs.
 func (e *flowGraphExporter) GetAllResourceIDs(ctx context.Context) ([]string, *tidcommon.ServiceError) {
-	flows, err := e.service.ListFlows(ctx, 10000, 0, providers.FlowType(""))
+	flows, err := e.service.ListFlows(ctx, 10000, 0, providers.FlowType(""), "")
 	if err != nil {
 		return nil, &tidcommon.InternalServerError
 	}

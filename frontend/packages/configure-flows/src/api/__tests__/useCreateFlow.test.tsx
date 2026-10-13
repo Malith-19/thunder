@@ -1,7 +1,7 @@
 // Copyright 2025 The ThunderID Authors
 // SPDX-License-Identifier: Apache-2.0
 
-import {useConfig} from '@thunderid/contexts';
+import {useConfig, useProject} from '@thunderid/contexts';
 import {useThunderID} from '@thunderid/react';
 import {renderHook, waitFor, act} from '@thunderid/test-utils';
 import {describe, it, expect, beforeEach, afterEach, vi} from 'vitest';
@@ -19,6 +19,7 @@ vi.mock('@thunderid/contexts', async (importOriginal) => {
   return {
     ...actual,
     useConfig: vi.fn(),
+    useProject: vi.fn(),
   };
 });
 
@@ -59,6 +60,8 @@ describe('useCreateFlow', () => {
     vi.mocked(useConfig).mockReturnValue({
       getServerUrl: () => 'https://localhost:8090',
     } as ReturnType<typeof useConfig>);
+
+    vi.mocked(useProject).mockReturnValue({selectedProject: null} as ReturnType<typeof useProject>);
   });
 
   afterEach(() => {
@@ -253,5 +256,20 @@ describe('useCreateFlow', () => {
     const callArgs = mockHttpRequest.mock.calls[0][0] as {data: CreateFlowRequest; headers: Record<string, string>};
     expect(callArgs.data).toEqual(mockCreateRequest);
     expect(callArgs.headers['Content-Type']).toBe('application/json');
+  });
+
+  it('should create the flow in the selected project', async () => {
+    vi.mocked(useProject).mockReturnValue({selectedProject: {id: 'prj-finance'}} as ReturnType<typeof useProject>);
+    mockHttpRequest.mockResolvedValueOnce({data: mockFlowResponse});
+
+    const {result} = renderHook(() => useCreateFlow());
+    result.current.mutate(mockCreateRequest);
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    const callArgs = mockHttpRequest.mock.calls[0][0] as {data: CreateFlowRequest};
+    expect(callArgs.data).toEqual({...mockCreateRequest, projectId: 'prj-finance'});
   });
 });

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {SettingsCard} from '@thunderid/components';
+import {useProject} from '@thunderid/contexts';
 import {useGetLayouts, useGetThemes} from '@thunderid/design';
 import {Box, Typography, TextField, Autocomplete, CircularProgress, Stack} from '@wso2/oxygen-ui';
 import type {JSX} from 'react';
@@ -43,8 +44,9 @@ export default function AppearanceSection({
   onFieldChange,
 }: AppearanceSectionProps): JSX.Element {
   const {t} = useTranslation();
-  const {data: themesData, isLoading: loadingThemes} = useGetThemes();
-  const {data: layoutsData, isLoading: loadingLayouts} = useGetLayouts();
+  const {selectedProject} = useProject();
+  const {data: themesData, isLoading: loadingThemes} = useGetThemes({projectId: selectedProject?.id});
+  const {data: layoutsData, isLoading: loadingLayouts} = useGetLayouts({projectId: selectedProject?.id});
 
   const themeOptions = themesData?.themes ?? [];
   const layoutOptions = layoutsData?.layouts ?? [];

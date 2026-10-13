@@ -17,10 +17,10 @@ import type {UserListResponse} from '../models/users';
 export default function useGetUsers(params?: ApiFilteringParams): UseQueryResult<UserListResponse> {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
-  const {limit, offset, filter} = params ?? {};
+  const {limit, offset, filter, projectId} = params ?? {};
 
   return useQuery<UserListResponse>({
-    queryKey: [UserQueryKeys.USERS, {limit, offset, filter}],
+    queryKey: [UserQueryKeys.USERS, {limit, offset, filter, projectId}],
     queryFn: async (): Promise<UserListResponse> => {
       const serverUrl: string = getServerUrl();
       const searchParams: URLSearchParams = new URLSearchParams();
@@ -33,6 +33,9 @@ export default function useGetUsers(params?: ApiFilteringParams): UseQueryResult
       }
       if (filter) {
         searchParams.append('filter', filter);
+      }
+      if (projectId) {
+        searchParams.append('projectId', projectId);
       }
       searchParams.append('include', 'display');
 

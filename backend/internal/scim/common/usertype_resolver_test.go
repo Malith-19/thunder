@@ -60,7 +60,7 @@ func (suite *UsertypeResolverTestSuite) TestResolveCoreUserType_ConfiguredID_Not
 func (suite *UsertypeResolverTestSuite) TestResolveCoreUserType_Unset_SingleUserType_FallsBack() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, 0, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, 0, mock.Anything, false).
 		Return(&entitytype.EntityTypeListResponse{
 			TotalResults: 1,
 			Types: []entitytype.EntityTypeListItem{
@@ -80,7 +80,7 @@ func (suite *UsertypeResolverTestSuite) TestResolveCoreUserType_Unset_SingleUser
 func (suite *UsertypeResolverTestSuite) TestResolveCoreUserType_Unset_MultipleUserTypes_ReturnsMissingCustomSchema() {
 	t := suite.T()
 	mockET := entitytypemock.NewEntityTypeServiceInterfaceMock(t)
-	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, 0, false).
+	mockET.On("GetEntityTypeList", mock.Anything, entitytype.TypeCategoryUser, mock.Anything, 0, mock.Anything, false).
 		Return(&entitytype.EntityTypeListResponse{
 			TotalResults: 2,
 			Types: []entitytype.EntityTypeListItem{

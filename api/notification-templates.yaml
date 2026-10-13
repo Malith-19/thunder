@@ -34,6 +34,7 @@ paths:
         - $ref: '#/components/parameters/channelPathParam'
         - $ref: '#/components/parameters/limitQueryParam'
         - $ref: '#/components/parameters/offsetQueryParam'
+        - $ref: '#/components/parameters/projectIdQueryParam'
       responses:
         "200":
           description: List of templates
@@ -405,6 +406,14 @@ components:
         type: integer
         minimum: 0
         default: 0
+    projectIdQueryParam:
+      name: projectId
+      in: query
+      required: false
+      description: Lists only the templates that belong to this project. Omit to list them all.
+      schema:
+        type: string
+        format: uuid
 
   schemas:
     TemplateListResponse:
@@ -472,6 +481,10 @@ components:
           maxLength: 512
           description: Optional human-readable description of what this template is for.
           example: One-time passcode sent to verify a user's email address.
+        projectId:
+          type: string
+          format: uuid
+          description: ID of the project the template belongs to.
         self:
           type: string
           description: Relative URL of this template.
@@ -515,6 +528,10 @@ components:
           maxLength: 512
           description: Optional human-readable description of what this template is for.
           example: One-time passcode sent to verify a user's email address.
+        projectId:
+          type: string
+          format: uuid
+          description: ID of the project the template belongs to.
         design:
           allOf:
             - $ref: '#/components/schemas/TemplateDesign'
@@ -555,6 +572,10 @@ components:
           maxLength: 512
           description: Optional human-readable description of what this template is for.
           example: One-time passcode sent to verify a user's email address.
+        projectId:
+          type: string
+          format: uuid
+          description: ID of the project the template belongs to.
         content:
           allOf:
             - $ref: '#/components/schemas/SmsTemplateContent'
@@ -602,6 +623,12 @@ components:
           maxLength: 512
           description: Optional human-readable description of what this template is for.
           example: One-time passcode sent to verify a user's email address.
+        projectId:
+          type: string
+          format: uuid
+          description: >-
+            ID of the project the template belongs to. On the control plane it defaults to the default
+            project and cannot be changed later; on the data plane it is kept as a label.
         design:
           allOf:
             - $ref: '#/components/schemas/TemplateDesign'
@@ -627,6 +654,12 @@ components:
           maxLength: 512
           description: Optional human-readable description of what this template is for.
           example: One-time passcode sent to verify a user's email address.
+        projectId:
+          type: string
+          format: uuid
+          description: >-
+            ID of the project the template belongs to. On the control plane it defaults to the default
+            project and cannot be changed later; on the data plane it is kept as a label.
         design:
           allOf:
             - $ref: '#/components/schemas/TemplateDesign'
@@ -658,6 +691,12 @@ components:
           maxLength: 512
           description: Optional human-readable description of what this template is for.
           example: One-time passcode sent to verify a user's phone number.
+        projectId:
+          type: string
+          format: uuid
+          description: >-
+            ID of the project the template belongs to. On the control plane it defaults to the default
+            project and cannot be changed later; on the data plane it is kept as a label.
         content:
           allOf:
             - $ref: '#/components/schemas/SmsTemplateContent'
@@ -679,6 +718,12 @@ components:
           maxLength: 512
           description: Optional human-readable description of what this template is for.
           example: One-time passcode sent to verify a user's phone number.
+        projectId:
+          type: string
+          format: uuid
+          description: >-
+            ID of the project the template belongs to. On the control plane it defaults to the default
+            project and cannot be changed later; on the data plane it is kept as a label.
         content:
           allOf:
             - $ref: '#/components/schemas/SmsTemplateContent'

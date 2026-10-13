@@ -58,6 +58,8 @@ export interface ConnectionInstance {
   name: string;
   description?: string;
   type: ConnectionType;
+  /** Project the connection belongs to, when the server has projects. */
+  projectId?: string;
   categories: ConnectionInstanceCategory[];
   /**
    * Present only for trust-only OIDC instances (trusted issuers); absent for plain federation

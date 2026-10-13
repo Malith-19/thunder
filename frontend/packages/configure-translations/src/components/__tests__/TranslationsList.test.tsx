@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import userEvent from '@testing-library/user-event';
+import {useGetLanguages} from '@thunderid/i18n';
 import {render, renderHook, screen, fireEvent} from '@thunderid/test-utils';
 import {useTranslation} from 'react-i18next';
 import {describe, expect, it, vi, beforeAll, beforeEach} from 'vitest';
@@ -18,6 +19,11 @@ vi.mock('react-router', async () => {
 
 vi.mock('../../../../hooks/useDataGridLocaleText', () => ({
   default: () => ({}),
+}));
+
+vi.mock('@thunderid/contexts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@thunderid/contexts')>()),
+  useProject: () => ({selectedProject: {id: 'prj-finance'}}),
 }));
 
 const mockMutate = vi.fn();
@@ -115,6 +121,12 @@ describe('TranslationsList', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('lists the languages of the selected project', () => {
+    render(<TranslationsList />);
+
+    expect(vi.mocked(useGetLanguages)).toHaveBeenCalledWith({projectId: 'prj-finance'});
   });
 
   it('renders rows for each language', () => {

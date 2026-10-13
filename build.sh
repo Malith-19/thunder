@@ -115,6 +115,8 @@ QUICKSTART_BUNDLE_STAGE_DIR="$FRONTEND_CONSOLE_APP_SOURCE_DIR/src/data/sample-bu
 # Default ports
 GATE_APP_DEFAULT_PORT=5190
 CONSOLE_APP_DEFAULT_PORT=5191
+CP_DEFAULT_PORT=8095
+CP_DEV_HOME_DIR=$TARGET_DIR/cp-dev
 DOCS_DEFAULT_PORT=3000
 
 # Integration test filters (optional)
@@ -1032,16 +1034,28 @@ function ensure_direct_auth_secret_file() {
     echo "================================================================"
 }
 
+# Runs the servers for development. By default the Console manages a Control Plane on port
+# $CP_DEFAULT_PORT and signs in at the all-in-one server, which also serves as the data plane. With
+# "dp", only the all-in-one server runs and the Console manages it directly.
 function run() {
+    local mode=${1:-cp}
+    local cp_url="https://localhost:$CP_DEFAULT_PORT"
+
     cleanup_servers() {
         echo -e "\n🛑 Shutting down servers..."
         if [ ! -z "$FRONTEND_PID" ]; then 
             kill $FRONTEND_PID 2>/dev/null
         fi
+        if [ ! -z "$GATE_PID" ]; then
+            kill $GATE_PID 2>/dev/null
+        fi
         pkill -f "pnpm.*dev" 2>/dev/null
         pkill -f "vite" 2>/dev/null
         if [ ! -z "$BACKEND_PID" ]; then
             kill $BACKEND_PID 2>/dev/null
+        fi
+        if [ ! -z "$CP_PID" ]; then
+            kill $CP_PID 2>/dev/null
         fi
         sleep 1
         echo "✅ All servers stopped successfully."
@@ -1049,7 +1063,11 @@ function run() {
     trap cleanup_servers EXIT INT TERM
 
     echo "Running frontend apps..."
-    run_frontend
+    if [ "$mode" = "cp" ]; then
+        CONSOLE_DEV_SERVER_URL="$cp_url" CONSOLE_DEV_TRUSTED_ISSUER_URL="$PUBLIC_URL" run_frontend
+    else
+        run_frontend
+    fi
 
     # Ensure runtime prerequisites (certificates, crypto material, databases) so the
     # in-process bootstrap can create the default resources before the server starts.
@@ -1083,6 +1101,11 @@ value:
     - "https://localhost:$GATE_APP_DEFAULT_PORT"
     - "https://localhost:$CONSOLE_APP_DEFAULT_PORT"
 EOF
+    if [ "$mode" = "cp" ]; then
+        write_dev_control_plane_bootstrap "$cp_url"
+    else
+        rm -f "$BACKEND_DIR/bootstrap/04-dev-control-plane.yaml"
+    fi
 
     # Local dev only: default to admin/admin if not supplied. This path never produces a
     # shared or distributed artifact, so a fixed default here is acceptable.
@@ -1098,10 +1121,18 @@ EOF
 
     # Start backend with initial output but without final output/wait
     start_backend false
+    if [ "$mode" = "cp" ]; then
+        start_control_plane "$cp_url"
+    fi
 
     echo ""
     echo "🚀 Servers running:"
-    echo "  👉 Backend : $BASE_URL"
+    if [ "$mode" = "cp" ]; then
+        echo "  👉 Control Plane : $cp_url"
+        echo "  👉 Data Plane    : $BASE_URL"
+    else
+        echo "  👉 Backend : $BASE_URL"
+    fi
     echo "  📱 Frontend :"
     echo "      🚪 Gate (Login/Register): https://localhost:$GATE_APP_DEFAULT_PORT/gate"
     echo "      🛠️  Console (System Management): https://localhost:$CONSOLE_APP_DEFAULT_PORT/console"
@@ -1174,6 +1205,65 @@ function start_backend() {
     fi
 }
 
+# Writes the bootstrap resources the Console needs to manage a dev Control Plane: a resource server
+# for the Control Plane's URL with the system permission, granted to the administrators group, so
+# the all-in-one server issues the Console a token the Control Plane accepts.
+function write_dev_control_plane_bootstrap() {
+    local cp_url=$1
+    cat > "$BACKEND_DIR/bootstrap/04-dev-control-plane.yaml" <<EOF
+resource_type: resource_server
+id: 01900000-0000-7000-8000-0000000000c0
+name: Control Plane
+description: Development Control Plane
+identifier: $cp_url
+ouHandle: default
+resources:
+  - name: System
+    handle: system
+    description: System resource
+---
+resource_type: role
+id: 01900000-0000-7000-8000-0000000000c1
+name: Control Plane Administrator
+description: Manages the development Control Plane
+ouHandle: default
+permissions:
+  - resourceServerId: 01900000-0000-7000-8000-0000000000c0
+    permissions:
+      - system
+assignments:
+  - id: 01900000-0000-7000-8000-000000000040
+    type: group
+EOF
+}
+
+# Starts a development Control Plane next to the all-in-one server. It shares the server's
+# certificates and databases, and trusts the server's tokens, verifying the server's signing keys
+# endpoint with the server's own certificate.
+function start_control_plane() {
+    local cp_url=$1
+    local cp_home="$SCRIPT_DIR/$CP_DEV_HOME_DIR"
+
+    mkdir -p "$cp_home"
+    ln -sfn "$SCRIPT_DIR/$BACKEND_DIR/config" "$cp_home/config"
+    ln -sfn "$SCRIPT_DIR/$REPOSITORY_DB_DIR" "$cp_home/database"
+    awk -v issuer="$PUBLIC_URL" -v audience="$cp_url" -v ca="$SECURITY_DIR/server.cert" '
+        { print }
+        /^  security:$/ {
+            print "    trusted_issuer:"
+            print "      issuer: \"" issuer "\""
+            print "      jwks_url: \"" issuer "/oauth2/jwks\""
+            print "      audience: \"" audience "\""
+            print "      ca_cert_file: \"" ca "\""
+        }
+    ' "$BACKEND_BASE_DIR/cmd/cpserver/deployment.yaml" > "$cp_home/deployment.yaml"
+
+    lsof -ti tcp:$CP_DEFAULT_PORT | xargs kill -9 2>/dev/null || true
+    echo "=== Starting Control Plane on $cp_url ==="
+    go run -C "$BACKEND_BASE_DIR" ./cmd/cpserver -serverHome "$cp_home" &
+    CP_PID=$!
+}
+
 function run_frontend() {
     echo "================================================================"
     echo "Running frontend apps..."
@@ -1191,8 +1281,13 @@ function run_frontend() {
     echo "Starting frontend applications in the background..."
     # In dev the apps are served on their own origins, so point them at the backend via
     # THUNDERID_DEV_SERVER_URL (injected into __DEV_SERVER_URL__; applied only in dev builds).
-    THUNDERID_DEV_SERVER_URL="$PUBLIC_URL" \
-        pnpm -r --parallel --filter "@thunderid/console" --filter "@thunderid/gate" dev &
+    # The Console can target another backend (a Control Plane) and sign in at a token issuer; the
+    # gate always serves the backend's own sign-in.
+    THUNDERID_DEV_SERVER_URL="$PUBLIC_URL" pnpm --filter "@thunderid/gate" dev &
+    GATE_PID=$!
+    THUNDERID_DEV_SERVER_URL="${CONSOLE_DEV_SERVER_URL:-$PUBLIC_URL}" \
+        THUNDERID_DEV_TRUSTED_ISSUER_URL="${CONSOLE_DEV_TRUSTED_ISSUER_URL:-}" \
+        pnpm --filter "@thunderid/console" dev &
     FRONTEND_PID=$!
     
     # Return to script directory
@@ -1289,7 +1384,10 @@ case "$1" in
         test_integration
         ;;
     run)
-        run
+        run cp
+        ;;
+    run_dp)
+        run dp
         ;;
     run_backend)
         run_backend
@@ -1326,7 +1424,8 @@ case "$1" in
         echo "  test_integration         - Run integration tests. Use -run and -package for filtering"
         echo "  merge_coverage           - Merge unit and integration test coverage reports"
         echo "  test                     - Run all tests (unit and integration)"
-        echo "  run                      - Run the ${PRODUCT_NAME} server for development (with automatic initial data setup)"
+        echo "  run                      - Run the ${PRODUCT_NAME} Control Plane and server for development (with automatic initial data setup)"
+        echo "  run_dp                   - Run only the ${PRODUCT_NAME} server for development, managed by the Console directly"
         echo "  run_backend              - Run the ${PRODUCT_NAME} backend for development"
         echo "  debug_backend            - Run the ${PRODUCT_NAME} backend for development in debug mode"
         echo "  run_frontend             - Run the ${PRODUCT_NAME} frontend for development"

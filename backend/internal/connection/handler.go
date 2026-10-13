@@ -144,7 +144,7 @@ func updateHandler[Req any, Resp any](h *handler, idpType providers.IDPType,
 func (h *handler) listInstances(idpType providers.IDPType) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		instances, svcErr := h.svc.listByType(ctx, idpType)
+		instances, svcErr := h.svc.listByType(ctx, idpType, r.URL.Query().Get(sysutils.QueryParamProjectID))
 		if svcErr != nil {
 			writeServiceError(ctx, w, svcErr)
 			return
@@ -224,7 +224,7 @@ func parsePaginationParams(query url.Values) (int, int, *tidcommon.ServiceError)
 
 // handleListConnections handles GET /connections, returning a paginated flat list of configured
 // connection instances across both IdP- and sender-backed services, optionally filtered by
-// the category query parameter.
+// the category and projectId query parameters.
 func (h *handler) handleListConnections(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	category, ok := parseConnectionCategory(r.URL.Query().Get("category"))
@@ -237,7 +237,8 @@ func (h *handler) handleListConnections(w http.ResponseWriter, r *http.Request) 
 		writeServiceError(ctx, w, svcErr)
 		return
 	}
-	resp, svcErr := h.svc.listInstances(ctx, category, limit, offset)
+	resp, svcErr := h.svc.listInstances(ctx, category,
+		sysutils.SanitizeString(r.URL.Query().Get(sysutils.QueryParamProjectID)), limit, offset)
 	if svcErr != nil {
 		writeServiceError(ctx, w, svcErr)
 		return
@@ -264,7 +265,7 @@ func (h *handler) createAuthZENPDPConnection(w http.ResponseWriter, r *http.Requ
 // listAuthZENPDPConnections lists configured AuthZEN PDP connections.
 func (h *handler) listAuthZENPDPConnections(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	connections, svcErr := h.svc.listAuthZENPDP(ctx)
+	connections, svcErr := h.svc.listAuthZENPDP(ctx, r.URL.Query().Get(sysutils.QueryParamProjectID))
 	if svcErr != nil {
 		writeServiceError(ctx, w, svcErr)
 		return
@@ -483,7 +484,8 @@ func (h *handler) listSenderInstances(senderType ncommon.NotificationSenderType,
 	provider ncommon.NotificationProviderType) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		instances, svcErr := h.svc.listSendersByProvider(ctx, senderType, provider)
+		instances, svcErr := h.svc.listSendersByProvider(ctx, senderType, provider,
+			r.URL.Query().Get(sysutils.QueryParamProjectID))
 		if svcErr != nil {
 			writeServiceError(ctx, w, svcErr)
 			return

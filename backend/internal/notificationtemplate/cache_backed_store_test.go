@@ -224,19 +224,19 @@ func (s *CacheBackedStoreTestSuite) TestDeleteTemplate_NotFound_StillDeletes() {
 // --- Pass-through operations ---
 
 func (s *CacheBackedStoreTestSuite) TestListTemplates_Delegates() {
-	s.mockStore.On("ListTemplates", mock.Anything, ChannelTypeEmail, 10, 0).
+	s.mockStore.On("ListTemplates", mock.Anything, ChannelTypeEmail, 10, 0, "").
 		Return([]templateDAO{emailDAO("t1", "A")}, nil).Once()
 
-	out, err := s.store.ListTemplates(s.ctx, ChannelTypeEmail, 10, 0)
+	out, err := s.store.ListTemplates(s.ctx, ChannelTypeEmail, 10, 0, "")
 	s.NoError(err)
 	s.Len(out, 1)
 	s.mockStore.AssertExpectations(s.T())
 }
 
 func (s *CacheBackedStoreTestSuite) TestCountTemplates_Delegates() {
-	s.mockStore.On("CountTemplates", mock.Anything, ChannelTypeEmail).Return(3, nil).Once()
+	s.mockStore.On("CountTemplates", mock.Anything, ChannelTypeEmail, "").Return(3, nil).Once()
 
-	n, err := s.store.CountTemplates(s.ctx, ChannelTypeEmail)
+	n, err := s.store.CountTemplates(s.ctx, ChannelTypeEmail, "")
 	s.NoError(err)
 	s.Equal(3, n)
 	s.mockStore.AssertExpectations(s.T())

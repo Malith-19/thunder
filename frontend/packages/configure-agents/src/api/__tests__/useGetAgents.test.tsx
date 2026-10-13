@@ -131,4 +131,16 @@ describe('useGetAgents', () => {
     expect(result.current.data).toEqual(emptyResponse);
     expect(result.current.data?.agents).toHaveLength(0);
   });
+
+  it('should list only the agents of the given project', async () => {
+    mockHttpRequest.mockResolvedValueOnce({data: mockResponse});
+
+    const {result} = renderHook(() => useGetAgents({projectId: 'prj-finance'}));
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+    const callArgs = mockHttpRequest.mock.calls[0][0] as {url: string};
+    expect(callArgs.url).toBe('https://api.test.com/agents?limit=30&offset=0&include=display&projectId=prj-finance');
+  });
 });

@@ -66,7 +66,7 @@ func (suite *ThemeServiceTestSuite) TestGetThemeList_Success() {
 	suite.mockStore.On("GetThemeListCount", testCtx()).Return(2, nil)
 	suite.mockStore.On("GetThemeList", testCtx(), 10, 0).Return(themes, nil)
 
-	result, err := suite.service.GetThemeList(testCtx(), 10, 0)
+	result, err := suite.service.GetThemeList(testCtx(), 10, 0, "")
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), result)
@@ -80,7 +80,7 @@ func (suite *ThemeServiceTestSuite) TestGetThemeList_Success() {
 func (suite *ThemeServiceTestSuite) TestGetThemeList_CountError() {
 	suite.mockStore.On("GetThemeListCount", testCtx()).Return(0, errors.New("database error"))
 
-	result, err := suite.service.GetThemeList(testCtx(), 10, 0)
+	result, err := suite.service.GetThemeList(testCtx(), 10, 0, "")
 
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), err)
@@ -91,7 +91,7 @@ func (suite *ThemeServiceTestSuite) TestGetThemeList_StoreError() {
 	suite.mockStore.On("GetThemeListCount", testCtx()).Return(2, nil)
 	suite.mockStore.On("GetThemeList", testCtx(), 10, 0).Return(nil, errors.New("database error"))
 
-	result, err := suite.service.GetThemeList(testCtx(), 10, 0)
+	result, err := suite.service.GetThemeList(testCtx(), 10, 0, "")
 
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), err)
@@ -99,7 +99,7 @@ func (suite *ThemeServiceTestSuite) TestGetThemeList_StoreError() {
 
 // Test GetThemeList - Invalid Pagination
 func (suite *ThemeServiceTestSuite) TestGetThemeList_InvalidLimit() {
-	result, err := suite.service.GetThemeList(testCtx(), -1, 0)
+	result, err := suite.service.GetThemeList(testCtx(), -1, 0, "")
 
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), err)
@@ -107,7 +107,7 @@ func (suite *ThemeServiceTestSuite) TestGetThemeList_InvalidLimit() {
 }
 
 func (suite *ThemeServiceTestSuite) TestGetThemeList_InvalidOffset() {
-	result, err := suite.service.GetThemeList(testCtx(), 10, -1)
+	result, err := suite.service.GetThemeList(testCtx(), 10, -1, "")
 
 	assert.Nil(suite.T(), result)
 	assert.NotNil(suite.T(), err)

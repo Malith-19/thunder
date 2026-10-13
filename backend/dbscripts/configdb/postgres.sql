@@ -64,6 +64,7 @@ CREATE TABLE "ROLE_ASSIGNMENT" (
 CREATE TABLE "THEME" (
     DEPLOYMENT_ID VARCHAR(255) NOT NULL,
     ID VARCHAR(36) NOT NULL,
+    PROJECT_ID VARCHAR(36),
     DISPLAY_NAME VARCHAR(255) NOT NULL,
     HANDLE VARCHAR(255) NOT NULL,
     DESCRIPTION VARCHAR(512),
@@ -73,6 +74,9 @@ CREATE TABLE "THEME" (
     UNIQUE (DEPLOYMENT_ID, HANDLE),
     PRIMARY KEY (DEPLOYMENT_ID, ID)
 );
+
+-- Lists themes by project
+CREATE INDEX idx_theme_project ON "THEME" (DEPLOYMENT_ID, PROJECT_ID);
 
 -- Index for deployment isolation on THEME
 CREATE INDEX idx_theme_deployment_id ON "THEME" (DEPLOYMENT_ID);
@@ -84,6 +88,7 @@ CREATE UNIQUE INDEX idx_theme_handle_deployment ON "THEME" (HANDLE, DEPLOYMENT_I
 CREATE TABLE "LAYOUT" (
     DEPLOYMENT_ID VARCHAR(255) NOT NULL,
     ID VARCHAR(36) NOT NULL,
+    PROJECT_ID VARCHAR(36),
     DISPLAY_NAME VARCHAR(255) NOT NULL,
     HANDLE VARCHAR(255) NOT NULL,
     DESCRIPTION VARCHAR(512),
@@ -93,6 +98,9 @@ CREATE TABLE "LAYOUT" (
     UNIQUE (DEPLOYMENT_ID, HANDLE),
     PRIMARY KEY (DEPLOYMENT_ID, ID)
 );
+
+-- Lists layouts by project
+CREATE INDEX idx_layout_project ON "LAYOUT" (DEPLOYMENT_ID, PROJECT_ID);
 
 -- Index for deployment isolation on LAYOUT
 CREATE INDEX idx_layout_deployment_id ON "LAYOUT" (DEPLOYMENT_ID);
@@ -139,6 +147,7 @@ CREATE TABLE "IDP" (
     NAME VARCHAR(255) NOT NULL,
     DESCRIPTION VARCHAR(500),
     TYPE VARCHAR(20) NOT NULL,
+    PROJECT_ID VARCHAR(36),
     PROPERTIES JSONB,
     ATTRIBUTE_CONFIGURATION JSONB,
     CREATED_AT TIMESTAMPTZ DEFAULT NOW(),
@@ -149,6 +158,9 @@ CREATE TABLE "IDP" (
 -- Composite index for name-based IDP lookups
 CREATE INDEX idx_idp_name_deployment ON "IDP" (DEPLOYMENT_ID, NAME);
 
+-- Lists identity providers by project
+CREATE INDEX idx_idp_project ON "IDP" (DEPLOYMENT_ID, PROJECT_ID);
+
 -- Expression index for issuer-based IDP lookups
 CREATE INDEX idx_idp_issuer ON "IDP" (DEPLOYMENT_ID, (PROPERTIES->'issuer'->>'value'));
 
@@ -157,6 +169,7 @@ CREATE TABLE "NOTIFICATION_SENDER" (
     DEPLOYMENT_ID VARCHAR(255) NOT NULL,
     NAME VARCHAR(255) NOT NULL,
     ID VARCHAR(36) NOT NULL,
+    PROJECT_ID VARCHAR(36),
     DESCRIPTION VARCHAR(500),
     TYPE VARCHAR(20) NOT NULL,
     PROVIDER VARCHAR(20) NOT NULL,
@@ -166,6 +179,9 @@ CREATE TABLE "NOTIFICATION_SENDER" (
     PRIMARY KEY (DEPLOYMENT_ID, ID)
 );
 
+-- Lists notification senders by project
+CREATE INDEX idx_notification_sender_project ON "NOTIFICATION_SENDER" (DEPLOYMENT_ID, PROJECT_ID);
+
 -- Composite index for name-based notification sender lookups
 CREATE INDEX idx_notification_sender_name_deployment ON "NOTIFICATION_SENDER" (DEPLOYMENT_ID, NAME);
 
@@ -173,6 +189,7 @@ CREATE INDEX idx_notification_sender_name_deployment ON "NOTIFICATION_SENDER" (D
 CREATE TABLE "AUTHORIZATION_PDP_CONNECTION" (
 	DEPLOYMENT_ID VARCHAR(255) NOT NULL,
 	ID VARCHAR(36) PRIMARY KEY,
+	PROJECT_ID VARCHAR(36),
 	NAME VARCHAR(255) NOT NULL,
 	DESCRIPTION VARCHAR(500),
 	TYPE VARCHAR(50) NOT NULL,
@@ -180,6 +197,9 @@ CREATE TABLE "AUTHORIZATION_PDP_CONNECTION" (
     CREATED_AT TIMESTAMPTZ DEFAULT NOW(),
     UPDATED_AT TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Lists authorization PDP connections by project
+CREATE INDEX idx_authorization_pdp_connection_project ON "AUTHORIZATION_PDP_CONNECTION" (DEPLOYMENT_ID, PROJECT_ID);
 
 -- Unique constraint: Authorization PDP provider names must be unique per provider type and deployment.
 CREATE UNIQUE INDEX idx_authorization_pdp_connection_type_name_deployment
@@ -302,6 +322,7 @@ CREATE UNIQUE INDEX uq_action_resource_handle
 CREATE TABLE "FLOW" (
     DEPLOYMENT_ID VARCHAR(255) NOT NULL,
     ID VARCHAR(36) NOT NULL,
+    PROJECT_ID VARCHAR(36),
     HANDLE VARCHAR(100) NOT NULL,
     NAME VARCHAR(100) NOT NULL,
     FLOW_TYPE VARCHAR(50) NOT NULL,
@@ -311,6 +332,9 @@ CREATE TABLE "FLOW" (
     UNIQUE (HANDLE, FLOW_TYPE, DEPLOYMENT_ID),
     PRIMARY KEY (DEPLOYMENT_ID, ID)
 );
+
+-- Lists flows by project
+CREATE INDEX idx_flow_project ON "FLOW" (DEPLOYMENT_ID, PROJECT_ID);
 
 -- Composite index for flow type + deployment queries
 CREATE INDEX idx_flow_type_deployment ON "FLOW" (DEPLOYMENT_ID, FLOW_TYPE);
@@ -332,6 +356,7 @@ CREATE TABLE "FLOW_VERSION" (
 -- Table to store i18n translations
 CREATE TABLE "TRANSLATION" (
     DEPLOYMENT_ID   VARCHAR(255) NOT NULL,
+    PROJECT_ID      VARCHAR(36),
     MESSAGE_KEY     VARCHAR(255) NOT NULL,
     LANGUAGE_CODE   VARCHAR(10) NOT NULL,
     NAMESPACE       VARCHAR(50) NOT NULL DEFAULT 'default',
@@ -340,6 +365,9 @@ CREATE TABLE "TRANSLATION" (
     UPDATED_AT      TIMESTAMPTZ DEFAULT NOW(),
     PRIMARY KEY (DEPLOYMENT_ID, NAMESPACE, MESSAGE_KEY, LANGUAGE_CODE)
 );
+
+-- Lists translations by project
+CREATE INDEX idx_translation_project ON "TRANSLATION" (DEPLOYMENT_ID, PROJECT_ID);
 
 -- Index for efficient language and namespace combination lookups
 CREATE INDEX idx_translation_lang_namespace ON "TRANSLATION" (DEPLOYMENT_ID, LANGUAGE_CODE);
@@ -595,6 +623,7 @@ CREATE TABLE "RESOURCE_OVERLAY_VALUE" (
 CREATE TABLE "NOTIFICATION_TEMPLATE" (
     DEPLOYMENT_ID VARCHAR(255) NOT NULL,
     ID            VARCHAR(36)  NOT NULL,
+    PROJECT_ID VARCHAR(36),
     CHANNEL       VARCHAR(16)  NOT NULL,
     HANDLE        VARCHAR(255) NOT NULL,
     DISPLAY_NAME  VARCHAR(255) NOT NULL,
@@ -605,4 +634,22 @@ CREATE TABLE "NOTIFICATION_TEMPLATE" (
     UPDATED_AT    TIMESTAMPTZ  DEFAULT NOW(),
     PRIMARY KEY (DEPLOYMENT_ID, ID),
     UNIQUE (DEPLOYMENT_ID, CHANNEL, HANDLE)
+);
+
+-- Lists notification templates by project
+CREATE INDEX idx_notification_template_project ON "NOTIFICATION_TEMPLATE" (DEPLOYMENT_ID, PROJECT_ID);
+
+-- Projects group the organization units and the resources not bound to one that make up one product
+-- or workload. Organization units and those resources carry the project ID in a PROJECT_ID column; a
+-- resource bound to an organization unit belongs to the unit's project.
+CREATE TABLE "PROJECT" (
+    DEPLOYMENT_ID VARCHAR(255) NOT NULL,
+    ID            VARCHAR(36)  NOT NULL,
+    HANDLE        VARCHAR(100) NOT NULL,
+    NAME          VARCHAR(100) NOT NULL,
+    DESCRIPTION   VARCHAR(255),
+    CREATED_AT    TIMESTAMPTZ  DEFAULT NOW(),
+    UPDATED_AT    TIMESTAMPTZ  DEFAULT NOW(),
+    PRIMARY KEY (DEPLOYMENT_ID, ID),
+    CONSTRAINT unique_project_handle UNIQUE (DEPLOYMENT_ID, HANDLE)
 );

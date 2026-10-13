@@ -26,11 +26,16 @@ import (
 // RequiredClaims enforces that incoming tokens contain specific claims with expected values.
 // Each entry specifies a claim name and the value it must hold. If any required claim is
 // missing or does not match, the token is rejected.
+//
+// CACertFile optionally names a PEM file of certificate authorities trusted, in addition to the
+// system roots, when fetching the JWKS. A relative path is resolved against the server home. It keeps
+// verification on for an issuer whose certificate a private authority signed.
 type TrustedIssuerConfig struct {
 	Issuer         string          `yaml:"issuer"          json:"issuer"`
 	JWKSURL        string          `yaml:"jwks_url"        json:"jwks_url"`
 	Audience       string          `yaml:"audience"        json:"audience"`
 	RequiredClaims []RequiredClaim `yaml:"required_claims" json:"required_claims"`
+	CACertFile     string          `yaml:"ca_cert_file"    json:"ca_cert_file"`
 }
 
 // SecurityConfig holds the security-related configuration details.

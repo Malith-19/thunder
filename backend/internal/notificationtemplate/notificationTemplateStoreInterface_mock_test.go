@@ -38,8 +38,8 @@ func (_m *notificationTemplateStoreInterfaceMock) EXPECT() *notificationTemplate
 }
 
 // CountTemplates provides a mock function for the type notificationTemplateStoreInterfaceMock
-func (_mock *notificationTemplateStoreInterfaceMock) CountTemplates(ctx context.Context, channel ChannelType) (int, error) {
-	ret := _mock.Called(ctx, channel)
+func (_mock *notificationTemplateStoreInterfaceMock) CountTemplates(ctx context.Context, channel ChannelType, projectID string) (int, error) {
+	ret := _mock.Called(ctx, channel, projectID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CountTemplates")
@@ -47,16 +47,16 @@ func (_mock *notificationTemplateStoreInterfaceMock) CountTemplates(ctx context.
 
 	var r0 int
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, ChannelType) (int, error)); ok {
-		return returnFunc(ctx, channel)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, ChannelType, string) (int, error)); ok {
+		return returnFunc(ctx, channel, projectID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, ChannelType) int); ok {
-		r0 = returnFunc(ctx, channel)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, ChannelType, string) int); ok {
+		r0 = returnFunc(ctx, channel, projectID)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, ChannelType) error); ok {
-		r1 = returnFunc(ctx, channel)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, ChannelType, string) error); ok {
+		r1 = returnFunc(ctx, channel, projectID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -71,11 +71,12 @@ type notificationTemplateStoreInterfaceMock_CountTemplates_Call struct {
 // CountTemplates is a helper method to define mock.On call
 //   - ctx context.Context
 //   - channel ChannelType
-func (_e *notificationTemplateStoreInterfaceMock_Expecter) CountTemplates(ctx interface{}, channel interface{}) *notificationTemplateStoreInterfaceMock_CountTemplates_Call {
-	return &notificationTemplateStoreInterfaceMock_CountTemplates_Call{Call: _e.mock.On("CountTemplates", ctx, channel)}
+//   - projectID string
+func (_e *notificationTemplateStoreInterfaceMock_Expecter) CountTemplates(ctx interface{}, channel interface{}, projectID interface{}) *notificationTemplateStoreInterfaceMock_CountTemplates_Call {
+	return &notificationTemplateStoreInterfaceMock_CountTemplates_Call{Call: _e.mock.On("CountTemplates", ctx, channel, projectID)}
 }
 
-func (_c *notificationTemplateStoreInterfaceMock_CountTemplates_Call) Run(run func(ctx context.Context, channel ChannelType)) *notificationTemplateStoreInterfaceMock_CountTemplates_Call {
+func (_c *notificationTemplateStoreInterfaceMock_CountTemplates_Call) Run(run func(ctx context.Context, channel ChannelType, projectID string)) *notificationTemplateStoreInterfaceMock_CountTemplates_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -85,9 +86,14 @@ func (_c *notificationTemplateStoreInterfaceMock_CountTemplates_Call) Run(run fu
 		if args[1] != nil {
 			arg1 = args[1].(ChannelType)
 		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -98,7 +104,7 @@ func (_c *notificationTemplateStoreInterfaceMock_CountTemplates_Call) Return(n i
 	return _c
 }
 
-func (_c *notificationTemplateStoreInterfaceMock_CountTemplates_Call) RunAndReturn(run func(ctx context.Context, channel ChannelType) (int, error)) *notificationTemplateStoreInterfaceMock_CountTemplates_Call {
+func (_c *notificationTemplateStoreInterfaceMock_CountTemplates_Call) RunAndReturn(run func(ctx context.Context, channel ChannelType, projectID string) (int, error)) *notificationTemplateStoreInterfaceMock_CountTemplates_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -440,8 +446,8 @@ func (_c *notificationTemplateStoreInterfaceMock_IsHandleExists_Call) RunAndRetu
 }
 
 // ListTemplates provides a mock function for the type notificationTemplateStoreInterfaceMock
-func (_mock *notificationTemplateStoreInterfaceMock) ListTemplates(ctx context.Context, channel ChannelType, limit int, offset int) ([]templateDAO, error) {
-	ret := _mock.Called(ctx, channel, limit, offset)
+func (_mock *notificationTemplateStoreInterfaceMock) ListTemplates(ctx context.Context, channel ChannelType, limit int, offset int, projectID string) ([]templateDAO, error) {
+	ret := _mock.Called(ctx, channel, limit, offset, projectID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListTemplates")
@@ -449,18 +455,18 @@ func (_mock *notificationTemplateStoreInterfaceMock) ListTemplates(ctx context.C
 
 	var r0 []templateDAO
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, ChannelType, int, int) ([]templateDAO, error)); ok {
-		return returnFunc(ctx, channel, limit, offset)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, ChannelType, int, int, string) ([]templateDAO, error)); ok {
+		return returnFunc(ctx, channel, limit, offset, projectID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, ChannelType, int, int) []templateDAO); ok {
-		r0 = returnFunc(ctx, channel, limit, offset)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, ChannelType, int, int, string) []templateDAO); ok {
+		r0 = returnFunc(ctx, channel, limit, offset, projectID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]templateDAO)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, ChannelType, int, int) error); ok {
-		r1 = returnFunc(ctx, channel, limit, offset)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, ChannelType, int, int, string) error); ok {
+		r1 = returnFunc(ctx, channel, limit, offset, projectID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -477,11 +483,12 @@ type notificationTemplateStoreInterfaceMock_ListTemplates_Call struct {
 //   - channel ChannelType
 //   - limit int
 //   - offset int
-func (_e *notificationTemplateStoreInterfaceMock_Expecter) ListTemplates(ctx interface{}, channel interface{}, limit interface{}, offset interface{}) *notificationTemplateStoreInterfaceMock_ListTemplates_Call {
-	return &notificationTemplateStoreInterfaceMock_ListTemplates_Call{Call: _e.mock.On("ListTemplates", ctx, channel, limit, offset)}
+//   - projectID string
+func (_e *notificationTemplateStoreInterfaceMock_Expecter) ListTemplates(ctx interface{}, channel interface{}, limit interface{}, offset interface{}, projectID interface{}) *notificationTemplateStoreInterfaceMock_ListTemplates_Call {
+	return &notificationTemplateStoreInterfaceMock_ListTemplates_Call{Call: _e.mock.On("ListTemplates", ctx, channel, limit, offset, projectID)}
 }
 
-func (_c *notificationTemplateStoreInterfaceMock_ListTemplates_Call) Run(run func(ctx context.Context, channel ChannelType, limit int, offset int)) *notificationTemplateStoreInterfaceMock_ListTemplates_Call {
+func (_c *notificationTemplateStoreInterfaceMock_ListTemplates_Call) Run(run func(ctx context.Context, channel ChannelType, limit int, offset int, projectID string)) *notificationTemplateStoreInterfaceMock_ListTemplates_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -499,11 +506,16 @@ func (_c *notificationTemplateStoreInterfaceMock_ListTemplates_Call) Run(run fun
 		if args[3] != nil {
 			arg3 = args[3].(int)
 		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
+			arg4,
 		)
 	})
 	return _c
@@ -514,7 +526,7 @@ func (_c *notificationTemplateStoreInterfaceMock_ListTemplates_Call) Return(temp
 	return _c
 }
 
-func (_c *notificationTemplateStoreInterfaceMock_ListTemplates_Call) RunAndReturn(run func(ctx context.Context, channel ChannelType, limit int, offset int) ([]templateDAO, error)) *notificationTemplateStoreInterfaceMock_ListTemplates_Call {
+func (_c *notificationTemplateStoreInterfaceMock_ListTemplates_Call) RunAndReturn(run func(ctx context.Context, channel ChannelType, limit int, offset int, projectID string) ([]templateDAO, error)) *notificationTemplateStoreInterfaceMock_ListTemplates_Call {
 	_c.Call.Return(run)
 	return _c
 }

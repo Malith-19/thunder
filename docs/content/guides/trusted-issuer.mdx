@@ -50,6 +50,7 @@ server:
 | `jwks_url` | Yes | The JWKS endpoint on the central server. <ProductName /> fetches the public signing keys from this URL and uses them to verify token signatures. |
 | `audience` | Yes | The `aud` value that tokens from the central server must carry. Set this to the resource-server <ProductName /> instance's own public URL. The client at the central server must include a matching `resource` parameter in the authorization request so the issued token targets this instance. |
 | `required_claims` | No | A list of claims that every accepted token must contain, each paired with an expected value. Tokens that are missing a required claim or carry a different value are rejected. Use this to scope accepted tokens further, for example to a specific organization unit. |
+| `ca_cert_file` | No | Path to a PEM file of certificate authorities to trust, in addition to the system ones, when fetching signing keys from `jwks_url`. Use it when a private certificate authority signed the central server's certificate, so certificate verification stays on. A relative path is resolved against the server home. |
 
 
 The JWKS cache time-to-live applies to signing keys fetched from this endpoint and is configured at `server.security.jwks_cache_ttl`, not inside the `trusted_issuer` block. See [Security Configuration](../../deployment/configuration#security-configuration) for details.

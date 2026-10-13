@@ -8,6 +8,7 @@ import (
 	"context"
 
 	mock "github.com/stretchr/testify/mock"
+	"github.com/thunder-id/thunderid/internal/project"
 	"github.com/thunder-id/thunderid/internal/system/resourcedependency"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine/common"
 )
@@ -767,6 +768,76 @@ func (_c *ConfigurableOUServiceMock_GetOrganizationUnitHandlesByIDs_Call) Return
 }
 
 func (_c *ConfigurableOUServiceMock_GetOrganizationUnitHandlesByIDs_Call) RunAndReturn(run func(ctx context.Context, ids []string) (map[string]string, *common.ServiceError)) *ConfigurableOUServiceMock_GetOrganizationUnitHandlesByIDs_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetOrganizationUnitIDsByProject provides a mock function for the type ConfigurableOUServiceMock
+func (_mock *ConfigurableOUServiceMock) GetOrganizationUnitIDsByProject(ctx context.Context, projectID string) ([]string, *common.ServiceError) {
+	ret := _mock.Called(ctx, projectID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOrganizationUnitIDsByProject")
+	}
+
+	var r0 []string
+	var r1 *common.ServiceError
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]string, *common.ServiceError)); ok {
+		return returnFunc(ctx, projectID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []string); ok {
+		r0 = returnFunc(ctx, projectID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) *common.ServiceError); ok {
+		r1 = returnFunc(ctx, projectID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*common.ServiceError)
+		}
+	}
+	return r0, r1
+}
+
+// ConfigurableOUServiceMock_GetOrganizationUnitIDsByProject_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOrganizationUnitIDsByProject'
+type ConfigurableOUServiceMock_GetOrganizationUnitIDsByProject_Call struct {
+	*mock.Call
+}
+
+// GetOrganizationUnitIDsByProject is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID string
+func (_e *ConfigurableOUServiceMock_Expecter) GetOrganizationUnitIDsByProject(ctx interface{}, projectID interface{}) *ConfigurableOUServiceMock_GetOrganizationUnitIDsByProject_Call {
+	return &ConfigurableOUServiceMock_GetOrganizationUnitIDsByProject_Call{Call: _e.mock.On("GetOrganizationUnitIDsByProject", ctx, projectID)}
+}
+
+func (_c *ConfigurableOUServiceMock_GetOrganizationUnitIDsByProject_Call) Run(run func(ctx context.Context, projectID string)) *ConfigurableOUServiceMock_GetOrganizationUnitIDsByProject_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *ConfigurableOUServiceMock_GetOrganizationUnitIDsByProject_Call) Return(strings []string, serviceError *common.ServiceError) *ConfigurableOUServiceMock_GetOrganizationUnitIDsByProject_Call {
+	_c.Call.Return(strings, serviceError)
+	return _c
+}
+
+func (_c *ConfigurableOUServiceMock_GetOrganizationUnitIDsByProject_Call) RunAndReturn(run func(ctx context.Context, projectID string) ([]string, *common.ServiceError)) *ConfigurableOUServiceMock_GetOrganizationUnitIDsByProject_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1662,6 +1733,46 @@ func (_c *ConfigurableOUServiceMock_SetOUUserResolver_Call) Return() *Configurab
 }
 
 func (_c *ConfigurableOUServiceMock_SetOUUserResolver_Call) RunAndReturn(run func(resolver OUUserResolver)) *ConfigurableOUServiceMock_SetOUUserResolver_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetProjectResolver provides a mock function for the type ConfigurableOUServiceMock
+func (_mock *ConfigurableOUServiceMock) SetProjectResolver(resolver project.Resolver) {
+	_mock.Called(resolver)
+	return
+}
+
+// ConfigurableOUServiceMock_SetProjectResolver_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetProjectResolver'
+type ConfigurableOUServiceMock_SetProjectResolver_Call struct {
+	*mock.Call
+}
+
+// SetProjectResolver is a helper method to define mock.On call
+//   - resolver project.Resolver
+func (_e *ConfigurableOUServiceMock_Expecter) SetProjectResolver(resolver interface{}) *ConfigurableOUServiceMock_SetProjectResolver_Call {
+	return &ConfigurableOUServiceMock_SetProjectResolver_Call{Call: _e.mock.On("SetProjectResolver", resolver)}
+}
+
+func (_c *ConfigurableOUServiceMock_SetProjectResolver_Call) Run(run func(resolver project.Resolver)) *ConfigurableOUServiceMock_SetProjectResolver_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 project.Resolver
+		if args[0] != nil {
+			arg0 = args[0].(project.Resolver)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *ConfigurableOUServiceMock_SetProjectResolver_Call) Return() *ConfigurableOUServiceMock_SetProjectResolver_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *ConfigurableOUServiceMock_SetProjectResolver_Call) RunAndReturn(run func(resolver project.Resolver)) *ConfigurableOUServiceMock_SetProjectResolver_Call {
 	_c.Run(run)
 	return _c
 }

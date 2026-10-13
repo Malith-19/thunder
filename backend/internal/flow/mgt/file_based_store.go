@@ -29,6 +29,7 @@ func (f *fileBasedStore) Create(id string, data interface{}) error {
 		Handle:       flow.Handle,
 		Name:         flow.Name,
 		FlowType:     flow.FlowType,
+		ProjectID:    flow.ProjectID,
 		Interceptors: flow.Interceptors,
 		Nodes:        flow.Nodes,
 	})
@@ -43,6 +44,7 @@ func (f *fileBasedStore) CreateFlow(_ context.Context, flowID string, flow *Flow
 		Handle:        flow.Handle,
 		Name:          flow.Name,
 		FlowType:      flow.FlowType,
+		ProjectID:     flow.ProjectID,
 		ActiveVersion: 1,
 		Interceptors:  flow.Interceptors,
 		Nodes:         flow.Nodes,
@@ -53,7 +55,7 @@ func (f *fileBasedStore) CreateFlow(_ context.Context, flowID string, flow *Flow
 }
 
 // ListFlows implements flowStoreInterface.
-func (f *fileBasedStore) ListFlows(_ context.Context, limit, offset int, flowType string) (
+func (f *fileBasedStore) ListFlows(_ context.Context, limit, offset int, flowType, projectID string) (
 	[]BasicFlowDefinition, int, error) {
 	list, err := f.GenericFileBasedStore.List()
 	if err != nil {
@@ -63,8 +65,11 @@ func (f *fileBasedStore) ListFlows(_ context.Context, limit, offset int, flowTyp
 	var flows []BasicFlowDefinition
 	for _, item := range list {
 		if flow, ok := item.Data.(*providers.CompleteFlowDefinition); ok {
-			// Filter by flow type if provided
+			// Filter by flow type and project if provided
 			if flowType != "" && string(flow.FlowType) != flowType {
+				continue
+			}
+			if projectID != "" && flow.ProjectID != projectID {
 				continue
 			}
 
@@ -73,6 +78,7 @@ func (f *fileBasedStore) ListFlows(_ context.Context, limit, offset int, flowTyp
 				Handle:        flow.Handle,
 				FlowType:      flow.FlowType,
 				Name:          flow.Name,
+				ProjectID:     flow.ProjectID,
 				ActiveVersion: flow.ActiveVersion,
 			}
 			flows = append(flows, basicFlow)

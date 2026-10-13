@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/thunder-id/thunderid/internal/entitytype"
+	"github.com/thunder-id/thunderid/internal/project"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	declarativeresource "github.com/thunder-id/thunderid/internal/system/declarative_resource"
 	"github.com/thunder-id/thunderid/internal/system/log"
@@ -42,6 +43,8 @@ type AuthZENPDPService struct {
 	transactioner providers.Transactioner
 	entityTypes   entitytype.EntityTypeServiceInterface
 	logger        *log.Logger
+	// projects decides the project of a connection.
+	projects project.Resolver
 }
 
 var _ AuthZENPDPServiceInterface = (*AuthZENPDPService)(nil)
@@ -82,10 +85,14 @@ func (s *AuthZENPDPService) CreateAuthZENPDPConnection(
 	if svcErr := s.validateSubjectAttributeMappings(ctx, connection.SubjectAttributeMappings); svcErr != nil {
 		return nil, svcErr
 	}
+	projectID, svcErr := project.ResolveProjectID(ctx, s.projects, connection.ProjectID, "")
+	if svcErr != nil {
+		return nil, svcErr
+	}
+	connection.ProjectID = projectID
 	if connection.ID == "" {
 		connection.ID = sysutils.GenerateUUID()
 	}
-	var svcErr *tidcommon.ServiceError
 	err := s.transactioner.Transact(ctx, func(txCtx context.Context) error {
 		existing, getErr := s.GetAuthZENPDPByName(txCtx, connection.Name)
 		if getErr != nil {
@@ -143,6 +150,11 @@ func (s *AuthZENPDPService) UpdateAuthZENPDPConnection(
 	if existing != nil && existing.ID != id {
 		return nil, &ErrorAlreadyExists
 	}
+	projectID, svcErr := s.resolveUpdatedProjectID(ctx, current, connection)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+	connection.ProjectID = projectID
 	connection.ID = id
 	if err := s.store.UpdateAuthZENPDP(ctx, id, connection); err != nil {
 		if errors.Is(err, ErrAuthZENPDPIsImmutable) {
@@ -159,6 +171,25 @@ func (s *AuthZENPDPService) UpdateAuthZENPDPConnection(
 		return nil, &tidcommon.InternalServerError
 	}
 	return updated, nil
+}
+
+// resolveUpdatedProjectID returns the project of an updated connection. An update that leaves the
+// project out keeps the current one, and a connection stays in the project it was created in.
+func (s *AuthZENPDPService) resolveUpdatedProjectID(
+	ctx context.Context, existing *AuthZENPDPConnection, updated AuthZENPDPConnection,
+) (string, *tidcommon.ServiceError) {
+	requested := updated.ProjectID
+	if requested == "" {
+		requested = existing.ProjectID
+	}
+	projectID, svcErr := project.ResolveProjectID(ctx, s.projects, requested, "")
+	if svcErr != nil {
+		return "", svcErr
+	}
+	if s.projects != nil && existing.ProjectID != "" && projectID != existing.ProjectID {
+		return "", &project.ErrorProjectChangeNotAllowed
+	}
+	return projectID, nil
 }
 
 // DeleteAuthZENPDPConnection deletes an AuthZEN PDP connection.
@@ -329,6 +360,7 @@ func (s *AuthZENPDPService) fromRequest(req ConnectionRequest) AuthZENPDPConnect
 		ID:                       req.ID,
 		Name:                     strings.TrimSpace(req.Name),
 		Description:              req.Description,
+		ProjectID:                req.ProjectID,
 		Endpoint:                 req.Endpoint,
 		BatchEndpoint:            req.BatchEndpoint,
 		TimeoutMS:                timeoutMS,

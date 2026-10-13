@@ -33,10 +33,10 @@ func (s *CompositeStoreTestSuite) SetupTest() {
 // GetDistinctLanguages
 
 func (s *CompositeStoreTestSuite) TestGetDistinctLanguages_MergesAndDeduplicates() {
-	s.dbStore.EXPECT().GetDistinctLanguages(mock.Anything).Return([]string{"en-US", "fr-FR"}, nil)
-	s.fileStore.EXPECT().GetDistinctLanguages(mock.Anything).Return([]string{"en-US", "es-ES"}, nil)
+	s.dbStore.EXPECT().GetDistinctLanguages(mock.Anything, "").Return([]string{"en-US", "fr-FR"}, nil)
+	s.fileStore.EXPECT().GetDistinctLanguages(mock.Anything, "").Return([]string{"en-US", "es-ES"}, nil)
 
-	langs, err := s.store.GetDistinctLanguages(context.Background())
+	langs, err := s.store.GetDistinctLanguages(context.Background(), "")
 	assert.NoError(s.T(), err)
 	assert.Len(s.T(), langs, 3)
 	assert.Contains(s.T(), langs, "en-US")
@@ -45,18 +45,18 @@ func (s *CompositeStoreTestSuite) TestGetDistinctLanguages_MergesAndDeduplicates
 }
 
 func (s *CompositeStoreTestSuite) TestGetDistinctLanguages_DBStoreError() {
-	s.dbStore.EXPECT().GetDistinctLanguages(mock.Anything).Return(nil, errors.New("db error"))
+	s.dbStore.EXPECT().GetDistinctLanguages(mock.Anything, "").Return(nil, errors.New("db error"))
 
-	langs, err := s.store.GetDistinctLanguages(context.Background())
+	langs, err := s.store.GetDistinctLanguages(context.Background(), "")
 	assert.Error(s.T(), err)
 	assert.Nil(s.T(), langs)
 }
 
 func (s *CompositeStoreTestSuite) TestGetDistinctLanguages_FileStoreError() {
-	s.dbStore.EXPECT().GetDistinctLanguages(mock.Anything).Return([]string{"en-US"}, nil)
-	s.fileStore.EXPECT().GetDistinctLanguages(mock.Anything).Return(nil, errors.New("file error"))
+	s.dbStore.EXPECT().GetDistinctLanguages(mock.Anything, "").Return([]string{"en-US"}, nil)
+	s.fileStore.EXPECT().GetDistinctLanguages(mock.Anything, "").Return(nil, errors.New("file error"))
 
-	langs, err := s.store.GetDistinctLanguages(context.Background())
+	langs, err := s.store.GetDistinctLanguages(context.Background(), "")
 	assert.Error(s.T(), err)
 	assert.Nil(s.T(), langs)
 }
@@ -218,9 +218,9 @@ func (s *CompositeStoreTestSuite) TestGetTranslationsByKey_DBStoreError() {
 
 func (s *CompositeStoreTestSuite) TestUpsertTranslationsByLanguage_DelegatesToDB() {
 	trans := []Translation{{Key: "key1", Language: "en-US", Namespace: "ns1", Value: "v1"}}
-	s.dbStore.EXPECT().UpsertTranslationsByLanguage(mock.Anything, "en-US", trans).Return(nil)
+	s.dbStore.EXPECT().UpsertTranslationsByLanguage(mock.Anything, "en-US", "prj-1", trans).Return(nil)
 
-	err := s.store.UpsertTranslationsByLanguage(context.Background(), "en-US", trans)
+	err := s.store.UpsertTranslationsByLanguage(context.Background(), "en-US", "prj-1", trans)
 	assert.NoError(s.T(), err)
 }
 
@@ -242,9 +242,9 @@ func (s *CompositeStoreTestSuite) TestUpsertTranslations_DelegatesToDB() {
 }
 
 func (s *CompositeStoreTestSuite) TestDeleteTranslationsByLanguage_DelegatesToDB() {
-	s.dbStore.EXPECT().DeleteTranslationsByLanguage(mock.Anything, "en-US").Return(nil)
+	s.dbStore.EXPECT().DeleteTranslationsByLanguage(mock.Anything, "en-US", "prj-1").Return(nil)
 
-	err := s.store.DeleteTranslationsByLanguage(context.Background(), "en-US")
+	err := s.store.DeleteTranslationsByLanguage(context.Background(), "en-US", "prj-1")
 	assert.NoError(s.T(), err)
 }
 

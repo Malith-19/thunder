@@ -44,7 +44,7 @@ func errorCode(body []byte) string {
 func (s *HandlerTestSuite) TestHandleTemplateList_OK_DefaultsLimit() {
 	// The handler applies the default page size of 30 and offset 0 when none are supplied; the
 	// expectation below matching 30/0 is what proves it.
-	s.mockService.On("ListTemplates", mock.Anything, ChannelTypeEmail, 30, 0).
+	s.mockService.On("ListTemplates", mock.Anything, ChannelTypeEmail, 30, 0, "").
 		Return(&TemplateListResponse{
 			TotalResults: 1,
 			Count:        1,
@@ -60,7 +60,7 @@ func (s *HandlerTestSuite) TestHandleTemplateList_OK_DefaultsLimit() {
 }
 
 func (s *HandlerTestSuite) TestHandleTemplateList_PassesPagination() {
-	s.mockService.On("ListTemplates", mock.Anything, ChannelTypeEmail, 5, 10).
+	s.mockService.On("ListTemplates", mock.Anything, ChannelTypeEmail, 5, 10, "").
 		Return(&TemplateListResponse{Templates: []TemplateSummary{}}, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/notification-templates/email/templates?limit=5&offset=10", nil)
@@ -209,7 +209,7 @@ func (s *HandlerTestSuite) TestHandleTemplateDelete_InUse() {
 }
 
 func (s *HandlerTestSuite) TestHandleTemplateList_ServiceError_500() {
-	s.mockService.On("ListTemplates", mock.Anything, ChannelTypeEmail, 30, 0).
+	s.mockService.On("ListTemplates", mock.Anything, ChannelTypeEmail, 30, 0, "").
 		Return(nil, &tidcommon.InternalServerError)
 
 	req := httptest.NewRequest(http.MethodGet, "/notification-templates/email/templates", nil)

@@ -141,18 +141,69 @@ func (s *DeclarativeResourceTestSuite) TestValidateResourceMissingTranslations()
 }
 
 func (s *DeclarativeResourceTestSuite) TestGetAllResourceIDs() {
-	languages := []string{"en-US", "fr-FR"}
-	s.mockStore.On("GetDistinctLanguages", mock.Anything).Return(languages, nil)
+	s.mockStore.On("GetTranslations", mock.Anything).Return(map[string]map[string]Translation{
+		"common|ok": {
+			"en-US": {Key: "ok", Language: "en-US", Namespace: "common", Value: "OK"},
+			"fr-FR": {Key: "ok", Language: "fr-FR", Namespace: "common", Value: "D'accord", ProjectID: "prj-1"},
+		},
+	}, nil)
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
 	assert.Nil(s.T(), err)
-	assert.Len(s.T(), ids, 2)
-	assert.Contains(s.T(), ids, "en-US")
-	assert.Contains(s.T(), ids, "fr-FR")
+	assert.Equal(s.T(), []string{"en-US", "fr-FR"}, ids)
+}
+
+func (s *DeclarativeResourceTestSuite) TestGetAllResourceIDs_LanguageSplitAcrossProjects() {
+	s.mockStore.On("GetTranslations", mock.Anything).Return(map[string]map[string]Translation{
+		"common|ok": {"fr-FR": {Key: "ok", Language: "fr-FR", Namespace: "common", Value: "OK", ProjectID: "prj-1"}},
+		"common|no": {"fr-FR": {Key: "no", Language: "fr-FR", Namespace: "common", Value: "Non", ProjectID: "prj-2"}},
+	}, nil)
+
+	ids, err := s.exporter.GetAllResourceIDs(context.Background())
+	assert.Nil(s.T(), err)
+	assert.Equal(s.T(), []string{"fr-FR@prj-1", "fr-FR@prj-2"}, ids)
+}
+
+func (s *DeclarativeResourceTestSuite) TestGetResourceByID_Project() {
+	s.mockStore.On("GetTranslations", mock.Anything).Return(map[string]map[string]Translation{
+		"common|ok": {"fr-FR": {Key: "ok", Language: "fr-FR", Namespace: "common", Value: "OK", ProjectID: "prj-1"}},
+		"common|no": {"fr-FR": {Key: "no", Language: "fr-FR", Namespace: "common", Value: "Non", ProjectID: "prj-2"}},
+	}, nil)
+
+	resource, _, err := s.exporter.GetResourceByID(context.Background(), "fr-FR@prj-2")
+	assert.Nil(s.T(), err)
+	trans := resource.(*LanguageTranslations)
+	assert.Equal(s.T(), "fr-FR", trans.Language)
+	assert.Equal(s.T(), "prj-2", trans.ProjectID)
+	assert.Equal(s.T(), map[string]map[string]string{"common": {"no": "Non"}}, trans.Translations)
+
+	resource, _, err = s.exporter.GetResourceByID(context.Background(), "fr-FR")
+	assert.Nil(s.T(), err)
+	assert.Empty(s.T(), resource.(*LanguageTranslations).ProjectID,
+		"a language split across projects names no single project")
+}
+
+func (s *DeclarativeResourceTestSuite) TestGetResourceByID_SingleProject() {
+	s.mockStore.On("GetTranslations", mock.Anything).Return(map[string]map[string]Translation{
+		"common|ok": {"fr-FR": {Key: "ok", Language: "fr-FR", Namespace: "common", Value: "OK", ProjectID: "prj-1"}},
+	}, nil)
+
+	resource, _, err := s.exporter.GetResourceByID(context.Background(), "fr-FR")
+	assert.Nil(s.T(), err)
+	assert.Equal(s.T(), "prj-1", resource.(*LanguageTranslations).ProjectID)
+}
+
+func (s *DeclarativeResourceTestSuite) TestParseToLangTranslation_Project() {
+	trans, err := parseToLangTranslation(
+		[]byte("language: fr-FR\nprojectId: prj-1\ntranslations:\n  common:\n    ok: OK\n"))
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), "prj-1", trans.ProjectID)
+	assert.Equal(s.T(), "fr-FR@prj-1", declarativeTranslationID(trans))
+	assert.Equal(s.T(), "fr-FR", declarativeTranslationID(&LanguageTranslations{Language: "fr-FR"}))
 }
 
 func (s *DeclarativeResourceTestSuite) TestGetAllResourceIDs_StoreError() {
-	s.mockStore.On("GetDistinctLanguages", mock.Anything).Return(nil, errors.New("db error"))
+	s.mockStore.On("GetTranslations", mock.Anything).Return(nil, errors.New("db error"))
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
 	assert.NotNil(s.T(), err)

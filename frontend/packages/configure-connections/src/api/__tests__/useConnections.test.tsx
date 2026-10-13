@@ -92,4 +92,13 @@ describe('useConnections', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error?.message).toBe('boom');
   });
+
+  it('lists the identity-provider connections of a project', async () => {
+    const {result} = renderHook(() => useConnections({projectId: 'prj-finance'}));
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockHttpRequest).toHaveBeenCalledWith(
+      expect.objectContaining({url: 'https://localhost:8090/connections?projectId=prj-finance'}),
+    );
+  });
 });

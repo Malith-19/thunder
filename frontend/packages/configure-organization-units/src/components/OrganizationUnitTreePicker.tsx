@@ -3,7 +3,7 @@
 
 import {useQueryClient} from '@tanstack/react-query';
 import {PageLoadingAnimation, QueryErrorNotice, ResourceAvatar} from '@thunderid/components';
-import {useConfig} from '@thunderid/contexts';
+import {useConfig, useProject} from '@thunderid/contexts';
 import {useLogger} from '@thunderid/logger/react';
 import {useThunderID} from '@thunderid/react';
 import {Box, Typography, CircularProgress, TreeView, useTheme} from '@wso2/oxygen-ui';
@@ -256,12 +256,15 @@ export default function OrganizationUnitTreePicker({
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
   const queryClient = useQueryClient();
+  // The picker offers only the organization units of the project the Console is in.
+  const {selectedProject} = useProject();
+  const projectId = selectedProject?.id;
   const {
     data,
     isLoading,
     error: rootListError,
     refetch: refetchRootList,
-  } = useGetOrganizationUnits(undefined, !rootOuId);
+  } = useGetOrganizationUnits({projectId}, !rootOuId);
 
   useEffect((): void => {
     if (!autoSelectFirst || rootOuId || value) return;
@@ -296,7 +299,7 @@ export default function OrganizationUnitTreePicker({
 
   const itemMap = useMemo(() => buildItemMap(treeItems), [treeItems]);
 
-  // Reset all tree state when rootOuId changes so stale data is never shown.
+  // Reset all tree state when rootOuId or the project changes so stale data is never shown.
   useEffect(() => {
     setTreeItems([]);
     setExpandedItems([]);
@@ -306,7 +309,7 @@ export default function OrganizationUnitTreePicker({
     setChildOffsets(new Map());
     setRootOffset(0);
     setRootLoadMoreLoading(false);
-  }, [rootOuId]);
+  }, [rootOuId, projectId]);
 
   // Build root tree when data arrives (global root mode)
   useEffect(() => {
@@ -482,12 +485,13 @@ export default function OrganizationUnitTreePicker({
       const result = await queryClient.fetchQuery<OrganizationUnitListResponse>({
         queryKey: [
           OrganizationUnitQueryKeys.ORGANIZATION_UNITS,
-          {limit: OrganizationUnitTreeConstants.PAGE_SIZE, offset: rootOffset},
+          {limit: OrganizationUnitTreeConstants.PAGE_SIZE, offset: rootOffset, projectId},
         ],
         queryFn: async (): Promise<OrganizationUnitListResponse> =>
           fetchOrganizationUnits(http, getServerUrl(), {
             limit: OrganizationUnitTreeConstants.PAGE_SIZE,
             offset: rootOffset,
+            projectId,
           }),
         staleTime: 0,
       });
@@ -515,7 +519,7 @@ export default function OrganizationUnitTreePicker({
     } finally {
       setRootLoadMoreLoading(false);
     }
-  }, [rootOffset, getServerUrl, queryClient, http, logger]);
+  }, [rootOffset, projectId, getServerUrl, queryClient, http, logger]);
 
   const handleLoadMore = useCallback(
     async (parentId: string): Promise<void> => {

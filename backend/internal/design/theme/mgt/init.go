@@ -4,10 +4,12 @@
 package thememgt
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/thunder-id/thunderid/internal/project"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	declarativeresource "github.com/thunder-id/thunderid/internal/system/declarative_resource"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
@@ -17,6 +19,7 @@ import (
 func Initialize(
 	mux *http.ServeMux,
 	mcpServer *mcp.Server,
+	projects project.Registry,
 ) (ThemeMgtServiceInterface, declarativeresource.ResourceExporter, error) {
 	// Step 1: Initialize store based on configuration
 	themeMgtStore, err := initializeStore()
@@ -25,16 +28,34 @@ func Initialize(
 	}
 
 	// Step 2: Create service with store
-	themeMgtService := newThemeMgtService(themeMgtStore)
-	themeMgtHandler := newThemeMgtHandler(themeMgtService)
+	themeService := newThemeMgtService(themeMgtStore)
+	if projects != nil {
+		themeService.(*themeMgtService).projects = projects
+		projects.AddUsageChecker(&projectUsageChecker{store: themeMgtStore})
+	}
+	themeMgtHandler := newThemeMgtHandler(themeService)
 	registerRoutes(mux, themeMgtHandler)
 
 	if mcpServer != nil {
-		registerMCPTools(mcpServer, themeMgtService)
+		registerMCPTools(mcpServer, themeService)
 	}
 
-	exporter := newThemeExporter(themeMgtService)
-	return themeMgtService, exporter, nil
+	exporter := newThemeExporter(themeService)
+	return themeService, exporter, nil
+}
+
+// projectUsageChecker keeps a project from being deleted while themes still belong to it.
+type projectUsageChecker struct {
+	store themeMgtStoreInterface
+}
+
+// HasResourcesInProject reports whether any theme belongs to the project.
+func (c *projectUsageChecker) HasResourcesInProject(ctx context.Context, projectID string) (bool, error) {
+	count, err := c.store.GetThemeListCountByProject(ctx, projectID)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 // Store Selection (based on theme.store configuration):

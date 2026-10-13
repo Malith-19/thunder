@@ -345,11 +345,11 @@ func (s *ExporterTestSuite) TestGetParameterizerType() {
 }
 
 func (s *ExporterTestSuite) TestGetAllResourceIDs() {
-	s.service.On("ListTemplates", mock.Anything, ChannelTypeEmail, serverconst.MaxPageSize, 0).
+	s.service.On("ListTemplates", mock.Anything, ChannelTypeEmail, serverconst.MaxPageSize, 0, mock.Anything).
 		Return(&TemplateListResponse{Templates: []TemplateSummary{
 			{ID: "welcome-email"}, {ID: "reset-email"}, {ID: "declared-email"},
 		}}, nil)
-	s.service.On("ListTemplates", mock.Anything, ChannelTypeSMS, serverconst.MaxPageSize, 0).
+	s.service.On("ListTemplates", mock.Anything, ChannelTypeSMS, serverconst.MaxPageSize, 0, mock.Anything).
 		Return(&TemplateListResponse{Templates: []TemplateSummary{{ID: "otp-sms"}}}, nil)
 	// The summary omits isReadOnly, so each template is fetched to decide; the declared one is skipped.
 	s.service.On("GetTemplate", mock.Anything, ChannelTypeEmail, "welcome-email").
@@ -396,9 +396,9 @@ func (s *ExporterTestSuite) TestExportMultilineBodyRoundTrips() {
 
 func (s *ExporterTestSuite) TestGetAllResourceIDs_ListError() {
 	// The channel sweep order is unspecified, so either channel may be the one listed first and error.
-	s.service.On("ListTemplates", mock.Anything, ChannelTypeEmail, serverconst.MaxPageSize, 0).
+	s.service.On("ListTemplates", mock.Anything, ChannelTypeEmail, serverconst.MaxPageSize, 0, mock.Anything).
 		Return(nil, &tidcommon.InternalServerError).Maybe()
-	s.service.On("ListTemplates", mock.Anything, ChannelTypeSMS, serverconst.MaxPageSize, 0).
+	s.service.On("ListTemplates", mock.Anything, ChannelTypeSMS, serverconst.MaxPageSize, 0, mock.Anything).
 		Return(nil, &tidcommon.InternalServerError).Maybe()
 
 	ids, err := s.exporter.GetAllResourceIDs(s.ctx)
@@ -408,9 +408,9 @@ func (s *ExporterTestSuite) TestGetAllResourceIDs_ListError() {
 }
 
 func (s *ExporterTestSuite) TestGetAllResourceIDs_GetTemplateError() {
-	s.service.On("ListTemplates", mock.Anything, ChannelTypeEmail, serverconst.MaxPageSize, 0).
+	s.service.On("ListTemplates", mock.Anything, ChannelTypeEmail, serverconst.MaxPageSize, 0, mock.Anything).
 		Return(&TemplateListResponse{Templates: []TemplateSummary{{ID: "welcome-email"}}}, nil).Maybe()
-	s.service.On("ListTemplates", mock.Anything, ChannelTypeSMS, serverconst.MaxPageSize, 0).
+	s.service.On("ListTemplates", mock.Anything, ChannelTypeSMS, serverconst.MaxPageSize, 0, mock.Anything).
 		Return(&TemplateListResponse{Templates: []TemplateSummary{{ID: "otp-sms"}}}, nil).Maybe()
 	// The per-id read-only fetch fails; the error propagates.
 	s.service.On("GetTemplate", mock.Anything, mock.Anything, mock.Anything).

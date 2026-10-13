@@ -13,6 +13,7 @@ import (
 
 	tidcommon "github.com/thunder-id/thunderid/pkg/thunderidengine/common"
 
+	"github.com/thunder-id/thunderid/internal/project"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/resourcedependency"
@@ -23,7 +24,7 @@ const loggerComponentName = "ThemeMgtService"
 
 // ThemeMgtServiceInterface defines the interface for the theme management service.
 type ThemeMgtServiceInterface interface {
-	GetThemeList(ctx context.Context, limit, offset int) (*ThemeList, *tidcommon.ServiceError)
+	GetThemeList(ctx context.Context, limit, offset int, projectID string) (*ThemeList, *tidcommon.ServiceError)
 	CreateTheme(ctx context.Context, theme CreateThemeRequestWithID) (*Theme, *tidcommon.ServiceError)
 	GetTheme(ctx context.Context, id string) (*Theme, *tidcommon.ServiceError)
 	UpdateTheme(ctx context.Context, id string, theme UpdateThemeRequest) (*Theme, *tidcommon.ServiceError)
@@ -38,7 +39,9 @@ type ThemeMgtServiceInterface interface {
 type themeMgtService struct {
 	themeMgtStore      themeMgtStoreInterface
 	dependencyRegistry resourcedependency.Registry
-	logger             *log.Logger
+	// projects decides the project of a theme.
+	projects project.Resolver
+	logger   *log.Logger
 }
 
 // newThemeMgtService creates a new instance of ThemeMgtService with injected dependencies.
@@ -50,19 +53,32 @@ func newThemeMgtService(themeMgtStore themeMgtStoreInterface) ThemeMgtServiceInt
 	}
 }
 
-// GetThemeList retrieves a list of theme configurations.
-func (ts *themeMgtService) GetThemeList(ctx context.Context, limit, offset int) (*ThemeList, *tidcommon.ServiceError) {
+// GetThemeList retrieves a list of theme configurations, only those of the project when one is given.
+func (ts *themeMgtService) GetThemeList(
+	ctx context.Context, limit, offset int, projectID string,
+) (*ThemeList, *tidcommon.ServiceError) {
 	if err := validatePaginationParams(limit, offset); err != nil {
 		return nil, err
 	}
 
-	totalCount, err := ts.themeMgtStore.GetThemeListCount(ctx)
+	var totalCount int
+	var err error
+	if projectID == "" {
+		totalCount, err = ts.themeMgtStore.GetThemeListCount(ctx)
+	} else {
+		totalCount, err = ts.themeMgtStore.GetThemeListCountByProject(ctx, projectID)
+	}
 	if err != nil {
 		ts.logger.Error(ctx, "Failed to get theme count", log.Error(err))
 		return nil, &tidcommon.InternalServerError
 	}
 
-	themes, err := ts.themeMgtStore.GetThemeList(ctx, limit, offset)
+	var themes []Theme
+	if projectID == "" {
+		themes, err = ts.themeMgtStore.GetThemeList(ctx, limit, offset)
+	} else {
+		themes, err = ts.themeMgtStore.GetThemeListByProject(ctx, projectID, limit, offset)
+	}
 	if err != nil {
 		ts.logger.Error(ctx, "Failed to list themes", log.Error(err))
 		return nil, &tidcommon.InternalServerError
@@ -73,7 +89,7 @@ func (ts *themeMgtService) GetThemeList(ctx context.Context, limit, offset int) 
 		Themes:       themes,
 		StartIndex:   offset + 1,
 		Count:        len(themes),
-		Links:        buildPaginationLinks(limit, offset, totalCount),
+		Links:        buildPaginationLinks(limit, offset, totalCount, projectID),
 	}
 
 	return response, nil
@@ -110,6 +126,11 @@ func (ts *themeMgtService) CreateTheme(ctx context.Context, theme CreateThemeReq
 		return nil, err
 	}
 
+	projectID, svcErr := project.ResolveProjectID(ctx, ts.projects, theme.ProjectID, "")
+	if svcErr != nil {
+		return nil, svcErr
+	}
+
 	id := theme.ID
 	if id == "" {
 		var err error
@@ -125,6 +146,7 @@ func (ts *themeMgtService) CreateTheme(ctx context.Context, theme CreateThemeReq
 		DisplayName: theme.DisplayName,
 		Description: theme.Description,
 		Theme:       theme.Theme,
+		ProjectID:   projectID,
 	}
 
 	if err := ts.themeMgtStore.CreateTheme(ctx, id, storeReq); err != nil {
@@ -138,6 +160,7 @@ func (ts *themeMgtService) CreateTheme(ctx context.Context, theme CreateThemeReq
 		DisplayName: theme.DisplayName,
 		Description: theme.Description,
 		Theme:       theme.Theme,
+		ProjectID:   projectID,
 	}
 
 	ts.logger.Debug(ctx, "Successfully created theme", log.String("id", id))
@@ -203,6 +226,12 @@ func (ts *themeMgtService) UpdateTheme(ctx context.Context, id string, theme Upd
 		return nil, err
 	}
 
+	projectID, svcErr := ts.resolveUpdatedProjectID(ctx, existingTheme.ProjectID, theme.ProjectID)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+	theme.ProjectID = projectID
+
 	if err := ts.themeMgtStore.UpdateTheme(ctx, id, theme); err != nil {
 		ts.logger.Error(ctx, "Failed to update theme", log.String("id", id), log.Error(err))
 		return nil, &tidcommon.InternalServerError
@@ -214,10 +243,29 @@ func (ts *themeMgtService) UpdateTheme(ctx context.Context, id string, theme Upd
 		DisplayName: theme.DisplayName,
 		Description: theme.Description,
 		Theme:       theme.Theme,
+		ProjectID:   projectID,
 	}
 
 	ts.logger.Debug(ctx, "Successfully updated theme", log.String("id", id))
 	return updatedTheme, nil
+}
+
+// resolveUpdatedProjectID returns the project of an updated theme. An update that leaves the project
+// out keeps the current one, and a theme stays in the project it was created in.
+func (ts *themeMgtService) resolveUpdatedProjectID(
+	ctx context.Context, existing, requested string,
+) (string, *tidcommon.ServiceError) {
+	if requested == "" {
+		requested = existing
+	}
+	projectID, svcErr := project.ResolveProjectID(ctx, ts.projects, requested, "")
+	if svcErr != nil {
+		return "", svcErr
+	}
+	if ts.projects != nil && existing != "" && projectID != existing {
+		return "", &project.ErrorProjectChangeNotAllowed
+	}
+	return projectID, nil
 }
 
 // DeleteTheme deletes a theme configuration.
@@ -352,7 +400,8 @@ func validatePaginationParams(limit, offset int) *tidcommon.ServiceError {
 }
 
 // buildPaginationLinks builds pagination links for the response.
-func buildPaginationLinks(limit, offset, totalCount int) []Link {
+func buildPaginationLinks(limit, offset, totalCount int, projectID string) []Link {
+	projectQuery := utils.ProjectIDQueryParam(projectID)
 	links := make([]Link, 0)
 
 	// Previous link
@@ -362,7 +411,7 @@ func buildPaginationLinks(limit, offset, totalCount int) []Link {
 			prevOffset = 0
 		}
 		links = append(links, Link{
-			Href: fmt.Sprintf("/design/themes?limit=%d&offset=%d", limit, prevOffset),
+			Href: fmt.Sprintf("/design/themes?limit=%d&offset=%d", limit, prevOffset) + projectQuery,
 			Rel:  "previous",
 		})
 	}
@@ -371,7 +420,7 @@ func buildPaginationLinks(limit, offset, totalCount int) []Link {
 	if offset+limit < totalCount {
 		nextOffset := offset + limit
 		links = append(links, Link{
-			Href: fmt.Sprintf("/design/themes?limit=%d&offset=%d", limit, nextOffset),
+			Href: fmt.Sprintf("/design/themes?limit=%d&offset=%d", limit, nextOffset) + projectQuery,
 			Rel:  "next",
 		})
 	}

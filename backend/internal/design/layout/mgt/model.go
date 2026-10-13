@@ -15,6 +15,7 @@ type Layout struct {
 	CreatedAt   string          `json:"createdAt" yaml:"createdAt,omitempty"`
 	UpdatedAt   string          `json:"updatedAt" yaml:"updatedAt,omitempty"`
 	IsReadOnly  bool            `json:"isReadOnly" yaml:"isReadOnly"`
+	ProjectID   string          `json:"projectId,omitempty" yaml:"projectId,omitempty"`
 }
 
 // LayoutListItem represents a layout item in the list response.
@@ -26,6 +27,7 @@ type LayoutListItem struct {
 	CreatedAt   string `json:"createdAt"`
 	UpdatedAt   string `json:"updatedAt"`
 	IsReadOnly  bool   `json:"isReadOnly"`
+	ProjectID   string `json:"projectId,omitempty"`
 }
 
 // CreateLayoutRequest represents the request body for creating a layout configuration.
@@ -34,6 +36,7 @@ type CreateLayoutRequest struct {
 	DisplayName string          `json:"displayName"`
 	Description string          `json:"description,omitempty"`
 	Layout      json.RawMessage `json:"layout"`
+	ProjectID   string          `json:"projectId,omitempty"`
 }
 
 // CreateLayoutRequestWithID represents the service-level request for creating a layout, including an optional ID.
@@ -43,6 +46,7 @@ type CreateLayoutRequestWithID struct {
 	DisplayName string          `json:"displayName"`
 	Description string          `json:"description,omitempty"`
 	Layout      json.RawMessage `json:"layout"`
+	ProjectID   string          `json:"projectId,omitempty"`
 }
 
 // UpdateLayoutRequest represents the request body for updating a layout configuration.
@@ -51,6 +55,7 @@ type UpdateLayoutRequest struct {
 	DisplayName string          `json:"displayName"`
 	Description string          `json:"description,omitempty"`
 	Layout      json.RawMessage `json:"layout"`
+	ProjectID   string          `json:"projectId,omitempty"`
 }
 
 // layoutRequestWithID represents the request structure for creating a layout from file-based config.
@@ -60,6 +65,7 @@ type layoutRequestWithID struct {
 	DisplayName string      `yaml:"displayName"`
 	Description string      `yaml:"description,omitempty"`
 	Layout      interface{} `yaml:"layout"`
+	ProjectID   string      `yaml:"projectId,omitempty"`
 }
 
 // LayoutListResponse represents the response for listing layout configurations with pagination.

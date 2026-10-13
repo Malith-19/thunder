@@ -5,8 +5,11 @@
 package config
 
 import (
+	"crypto/x509"
 	"fmt"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -189,6 +192,26 @@ func (c *ClientAssertionConfig) Validate() error {
 // Setting issuer is the activation signal; jwks_url and audience are then required.
 func (c *TrustedIssuerConfig) IsConfigured() bool {
 	return c.Issuer != ""
+}
+
+// ReadCACertificate returns the PEM certificate authorities named by ca_cert_file, or an empty string
+// when none is configured. A relative path is resolved against serverHome.
+func (c *TrustedIssuerConfig) ReadCACertificate(serverHome string) (string, error) {
+	if c.CACertFile == "" {
+		return "", nil
+	}
+	certPath := c.CACertFile
+	if !filepath.IsAbs(certPath) {
+		certPath = filepath.Join(serverHome, certPath)
+	}
+	data, err := os.ReadFile(filepath.Clean(certPath))
+	if err != nil {
+		return "", fmt.Errorf("failed to read trusted_issuer.ca_cert_file: %w", err)
+	}
+	if !x509.NewCertPool().AppendCertsFromPEM(data) {
+		return "", fmt.Errorf("trusted_issuer.ca_cert_file holds no PEM certificate")
+	}
+	return string(data), nil
 }
 
 // Validate checks the trusted issuer configuration for correctness.

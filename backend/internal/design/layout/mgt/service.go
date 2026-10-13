@@ -13,6 +13,7 @@ import (
 
 	tidcommon "github.com/thunder-id/thunderid/pkg/thunderidengine/common"
 
+	"github.com/thunder-id/thunderid/internal/project"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/resourcedependency"
@@ -23,7 +24,7 @@ const loggerComponentName = "LayoutMgtService"
 
 // LayoutMgtServiceInterface defines the interface for the layout management service.
 type LayoutMgtServiceInterface interface {
-	GetLayoutList(ctx context.Context, limit, offset int) (*LayoutList, *tidcommon.ServiceError)
+	GetLayoutList(ctx context.Context, limit, offset int, projectID string) (*LayoutList, *tidcommon.ServiceError)
 	CreateLayout(ctx context.Context, layout CreateLayoutRequestWithID) (*Layout, *tidcommon.ServiceError)
 	GetLayout(ctx context.Context, id string) (*Layout, *tidcommon.ServiceError)
 	UpdateLayout(ctx context.Context, id string, layout UpdateLayoutRequest) (*Layout, *tidcommon.ServiceError)
@@ -38,7 +39,9 @@ type LayoutMgtServiceInterface interface {
 type layoutMgtService struct {
 	layoutMgtStore     layoutMgtStoreInterface
 	dependencyRegistry resourcedependency.Registry
-	logger             *log.Logger
+	// projects decides the project of a layout.
+	projects project.Resolver
+	logger   *log.Logger
 }
 
 // newLayoutMgtService creates a new instance of LayoutMgtService with injected dependencies.
@@ -50,20 +53,31 @@ func newLayoutMgtService(layoutMgtStore layoutMgtStoreInterface) LayoutMgtServic
 	}
 }
 
-// GetLayoutList retrieves a list of layout configurations.
-func (ls *layoutMgtService) GetLayoutList(ctx context.Context, limit, offset int) (*LayoutList,
+// GetLayoutList retrieves a list of layout configurations, only those of the project when one is given.
+func (ls *layoutMgtService) GetLayoutList(ctx context.Context, limit, offset int, projectID string) (*LayoutList,
 	*tidcommon.ServiceError) {
 	if err := validatePaginationParams(limit, offset); err != nil {
 		return nil, err
 	}
 
-	totalCount, err := ls.layoutMgtStore.GetLayoutListCount(ctx)
+	var totalCount int
+	var err error
+	if projectID == "" {
+		totalCount, err = ls.layoutMgtStore.GetLayoutListCount(ctx)
+	} else {
+		totalCount, err = ls.layoutMgtStore.GetLayoutListCountByProject(ctx, projectID)
+	}
 	if err != nil {
 		ls.logger.Error(ctx, "Failed to get layout count", log.Error(err))
 		return nil, &tidcommon.InternalServerError
 	}
 
-	layouts, err := ls.layoutMgtStore.GetLayoutList(ctx, limit, offset)
+	var layouts []Layout
+	if projectID == "" {
+		layouts, err = ls.layoutMgtStore.GetLayoutList(ctx, limit, offset)
+	} else {
+		layouts, err = ls.layoutMgtStore.GetLayoutListByProject(ctx, projectID, limit, offset)
+	}
 	if err != nil {
 		ls.logger.Error(ctx, "Failed to list layouts", log.Error(err))
 		return nil, &tidcommon.InternalServerError
@@ -74,7 +88,7 @@ func (ls *layoutMgtService) GetLayoutList(ctx context.Context, limit, offset int
 		Layouts:      layouts,
 		StartIndex:   offset + 1,
 		Count:        len(layouts),
-		Links:        buildPaginationLinks(limit, offset, totalCount),
+		Links:        buildPaginationLinks(limit, offset, totalCount, projectID),
 	}
 
 	return response, nil
@@ -111,6 +125,11 @@ func (ls *layoutMgtService) CreateLayout(ctx context.Context, layout CreateLayou
 		return nil, err
 	}
 
+	projectID, svcErr := project.ResolveProjectID(ctx, ls.projects, layout.ProjectID, "")
+	if svcErr != nil {
+		return nil, svcErr
+	}
+
 	id := layout.ID
 	if id == "" {
 		var err error
@@ -126,6 +145,7 @@ func (ls *layoutMgtService) CreateLayout(ctx context.Context, layout CreateLayou
 		DisplayName: layout.DisplayName,
 		Description: layout.Description,
 		Layout:      layout.Layout,
+		ProjectID:   projectID,
 	}
 
 	if err := ls.layoutMgtStore.CreateLayout(ctx, id, storeReq); err != nil {
@@ -139,6 +159,7 @@ func (ls *layoutMgtService) CreateLayout(ctx context.Context, layout CreateLayou
 		DisplayName: layout.DisplayName,
 		Description: layout.Description,
 		Layout:      layout.Layout,
+		ProjectID:   projectID,
 	}
 
 	ls.logger.Debug(ctx, "Successfully created layout", log.String("id", id))
@@ -204,6 +225,12 @@ func (ls *layoutMgtService) UpdateLayout(ctx context.Context,
 		return nil, err
 	}
 
+	projectID, svcErr := ls.resolveUpdatedProjectID(ctx, existingLayout.ProjectID, layout.ProjectID)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+	layout.ProjectID = projectID
+
 	if err := ls.layoutMgtStore.UpdateLayout(ctx, id, layout); err != nil {
 		ls.logger.Error(ctx, "Failed to update layout", log.String("id", id), log.Error(err))
 		return nil, &tidcommon.InternalServerError
@@ -215,10 +242,29 @@ func (ls *layoutMgtService) UpdateLayout(ctx context.Context,
 		DisplayName: layout.DisplayName,
 		Description: layout.Description,
 		Layout:      layout.Layout,
+		ProjectID:   projectID,
 	}
 
 	ls.logger.Debug(ctx, "Successfully updated layout", log.String("id", id))
 	return updatedLayout, nil
+}
+
+// resolveUpdatedProjectID returns the project of an updated layout. An update that leaves the project
+// out keeps the current one, and a layout stays in the project it was created in.
+func (ls *layoutMgtService) resolveUpdatedProjectID(
+	ctx context.Context, existing, requested string,
+) (string, *tidcommon.ServiceError) {
+	if requested == "" {
+		requested = existing
+	}
+	projectID, svcErr := project.ResolveProjectID(ctx, ls.projects, requested, "")
+	if svcErr != nil {
+		return "", svcErr
+	}
+	if ls.projects != nil && existing != "" && projectID != existing {
+		return "", &project.ErrorProjectChangeNotAllowed
+	}
+	return projectID, nil
 }
 
 // DeleteLayout deletes a layout configuration.
@@ -353,7 +399,8 @@ func validatePaginationParams(limit, offset int) *tidcommon.ServiceError {
 }
 
 // buildPaginationLinks builds pagination links for the response.
-func buildPaginationLinks(limit, offset, totalCount int) []Link {
+func buildPaginationLinks(limit, offset, totalCount int, projectID string) []Link {
+	projectQuery := utils.ProjectIDQueryParam(projectID)
 	links := make([]Link, 0)
 
 	// Previous link
@@ -363,7 +410,7 @@ func buildPaginationLinks(limit, offset, totalCount int) []Link {
 			prevOffset = 0
 		}
 		links = append(links, Link{
-			Href: fmt.Sprintf("/design/layouts?limit=%d&offset=%d", limit, prevOffset),
+			Href: fmt.Sprintf("/design/layouts?limit=%d&offset=%d", limit, prevOffset) + projectQuery,
 			Rel:  "previous",
 		})
 	}
@@ -372,7 +419,7 @@ func buildPaginationLinks(limit, offset, totalCount int) []Link {
 	if offset+limit < totalCount {
 		nextOffset := offset + limit
 		links = append(links, Link{
-			Href: fmt.Sprintf("/design/layouts?limit=%d&offset=%d", limit, nextOffset),
+			Href: fmt.Sprintf("/design/layouts?limit=%d&offset=%d", limit, nextOffset) + projectQuery,
 			Rel:  "next",
 		})
 	}

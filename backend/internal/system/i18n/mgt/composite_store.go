@@ -22,12 +22,12 @@ func newCompositeI18nStore(fileStore, dbStore i18nStoreInterface) i18nStoreInter
 }
 
 // GetDistinctLanguages returns the union of languages from both stores.
-func (c *compositeI18nStore) GetDistinctLanguages(ctx context.Context) ([]string, error) {
-	dbLangs, err := c.dbStore.GetDistinctLanguages(ctx)
+func (c *compositeI18nStore) GetDistinctLanguages(ctx context.Context, projectID string) ([]string, error) {
+	dbLangs, err := c.dbStore.GetDistinctLanguages(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
-	fileLangs, err := c.fileStore.GetDistinctLanguages(ctx)
+	fileLangs, err := c.fileStore.GetDistinctLanguages(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -104,9 +104,9 @@ func (c *compositeI18nStore) GetTranslationsByKey(ctx context.Context, key strin
 	return result, nil
 }
 
-func (c *compositeI18nStore) UpsertTranslationsByLanguage(ctx context.Context, language string,
+func (c *compositeI18nStore) UpsertTranslationsByLanguage(ctx context.Context, language string, projectID string,
 	translations []Translation) error {
-	return c.dbStore.UpsertTranslationsByLanguage(ctx, language, translations)
+	return c.dbStore.UpsertTranslationsByLanguage(ctx, language, projectID, translations)
 }
 
 func (c *compositeI18nStore) UpsertTranslation(ctx context.Context, trans Translation) error {
@@ -117,8 +117,9 @@ func (c *compositeI18nStore) UpsertTranslations(ctx context.Context, translation
 	return c.dbStore.UpsertTranslations(ctx, translations)
 }
 
-func (c *compositeI18nStore) DeleteTranslationsByLanguage(ctx context.Context, language string) error {
-	return c.dbStore.DeleteTranslationsByLanguage(ctx, language)
+func (c *compositeI18nStore) DeleteTranslationsByLanguage(ctx context.Context, language string,
+	projectID string) error {
+	return c.dbStore.DeleteTranslationsByLanguage(ctx, language, projectID)
 }
 
 func (c *compositeI18nStore) DeleteTranslation(ctx context.Context, language string, key string,
