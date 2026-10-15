@@ -47,6 +47,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/notification"
 	"github.com/thunder-id/thunderid/internal/notificationtemplate"
 	"github.com/thunder-id/thunderid/internal/ou"
+	"github.com/thunder-id/thunderid/internal/projectscope"
 	"github.com/thunder-id/thunderid/internal/resource"
 	"github.com/thunder-id/thunderid/internal/role"
 	"github.com/thunder-id/thunderid/internal/serverconfig"
@@ -81,6 +82,10 @@ import (
 
 // observabilitySvc is the observability service instance. This is used for graceful shutdown.
 var observabilitySvc observability.ObservabilityServiceInterface
+
+// projectScopeMiddleware lets the management APIs take a project wherever they take an organization
+// unit. It passes requests through until the organization unit service exists.
+var projectScopeMiddleware = func(next http.Handler) http.Handler { return next }
 
 // registerServices registers the Control Plane management services with the provided HTTP
 // multiplexer. It also returns the import service so the bootstrap subcommand can create default
@@ -146,6 +151,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	ouService, ouHierarchyResolver, ouEnumerator, ouExporter, err := ou.Initialize(
 		mux, mcpServer, cacheManager, ouAuthzService)
 	fatalOnError(ctx, logger, err, "Failed to initialize OrganizationUnitService")
+	projectScopeMiddleware = projectscope.ControlPlaneMiddleware(ouService)
 	exporters = append(exporters, ouExporter)
 
 	// Complete the two-phase initialization: inject the OU hierarchy resolver into the

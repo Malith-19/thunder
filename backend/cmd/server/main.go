@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/logout/backchannel"
+	"github.com/thunder-id/thunderid/internal/projectscope"
 	"github.com/thunder-id/thunderid/internal/system/cache"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/constants"
@@ -310,7 +311,8 @@ func createSecurityMiddleware(ctx context.Context, logger *log.Logger, cfg *conf
 	if err != nil {
 		logger.Fatal(ctx, "Failed to initialize security middleware", log.Error(err))
 	}
-	return middlewareFunc(mux)
+	// The data plane takes organization units only; a project ID is accepted by the control plane.
+	return middlewareFunc(projectscope.DataPlaneMiddleware()(mux))
 }
 
 // gracefulShutdown handles the graceful shutdown of all components.
