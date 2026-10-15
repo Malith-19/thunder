@@ -51,7 +51,8 @@ type ResourceServiceInterface interface {
 		rs providers.ResourceServer,
 	) (*providers.ResourceServer, *tidcommon.ServiceError)
 	GetResourceServer(ctx context.Context, id string) (*providers.ResourceServer, *tidcommon.ServiceError)
-	GetResourceServerList(ctx context.Context, limit, offset int) (*ResourceServerList, *tidcommon.ServiceError)
+	GetResourceServerList(
+		ctx context.Context, limit, offset int, ouID string) (*ResourceServerList, *tidcommon.ServiceError)
 	UpdateResourceServer(
 		ctx context.Context, id string, rs providers.ResourceServer,
 	) (*providers.ResourceServer, *tidcommon.ServiceError)
@@ -389,13 +390,24 @@ func (rs *resourceService) GetResourceServerByIdentifier(
 
 // GetResourceServerList retrieves a paginated list of resource servers.
 func (rs *resourceService) GetResourceServerList(
-	ctx context.Context, limit, offset int,
+	ctx context.Context, limit, offset int, ouID string,
 ) (*ResourceServerList, *tidcommon.ServiceError) {
 	if err := validatePaginationParams(limit, offset); err != nil {
 		return nil, err
 	}
 
-	totalCount, err := rs.resourceStore.GetResourceServerListCount(ctx)
+	scope, svcErr := oupkg.ScopeToSubtree(ctx, rs.ouService, nil, ouID)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+
+	var totalCount int
+	var err error
+	if scope == nil {
+		totalCount, err = rs.resourceStore.GetResourceServerListCount(ctx)
+	} else {
+		totalCount, err = rs.resourceStore.GetResourceServerListCountByOUIDs(ctx, scope.IDs)
+	}
 	if err != nil {
 		if errors.Is(err, errResultLimitExceededInCompositeMode) {
 			return nil, &ErrResultLimitExceededInCompositeMode
@@ -404,7 +416,12 @@ func (rs *resourceService) GetResourceServerList(
 		return nil, &tidcommon.InternalServerError
 	}
 
-	resourceServers, err := rs.resourceStore.GetResourceServerList(ctx, limit, offset)
+	var resourceServers []providers.ResourceServer
+	if scope == nil {
+		resourceServers, err = rs.resourceStore.GetResourceServerList(ctx, limit, offset)
+	} else {
+		resourceServers, err = rs.resourceStore.GetResourceServerListByOUIDs(ctx, scope.IDs, limit, offset)
+	}
 	if err != nil {
 		if errors.Is(err, errResultLimitExceededInCompositeMode) {
 			return nil, &ErrResultLimitExceededInCompositeMode
@@ -418,7 +435,8 @@ func (rs *resourceService) GetResourceServerList(
 		ResourceServers: resourceServers,
 		StartIndex:      offset + 1,
 		Count:           len(resourceServers),
-		Links:           buildPaginationLinks("/resource-servers", limit, offset, totalCount),
+		Links: buildPaginationLinks(
+			"/resource-servers", limit, offset, totalCount, utils.OUIDQueryParam(ouID)),
 	}
 
 	return response, nil
@@ -750,7 +768,7 @@ func (rs *resourceService) GetResourceList(
 		Resources:    resources,
 		StartIndex:   offset + 1,
 		Count:        len(resources),
-		Links:        buildPaginationLinks(baseURL, limit, offset, totalCount),
+		Links:        buildPaginationLinks(baseURL, limit, offset, totalCount, ""),
 	}
 
 	return response, nil
@@ -1113,7 +1131,7 @@ func (rs *resourceService) GetActionList(
 		Actions:      actions,
 		StartIndex:   offset + 1,
 		Count:        len(actions),
-		Links:        buildPaginationLinks(baseURL, limit, offset, totalCount),
+		Links:        buildPaginationLinks(baseURL, limit, offset, totalCount, ""),
 	}
 
 	return response, nil
@@ -1517,12 +1535,12 @@ func validatePaginationParams(limit, offset int) *tidcommon.ServiceError {
 }
 
 // buildPaginationLinks constructs pagination links for a paginated response.
-func buildPaginationLinks(base string, limit, offset, totalCount int) []Link {
+func buildPaginationLinks(base string, limit, offset, totalCount int, extraQuery string) []Link {
 	links := make([]Link, 0)
 
 	if offset > 0 {
 		links = append(links, Link{
-			Href: fmt.Sprintf("%s?offset=0&limit=%d", base, limit),
+			Href: fmt.Sprintf("%s?offset=0&limit=%d%s", base, limit, extraQuery),
 			Rel:  "first",
 		})
 
@@ -1531,7 +1549,7 @@ func buildPaginationLinks(base string, limit, offset, totalCount int) []Link {
 			prevOffset = 0
 		}
 		links = append(links, Link{
-			Href: fmt.Sprintf("%s?offset=%d&limit=%d", base, prevOffset, limit),
+			Href: fmt.Sprintf("%s?offset=%d&limit=%d%s", base, prevOffset, limit, extraQuery),
 			Rel:  "prev",
 		})
 	}
@@ -1539,7 +1557,7 @@ func buildPaginationLinks(base string, limit, offset, totalCount int) []Link {
 	if offset+limit < totalCount {
 		nextOffset := offset + limit
 		links = append(links, Link{
-			Href: fmt.Sprintf("%s?offset=%d&limit=%d", base, nextOffset, limit),
+			Href: fmt.Sprintf("%s?offset=%d&limit=%d%s", base, nextOffset, limit, extraQuery),
 			Rel:  "next",
 		})
 	}
@@ -1547,7 +1565,7 @@ func buildPaginationLinks(base string, limit, offset, totalCount int) []Link {
 	lastPageOffset := ((totalCount - 1) / limit) * limit
 	if offset < lastPageOffset {
 		links = append(links, Link{
-			Href: fmt.Sprintf("%s?offset=%d&limit=%d", base, lastPageOffset, limit),
+			Href: fmt.Sprintf("%s?offset=%d&limit=%d%s", base, lastPageOffset, limit, extraQuery),
 			Rel:  "last",
 		})
 	}

@@ -3,7 +3,7 @@
 
 import {useQueryClient} from '@tanstack/react-query';
 import {PageLoadingAnimation, QueryErrorNotice, ResourceAvatar} from '@thunderid/components';
-import {useConfig} from '@thunderid/contexts';
+import {useConfig, useProject} from '@thunderid/contexts';
 import {useLogger} from '@thunderid/logger/react';
 import {useThunderID} from '@thunderid/react';
 import {Box, IconButton, Typography, CircularProgress, TreeView, useTheme, Avatar, Tooltip} from '@wso2/oxygen-ui';
@@ -15,6 +15,7 @@ import {useNavigate} from 'react-router';
 import OrganizationUnitDeleteDialog from './OrganizationUnitDeleteDialog';
 import fetchChildOrganizationUnits from '../api/fetchChildOrganizationUnits';
 import fetchOrganizationUnits from '../api/fetchOrganizationUnits';
+import useGetOrganizationUnit from '../api/useGetOrganizationUnit';
 import useGetOrganizationUnits from '../api/useGetOrganizationUnits';
 import OrganizationUnitQueryKeys from '../constants/organization-unit-query-keys';
 import OrganizationUnitTreeConstants from '../constants/organization-unit-tree-constants';
@@ -358,7 +359,17 @@ export default function OrganizationUnitsTreeView(): JSX.Element {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
   const queryClient = useQueryClient();
-  const {data, isLoading, error, refetch} = useGetOrganizationUnits();
+  // With a project selected, the tree starts at that project's root organization unit instead of
+  // listing every root.
+  const {selectedProject} = useProject();
+  const roots = useGetOrganizationUnits(undefined, !selectedProject);
+  const projectRoot = useGetOrganizationUnit(selectedProject?.id, Boolean(selectedProject));
+  const {isLoading, error, refetch} = selectedProject ? projectRoot : roots;
+  const data = useMemo((): OrganizationUnitListResponse | undefined => {
+    if (!selectedProject) return roots.data;
+    if (!projectRoot.data) return undefined;
+    return {totalResults: 1, startIndex: 1, count: 1, organizationUnits: [projectRoot.data]};
+  }, [selectedProject, roots.data, projectRoot.data]);
   const {treeItems, setTreeItems, expandedItems, setExpandedItems, loadedItems, setLoadedItems, resetTreeState} =
     useOrganizationUnit();
 

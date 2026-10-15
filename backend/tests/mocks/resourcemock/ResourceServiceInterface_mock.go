@@ -1089,8 +1089,8 @@ func (_c *ResourceServiceInterfaceMock_GetResourceServerByIdentifier_Call) RunAn
 }
 
 // GetResourceServerList provides a mock function for the type ResourceServiceInterfaceMock
-func (_mock *ResourceServiceInterfaceMock) GetResourceServerList(ctx context.Context, limit int, offset int) (*resource.ResourceServerList, *common.ServiceError) {
-	ret := _mock.Called(ctx, limit, offset)
+func (_mock *ResourceServiceInterfaceMock) GetResourceServerList(ctx context.Context, limit int, offset int, ouID string) (*resource.ResourceServerList, *common.ServiceError) {
+	ret := _mock.Called(ctx, limit, offset, ouID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetResourceServerList")
@@ -1098,18 +1098,18 @@ func (_mock *ResourceServiceInterfaceMock) GetResourceServerList(ctx context.Con
 
 	var r0 *resource.ResourceServerList
 	var r1 *common.ServiceError
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int) (*resource.ResourceServerList, *common.ServiceError)); ok {
-		return returnFunc(ctx, limit, offset)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, string) (*resource.ResourceServerList, *common.ServiceError)); ok {
+		return returnFunc(ctx, limit, offset, ouID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int) *resource.ResourceServerList); ok {
-		r0 = returnFunc(ctx, limit, offset)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, int, string) *resource.ResourceServerList); ok {
+		r0 = returnFunc(ctx, limit, offset, ouID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*resource.ResourceServerList)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, int, int) *common.ServiceError); ok {
-		r1 = returnFunc(ctx, limit, offset)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int, int, string) *common.ServiceError); ok {
+		r1 = returnFunc(ctx, limit, offset, ouID)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*common.ServiceError)
@@ -1127,11 +1127,12 @@ type ResourceServiceInterfaceMock_GetResourceServerList_Call struct {
 //   - ctx context.Context
 //   - limit int
 //   - offset int
-func (_e *ResourceServiceInterfaceMock_Expecter) GetResourceServerList(ctx interface{}, limit interface{}, offset interface{}) *ResourceServiceInterfaceMock_GetResourceServerList_Call {
-	return &ResourceServiceInterfaceMock_GetResourceServerList_Call{Call: _e.mock.On("GetResourceServerList", ctx, limit, offset)}
+//   - ouID string
+func (_e *ResourceServiceInterfaceMock_Expecter) GetResourceServerList(ctx interface{}, limit interface{}, offset interface{}, ouID interface{}) *ResourceServiceInterfaceMock_GetResourceServerList_Call {
+	return &ResourceServiceInterfaceMock_GetResourceServerList_Call{Call: _e.mock.On("GetResourceServerList", ctx, limit, offset, ouID)}
 }
 
-func (_c *ResourceServiceInterfaceMock_GetResourceServerList_Call) Run(run func(ctx context.Context, limit int, offset int)) *ResourceServiceInterfaceMock_GetResourceServerList_Call {
+func (_c *ResourceServiceInterfaceMock_GetResourceServerList_Call) Run(run func(ctx context.Context, limit int, offset int, ouID string)) *ResourceServiceInterfaceMock_GetResourceServerList_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1145,10 +1146,15 @@ func (_c *ResourceServiceInterfaceMock_GetResourceServerList_Call) Run(run func(
 		if args[2] != nil {
 			arg2 = args[2].(int)
 		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -1159,7 +1165,7 @@ func (_c *ResourceServiceInterfaceMock_GetResourceServerList_Call) Return(resour
 	return _c
 }
 
-func (_c *ResourceServiceInterfaceMock_GetResourceServerList_Call) RunAndReturn(run func(ctx context.Context, limit int, offset int) (*resource.ResourceServerList, *common.ServiceError)) *ResourceServiceInterfaceMock_GetResourceServerList_Call {
+func (_c *ResourceServiceInterfaceMock_GetResourceServerList_Call) RunAndReturn(run func(ctx context.Context, limit int, offset int, ouID string) (*resource.ResourceServerList, *common.ServiceError)) *ResourceServiceInterfaceMock_GetResourceServerList_Call {
 	_c.Call.Return(run)
 	return _c
 }

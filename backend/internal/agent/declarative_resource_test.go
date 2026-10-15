@@ -48,14 +48,16 @@ func (s *AgentExporterTestSuite) TestGetParameterizerType() {
 }
 
 func (s *AgentExporterTestSuite) TestGetAllResourceIDs_Success() {
-	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything, false).
+	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, false).
 		Return(&model.AgentListResponse{
 			Agents: []model.BasicAgentResponse{
 				{ID: "agent1", IsReadOnly: false},
 				{ID: "agent2", IsReadOnly: false},
 			},
 		}, nil).Once()
-	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything, false).
+	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, false).
 		Return(&model.AgentListResponse{Agents: []model.BasicAgentResponse{}}, nil).Once()
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
@@ -66,14 +68,16 @@ func (s *AgentExporterTestSuite) TestGetAllResourceIDs_Success() {
 }
 
 func (s *AgentExporterTestSuite) TestGetAllResourceIDs_SkipsDeclarative() {
-	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything, false).
+	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, false).
 		Return(&model.AgentListResponse{
 			Agents: []model.BasicAgentResponse{
 				{ID: "agent-db", IsReadOnly: false},
 				{ID: "agent-decl", IsReadOnly: true},
 			},
 		}, nil).Once()
-	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything, false).
+	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, false).
 		Return(&model.AgentListResponse{Agents: []model.BasicAgentResponse{}}, nil).Once()
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
@@ -84,11 +88,13 @@ func (s *AgentExporterTestSuite) TestGetAllResourceIDs_SkipsDeclarative() {
 }
 
 func (s *AgentExporterTestSuite) TestGetAllResourceIDs_EntityNotFound_Included() {
-	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything, false).
+	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, false).
 		Return(&model.AgentListResponse{
 			Agents: []model.BasicAgentResponse{{ID: "agent-orphan", IsReadOnly: false}},
 		}, nil).Once()
-	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything, false).
+	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, false).
 		Return(&model.AgentListResponse{Agents: []model.BasicAgentResponse{}}, nil).Once()
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
@@ -102,7 +108,8 @@ func (s *AgentExporterTestSuite) TestGetAllResourceIDs_Error() {
 		Code:  "ERR_CODE",
 		Error: tidcommon.I18nMessage{DefaultValue: "test error"},
 	}
-	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything, false).
+	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, false).
 		Return(nil, svcErr)
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())
@@ -112,7 +119,8 @@ func (s *AgentExporterTestSuite) TestGetAllResourceIDs_Error() {
 }
 
 func (s *AgentExporterTestSuite) TestGetAllResourceIDs_EmptyList() {
-	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything, false).
+	s.mockService.EXPECT().GetAgentList(mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, false).
 		Return(&model.AgentListResponse{Agents: []model.BasicAgentResponse{}}, nil)
 
 	ids, err := s.exporter.GetAllResourceIDs(context.Background())

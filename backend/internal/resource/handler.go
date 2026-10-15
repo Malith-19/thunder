@@ -41,7 +41,9 @@ func (h *resourceHandler) HandleResourceServerListRequest(w http.ResponseWriter,
 		return
 	}
 
-	result, svcErr := h.resourceService.GetResourceServerList(ctx, limit, offset)
+	ouID := r.URL.Query().Get(sysutils.QueryParamOUID)
+
+	result, svcErr := h.resourceService.GetResourceServerList(ctx, limit, offset, ouID)
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
 		return

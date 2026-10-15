@@ -18,10 +18,10 @@ import type {UserTypeListParams, UserTypeListResponse} from '../types/user-types
 export default function useGetUserTypes(params?: UserTypeListParams): UseQueryResult<UserTypeListResponse> {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
-  const {limit, offset} = params ?? {};
+  const {limit, offset, ouId} = params ?? {};
 
   return useQuery<UserTypeListResponse>({
-    queryKey: [UserTypeQueryKeys.USER_TYPES, {limit, offset}],
+    queryKey: [UserTypeQueryKeys.USER_TYPES, {limit, offset, ouId}],
     queryFn: async (): Promise<UserTypeListResponse> => {
       const serverUrl: string = getServerUrl();
       const queryParams: URLSearchParams = new URLSearchParams();
@@ -31,6 +31,9 @@ export default function useGetUserTypes(params?: UserTypeListParams): UseQueryRe
       }
       if (offset !== undefined) {
         queryParams.append('offset', offset.toString());
+      }
+      if (ouId) {
+        queryParams.append('ouId', ouId);
       }
       queryParams.append('include', 'display');
 

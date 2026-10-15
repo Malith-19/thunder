@@ -3,6 +3,7 @@
 
 import {zodResolver} from '@hookform/resolvers/zod';
 import {FullScreenCreationWizardLayout, NameSuggestion, OrganizationUnitSummaryChip} from '@thunderid/components';
+import {useProject} from '@thunderid/contexts';
 import {useLogger} from '@thunderid/logger/react';
 import {generateHandle, getErrorMessage} from '@thunderid/utils';
 import {Box, Stack, Typography, Button, TextField, Alert, FormControl, FormLabel} from '@wso2/oxygen-ui';
@@ -71,9 +72,15 @@ export default function CreateOrganizationUnitPage(): JSX.Element {
   const {resetTreeState} = useOrganizationUnit();
 
   const navigationState = location.state as {parentId?: string; parentName?: string; parentHandle?: string} | null;
-  const preselectedParentId = navigationState?.parentId ?? null;
-  const parentDisplayName = navigationState?.parentName ?? null;
-  const parentDisplayHandle = navigationState?.parentHandle ?? null;
+  // Within a selected project an organization unit always goes under the project; a new root would
+  // be a new project, which is created from the project switcher instead.
+  const {selectedProject} = useProject();
+  const parent = navigationState?.parentId
+    ? {id: navigationState.parentId, name: navigationState.parentName, handle: navigationState.parentHandle}
+    : selectedProject;
+  const preselectedParentId = parent?.id ?? null;
+  const parentDisplayName = parent?.name ?? null;
+  const parentDisplayHandle = parent?.handle ?? null;
 
   const [error, setError] = useState<string | null>(null);
   const isHandleManuallyEditedRef = useRef<boolean>(false);

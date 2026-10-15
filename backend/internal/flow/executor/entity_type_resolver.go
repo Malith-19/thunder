@@ -126,7 +126,7 @@ func (r *entityTypeResolution) candidates(ctx *providers.NodeContext,
 	logger *log.Logger,
 ) ([]entitytype.EntityTypeListItem, bool, error) {
 	list, svcErr := r.entityTypeService.GetEntityTypeList(
-		ctx.Context, category, entityTypeCandidateLimit, 0, false)
+		ctx.Context, category, entityTypeCandidateLimit, 0, "", false)
 	if svcErr != nil {
 		logger.Debug(ctx.Context, "Failed to list entity types",
 			log.String("error", svcErr.Error.DefaultValue))

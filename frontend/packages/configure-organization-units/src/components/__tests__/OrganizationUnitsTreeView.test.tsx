@@ -1,9 +1,11 @@
 // Copyright 2025-2026 The ThunderID Authors
 // SPDX-License-Identifier: Apache-2.0
 
+import {ProjectContext, type ProjectContextType} from '@thunderid/contexts';
 import {screen, fireEvent, waitFor, within, renderWithProviders, renderHook} from '@thunderid/test-utils';
 import {useTranslation} from 'react-i18next';
 import {describe, it, expect, vi, beforeEach, beforeAll} from 'vitest';
+import type {OrganizationUnit} from '../../models/organization-unit';
 import type {OrganizationUnitListResponse} from '../../models/responses';
 import OrganizationUnitsTreeView from '../OrganizationUnitsTreeView';
 
@@ -27,9 +29,19 @@ vi.mock('@thunderid/logger/react', () => ({
 // Mock the API hook
 const mockUseGetOrganizationUnits = vi.fn();
 vi.mock('@/api/useGetOrganizationUnits', () => ({
-  default: () =>
-    mockUseGetOrganizationUnits() as {
+  default: (params?: unknown, enabled?: boolean) =>
+    mockUseGetOrganizationUnits(params, enabled) as {
       data: OrganizationUnitListResponse | undefined;
+      isLoading: boolean;
+      error: Error | null;
+    },
+}));
+
+const mockUseGetOrganizationUnit = vi.fn();
+vi.mock('@/api/useGetOrganizationUnit', () => ({
+  default: (id: string | undefined, enabled?: boolean) =>
+    mockUseGetOrganizationUnit(id, enabled) as {
+      data: OrganizationUnit | undefined;
       isLoading: boolean;
       error: Error | null;
     },
@@ -120,6 +132,7 @@ describe('OrganizationUnitsTreeView', () => {
       error: null,
       refetch: mockRefetchOrganizationUnits,
     });
+    mockUseGetOrganizationUnit.mockReturnValue({data: undefined, isLoading: false, error: null});
   });
 
   it('should render tree view with organization unit names', async () => {
@@ -1024,6 +1037,114 @@ describe('OrganizationUnitsTreeView', () => {
 
     await waitFor(() => {
       expect(stableLogger.error).toHaveBeenCalledWith('Failed to load more root organization units', expect.anything());
+    });
+  });
+
+  describe('selected project', () => {
+    const projectRootOu: OrganizationUnit = {
+      id: 'project-ou',
+      handle: 'project-handle',
+      name: 'Project Root',
+      description: null,
+      parent: null,
+    };
+
+    const projectContextValue: ProjectContextType = {
+      projects: [{id: 'project-ou', handle: 'project-handle', name: 'Project Root'}],
+      selectedProject: {id: 'project-ou', handle: 'project-handle', name: 'Project Root'},
+      selectProject: vi.fn(),
+      isLoading: false,
+    };
+
+    const mockRefetchProjectRoot = vi.fn();
+
+    const renderInProject = () =>
+      renderWithProviders(
+        <ProjectContext.Provider value={projectContextValue}>
+          <OrganizationUnitsTreeView />
+        </ProjectContext.Provider>,
+      );
+
+    it('should list every root organization unit when no project is selected', async () => {
+      renderWithProviders(<OrganizationUnitsTreeView />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Root Organization')).toBeInTheDocument();
+        expect(screen.getByText('Engineering')).toBeInTheDocument();
+      });
+      expect(mockUseGetOrganizationUnits).toHaveBeenCalledWith(undefined, true);
+      expect(mockUseGetOrganizationUnit).toHaveBeenCalledWith(undefined, false);
+    });
+
+    it('should render only the selected project root organization unit', async () => {
+      mockUseGetOrganizationUnit.mockReturnValue({
+        data: projectRootOu,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetchProjectRoot,
+      });
+
+      renderInProject();
+
+      await waitFor(() => {
+        expect(screen.getByText('Project Root')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Root Organization')).not.toBeInTheDocument();
+      expect(screen.queryByText('Engineering')).not.toBeInTheDocument();
+      expect(mockUseGetOrganizationUnit).toHaveBeenCalledWith('project-ou', true);
+      expect(mockUseGetOrganizationUnits).toHaveBeenCalledWith(undefined, false);
+    });
+
+    it('should show the loading state while the project root is loading', () => {
+      mockUseGetOrganizationUnit.mockReturnValue({data: undefined, isLoading: true, error: null});
+
+      renderInProject();
+
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
+      expect(screen.queryByText('Root Organization')).not.toBeInTheDocument();
+    });
+
+    it('should show the read error state and retry the project root query', async () => {
+      mockUseGetOrganizationUnit.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        error: new Error('Network error'),
+        refetch: mockRefetchProjectRoot,
+      });
+
+      renderInProject();
+
+      await waitFor(() => {
+        expect(screen.getByText(t('organizationUnits:listing.error.title'))).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Network error')).not.toBeInTheDocument();
+
+      fireEvent.click(await screen.findByRole('button', {name: /refresh/i}));
+
+      expect(mockRefetchProjectRoot).toHaveBeenCalled();
+      expect(mockRefetchOrganizationUnits).not.toHaveBeenCalled();
+    });
+
+    it('should ignore a roots query error when a project is selected', async () => {
+      mockUseGetOrganizationUnits.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        error: new Error('Network error'),
+        refetch: mockRefetchOrganizationUnits,
+      });
+      mockUseGetOrganizationUnit.mockReturnValue({
+        data: projectRootOu,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetchProjectRoot,
+      });
+
+      renderInProject();
+
+      await waitFor(() => {
+        expect(screen.getByText('Project Root')).toBeInTheDocument();
+      });
+      expect(screen.queryByText(t('organizationUnits:listing.error.title'))).not.toBeInTheDocument();
     });
   });
 });

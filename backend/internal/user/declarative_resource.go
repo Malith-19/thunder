@@ -73,7 +73,7 @@ func (e *userExporter) GetAllResourceIDs(ctx context.Context) ([]string, *tidcom
 	ids := []string{}
 
 	for {
-		users, err := e.service.GetUserList(ctx, limit, offset, nil, false)
+		users, err := e.service.GetUserList(ctx, limit, offset, "", nil, false)
 		if err != nil {
 			return nil, err
 		}

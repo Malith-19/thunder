@@ -130,6 +130,46 @@ describe('useGetApplications', () => {
     expect(callArgs.url).toContain('offset=5');
   });
 
+  it('should append the ouId query parameter when given', async () => {
+    mockHttpRequest.mockResolvedValueOnce({
+      data: mockApplicationListResponse,
+    });
+
+    const {result, queryClient} = renderHook(() => useGetApplications({ouId: 'project-car'}));
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const callArgs = mockHttpRequest.mock.calls[0][0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    expect(callArgs.url).toContain('ouId=project-car');
+    expect(
+      queryClient.getQueryCache().findAll({
+        queryKey: [ApplicationQueryKeys.APPLICATIONS, {limit: 30, offset: 0, ouId: 'project-car'}],
+        exact: true,
+      }),
+    ).toHaveLength(1);
+  });
+
+  it('should omit the ouId query parameter when not given', async () => {
+    mockHttpRequest.mockResolvedValueOnce({
+      data: mockApplicationListResponse,
+    });
+
+    renderHook(() => useGetApplications());
+
+    await waitFor(() => {
+      expect(mockHttpRequest).toHaveBeenCalledTimes(1);
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const callArgs = mockHttpRequest.mock.calls[0][0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    expect(callArgs.url).not.toContain('ouId');
+  });
+
   it('should handle API error', async () => {
     const apiError = new Error('Failed to fetch applications');
     mockHttpRequest.mockRejectedValueOnce(apiError);

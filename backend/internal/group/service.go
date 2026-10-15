@@ -29,7 +29,7 @@ const loggerComponentName = "GroupMgtService"
 
 // GroupServiceInterface defines the interface for the group service.
 type GroupServiceInterface interface {
-	GetGroupList(ctx context.Context, limit, offset int,
+	GetGroupList(ctx context.Context, limit, offset int, ouID string,
 		includeDisplay bool) (*GroupListResponse, *tidcommon.ServiceError)
 	GetGroupsByPath(ctx context.Context, handlePath string, limit, offset int, includeDisplay bool) (
 		*GroupListResponse, *tidcommon.ServiceError)
@@ -93,7 +93,7 @@ func newGroupServiceWithStore(
 
 // GetGroupList retrieves a list of groups. limit should be a positive integer & offset should be non-negative
 // integer
-func (gs *groupService) GetGroupList(ctx context.Context, limit, offset int, includeDisplay bool) (
+func (gs *groupService) GetGroupList(ctx context.Context, limit, offset int, ouID string, includeDisplay bool) (
 	*GroupListResponse, *tidcommon.ServiceError) {
 	if err := validatePaginationParams(limit, offset); err != nil {
 		return nil, err
@@ -104,11 +104,16 @@ func (gs *groupService) GetGroupList(ctx context.Context, limit, offset int, inc
 		return nil, svcErr
 	}
 
+	accessibleOUs, svcErr = oupkg.ScopeToSubtree(ctx, gs.ouService, accessibleOUs, ouID)
+	if svcErr != nil {
+		return nil, svcErr
+	}
+
 	if accessibleOUs.AllAllowed {
 		return gs.listAllGroups(ctx, limit, offset, includeDisplay)
 	}
 
-	return gs.listGroupsByOUIDs(ctx, accessibleOUs.IDs, limit, offset, includeDisplay)
+	return gs.listGroupsByOUIDs(ctx, accessibleOUs.IDs, limit, offset, ouID, includeDisplay)
 }
 
 func (gs *groupService) listAllGroups(ctx context.Context, limit, offset int, includeDisplay bool) (
@@ -147,11 +152,11 @@ func (gs *groupService) listAllGroups(ctx context.Context, limit, offset int, in
 	return response, nil
 }
 
-func (gs *groupService) listGroupsByOUIDs(ctx context.Context, ouIDs []string, limit, offset int,
+func (gs *groupService) listGroupsByOUIDs(ctx context.Context, ouIDs []string, limit, offset int, ouID string,
 	includeDisplay bool) (*GroupListResponse, *tidcommon.ServiceError) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, loggerComponentName))
 
-	displayQuery := utils.DisplayQueryParam(includeDisplay)
+	displayQuery := utils.DisplayQueryParam(includeDisplay) + utils.OUIDQueryParam(ouID)
 
 	if len(ouIDs) == 0 {
 		return &GroupListResponse{

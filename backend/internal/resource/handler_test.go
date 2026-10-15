@@ -50,7 +50,7 @@ func (suite *HandlerTestSuite) TestHandleResourceServerListRequest_Success() {
 		{Href: "/resource-servers?limit=30&offset=0", Rel: "self"},
 	}
 	suite.mockService.On("GetResourceServerList", mock.Anything,
-		30, 0).Return(&ResourceServerList{
+		30, 0, mock.Anything).Return(&ResourceServerList{
 		TotalResults:    2,
 		StartIndex:      1,
 		Count:           2,
@@ -82,7 +82,7 @@ func (suite *HandlerTestSuite) TestHandleResourceServerListRequest_InvalidLimit(
 
 func (suite *HandlerTestSuite) TestHandleResourceServerListRequest_Error() {
 	suite.mockService.On("GetResourceServerList", mock.Anything,
-		30, 0).Return(nil, &tidcommon.InternalServerError)
+		30, 0, mock.Anything).Return(nil, &tidcommon.InternalServerError)
 
 	req := httptest.NewRequest("GET", "/resource-servers", nil)
 	w := httptest.NewRecorder()
@@ -1407,4 +1407,17 @@ func (suite *HandlerTestSuite) TestHandleActionGetAtResourceRequest_ServiceError
 	suite.handler.HandleActionGetAtResourceRequest(w, req)
 
 	suite.Equal(http.StatusInternalServerError, w.Code)
+}
+
+func (suite *HandlerTestSuite) TestHandleResourceServerListRequest_ForwardsOUID() {
+	suite.mockService.On("GetResourceServerList", mock.Anything, 30, 0, "ou-1").
+		Return(&ResourceServerList{ResourceServers: []providers.ResourceServer{}, Links: []Link{}}, nil).Once()
+
+	req := httptest.NewRequest("GET", "/resource-servers?ouId=ou-1", nil)
+	w := httptest.NewRecorder()
+
+	suite.handler.HandleResourceServerListRequest(w, req)
+
+	suite.Equal(http.StatusOK, w.Code)
+	suite.mockService.AssertExpectations(suite.T())
 }

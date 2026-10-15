@@ -310,7 +310,7 @@ func createSecurityMiddleware(ctx context.Context, logger *log.Logger, cfg *conf
 	if err != nil {
 		logger.Fatal(ctx, "Failed to initialize security middleware", log.Error(err))
 	}
-	return middlewareFunc(mux)
+	return middlewareFunc(projectScopeMiddleware(mux))
 }
 
 // gracefulShutdown handles the graceful shutdown of all components.

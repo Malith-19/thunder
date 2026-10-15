@@ -73,6 +73,34 @@ describe('useGetGroups', () => {
     });
   });
 
+  it('should append ouId to the request URL when provided', async () => {
+    mockHttpRequest.mockResolvedValue({data: mockGroupsData});
+    renderHook(() => useGetGroups({limit: 10, offset: 0, ouId: 'ou-123'}));
+
+    await waitFor(() => {
+      expect(mockHttpRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'https://localhost:8090/groups?limit=10&offset=0&include=display&ouId=ou-123',
+        }),
+      );
+    });
+  });
+
+  it('should omit ouId from the request URL when not provided', async () => {
+    mockHttpRequest.mockResolvedValue({data: mockGroupsData});
+    renderHook(() => useGetGroups({limit: 10, offset: 0}));
+
+    await waitFor(() => {
+      expect(mockHttpRequest).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockHttpRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://localhost:8090/groups?limit=10&offset=0&include=display',
+      }),
+    );
+  });
+
   it('should set loading state', () => {
     mockHttpRequest.mockImplementation(() => new Promise(() => null));
     const {result, unmount} = renderHook(() => useGetGroups());

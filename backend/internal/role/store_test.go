@@ -238,7 +238,8 @@ func (suite *RoleStoreTestSuite) TestGetRoleList() {
 	}
 }
 
-func (suite *RoleStoreTestSuite) TestGetRoleListCountByOUID() {
+func (suite *RoleStoreTestSuite) TestGetRoleListCountByOUIDs() {
+	countQuery, _ := buildGetRoleListCountByOUIDsQuery([]string{"ou1"}, testDeploymentID)
 	testCases := []struct {
 		name          string
 		setupMocks    func()
@@ -251,7 +252,7 @@ func (suite *RoleStoreTestSuite) TestGetRoleListCountByOUID() {
 			setupMocks: func() {
 				suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 				suite.mockDBClient.
-					On("QueryContext", mock.Anything, queryGetRoleListCountByOUID, "ou1", testDeploymentID).
+					On("QueryContext", mock.Anything, countQuery, "ou1", testDeploymentID).
 					Return([]map[string]interface{}{
 						{"total": int64(3)},
 					}, nil)
@@ -265,7 +266,7 @@ func (suite *RoleStoreTestSuite) TestGetRoleListCountByOUID() {
 				queryError := errors.New("query error")
 				suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 				suite.mockDBClient.
-					On("QueryContext", mock.Anything, queryGetRoleListCountByOUID, "ou1", testDeploymentID).
+					On("QueryContext", mock.Anything, countQuery, "ou1", testDeploymentID).
 					Return(nil, queryError)
 			},
 			expectedCount: 0,
@@ -296,7 +297,7 @@ func (suite *RoleStoreTestSuite) TestGetRoleListCountByOUID() {
 
 			tc.setupMocks()
 
-			count, err := suite.store.GetRoleListCountByOUID(context.Background(), "ou1")
+			count, err := suite.store.GetRoleListCountByOUIDs(context.Background(), []string{"ou1"})
 
 			if tc.shouldErr {
 				suite.Error(err)
@@ -312,7 +313,8 @@ func (suite *RoleStoreTestSuite) TestGetRoleListCountByOUID() {
 	}
 }
 
-func (suite *RoleStoreTestSuite) TestGetRoleListByOUID() {
+func (suite *RoleStoreTestSuite) TestGetRoleListByOUIDs() {
+	listQuery, _ := buildGetRoleListByOUIDsQuery([]string{"ou1"}, 10, 0, testDeploymentID)
 	testCases := []struct {
 		name          string
 		limit         int
@@ -329,7 +331,7 @@ func (suite *RoleStoreTestSuite) TestGetRoleListByOUID() {
 			setupMocks: func() {
 				suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 				suite.mockDBClient.
-					On("QueryContext", mock.Anything, queryGetRoleListByOUID, "ou1", 10, 0, testDeploymentID).
+					On("QueryContext", mock.Anything, listQuery, "ou1", testDeploymentID, 10, 0).
 					Return([]map[string]interface{}{
 						{"id": "role1", "name": "Admin", "description": "Admin role", "ou_id": "ou1"},
 					}, nil)
@@ -347,7 +349,7 @@ func (suite *RoleStoreTestSuite) TestGetRoleListByOUID() {
 				queryError := errors.New("query error")
 				suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 				suite.mockDBClient.
-					On("QueryContext", mock.Anything, queryGetRoleListByOUID, "ou1", 10, 0, testDeploymentID).
+					On("QueryContext", mock.Anything, listQuery, "ou1", testDeploymentID, 10, 0).
 					Return(nil, queryError)
 			},
 			shouldErr: true,
@@ -359,7 +361,7 @@ func (suite *RoleStoreTestSuite) TestGetRoleListByOUID() {
 			setupMocks: func() {
 				suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
 				suite.mockDBClient.
-					On("QueryContext", mock.Anything, queryGetRoleListByOUID, "ou1", 10, 0, testDeploymentID).
+					On("QueryContext", mock.Anything, listQuery, "ou1", testDeploymentID, 10, 0).
 					Return([]map[string]interface{}{
 						{
 							"id": 123, "name": "Admin",
@@ -395,7 +397,7 @@ func (suite *RoleStoreTestSuite) TestGetRoleListByOUID() {
 
 			tc.setupMocks()
 
-			roles, err := suite.store.GetRoleListByOUID(context.Background(), "ou1", tc.limit, tc.offset)
+			roles, err := suite.store.GetRoleListByOUIDs(context.Background(), []string{"ou1"}, tc.limit, tc.offset)
 
 			if tc.shouldErr {
 				suite.Error(err)
@@ -413,6 +415,67 @@ func (suite *RoleStoreTestSuite) TestGetRoleListByOUID() {
 			}
 		})
 	}
+}
+
+func (suite *RoleStoreTestSuite) TestGetRoleListCountByOUIDs_EmptyOUIDs() {
+	count, err := suite.store.GetRoleListCountByOUIDs(context.Background(), []string{})
+
+	suite.NoError(err)
+	suite.Equal(0, count)
+	suite.mockDBProvider.AssertNotCalled(suite.T(), "GetConfigDBClient")
+}
+
+func (suite *RoleStoreTestSuite) TestGetRoleListByOUIDs_EmptyOUIDs() {
+	roles, err := suite.store.GetRoleListByOUIDs(context.Background(), nil, 10, 0)
+
+	suite.NoError(err)
+	suite.NotNil(roles)
+	suite.Empty(roles)
+	suite.mockDBProvider.AssertNotCalled(suite.T(), "GetConfigDBClient")
+}
+
+func (suite *RoleStoreTestSuite) TestGetRoleListByOUIDs_MultipleOUIDs() {
+	listQuery, args := buildGetRoleListByOUIDsQuery([]string{"ou1", "ou2"}, 5, 10, testDeploymentID)
+	suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
+	suite.mockDBClient.
+		On("QueryContext", append([]interface{}{mock.Anything, listQuery}, args...)...).
+		Return([]map[string]interface{}{
+			{"id": "role1", "name": "Admin", "description": "Admin role", "ou_id": "ou1"},
+			{"id": "role2", "name": "Viewer", "description": "Viewer role", "ou_id": "ou2"},
+		}, nil)
+
+	roles, err := suite.store.GetRoleListByOUIDs(context.Background(), []string{"ou1", "ou2"}, 5, 10)
+
+	suite.NoError(err)
+	suite.Len(roles, 2)
+	suite.Equal("role1", roles[0].ID)
+	suite.Equal("role2", roles[1].ID)
+}
+
+func (suite *RoleStoreTestSuite) TestBuildGetRoleListCountByOUIDsQuery() {
+	query, args := buildGetRoleListCountByOUIDsQuery([]string{"ou1", "ou2", "ou3"}, testDeploymentID)
+
+	suite.Equal("RLQ-ROLE_MGT-24", query.ID)
+	suite.Equal(`SELECT COUNT(*) as total FROM "ROLE" WHERE OU_ID IN ($1,$2,$3) AND DEPLOYMENT_ID = $4`,
+		query.PostgresQuery)
+	suite.Equal(query.PostgresQuery, query.Query)
+	suite.Equal(`SELECT COUNT(*) as total FROM "ROLE" WHERE OU_ID IN (?,?,?) AND DEPLOYMENT_ID = ?`,
+		query.SQLiteQuery)
+	suite.Equal([]interface{}{"ou1", "ou2", "ou3", testDeploymentID}, args)
+}
+
+func (suite *RoleStoreTestSuite) TestBuildGetRoleListByOUIDsQuery() {
+	query, args := buildGetRoleListByOUIDsQuery([]string{"ou1", "ou2"}, 20, 40, testDeploymentID)
+
+	suite.Equal("RLQ-ROLE_MGT-23", query.ID)
+	suite.Equal(`SELECT ID, OU_ID, NAME, DESCRIPTION FROM "ROLE" `+
+		`WHERE OU_ID IN ($1,$2) AND DEPLOYMENT_ID = $3 ORDER BY CREATED_AT DESC LIMIT $4 OFFSET $5`,
+		query.PostgresQuery)
+	suite.Equal(query.PostgresQuery, query.Query)
+	suite.Equal(`SELECT ID, OU_ID, NAME, DESCRIPTION FROM "ROLE" `+
+		`WHERE OU_ID IN (?,?) AND DEPLOYMENT_ID = ? ORDER BY CREATED_AT DESC LIMIT ? OFFSET ?`,
+		query.SQLiteQuery)
+	suite.Equal([]interface{}{"ou1", "ou2", testDeploymentID, 20, 40}, args)
 }
 
 func (suite *RoleStoreTestSuite) TestCreateRole() {

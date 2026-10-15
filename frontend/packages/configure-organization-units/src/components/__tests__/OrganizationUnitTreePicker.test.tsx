@@ -1,6 +1,7 @@
 // Copyright 2026 The ThunderID Authors
 // SPDX-License-Identifier: Apache-2.0
 
+import {ProjectContext, type ProjectContextType} from '@thunderid/contexts';
 import {screen, fireEvent, waitFor, renderWithProviders, renderHook} from '@thunderid/test-utils';
 import {useTranslation} from 'react-i18next';
 import {describe, it, expect, vi, beforeEach, beforeAll} from 'vitest';
@@ -1001,6 +1002,95 @@ describe('OrganizationUnitTreePicker', () => {
         expect(screen.getByText('Root OU')).toBeInTheDocument();
         expect(screen.getByText('Child One')).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('selected project', () => {
+    const projectRootOu: OrganizationUnit = {
+      id: 'project-ou',
+      handle: 'project-handle',
+      name: 'Project Root',
+      description: null,
+      parent: null,
+    };
+
+    const projectChildren: OrganizationUnitListResponse = {
+      totalResults: 1,
+      startIndex: 1,
+      count: 1,
+      organizationUnits: [
+        {
+          id: 'project-child',
+          handle: 'project-child-handle',
+          name: 'Project Child',
+          description: null,
+          parent: 'project-ou',
+        },
+      ],
+    };
+
+    const projectContextValue: ProjectContextType = {
+      projects: [{id: 'project-ou', handle: 'project-handle', name: 'Project Root'}],
+      selectedProject: {id: 'project-ou', handle: 'project-handle', name: 'Project Root'},
+      selectProject: vi.fn(),
+      isLoading: false,
+    };
+
+    it('should start the tree at the selected project when no rootOuId is provided', async () => {
+      mockUseGetOrganizationUnit.mockReturnValue({data: projectRootOu, isLoading: false, error: null});
+      mockUseGetChildOrganizationUnits.mockReturnValue({data: projectChildren, isLoading: false, error: null});
+
+      renderWithProviders(
+        <ProjectContext.Provider value={projectContextValue}>
+          <OrganizationUnitTreePicker {...defaultProps} />
+        </ProjectContext.Provider>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Project Root')).toBeInTheDocument();
+        expect(screen.getByText('Project Child')).toBeInTheDocument();
+      });
+      expect(mockUseGetOrganizationUnit).toHaveBeenCalledWith('project-ou', true);
+      expect(mockUseGetChildOrganizationUnits).toHaveBeenCalledWith('project-ou');
+      expect(screen.queryByText('Root Organization')).not.toBeInTheDocument();
+      expect(screen.queryByText('Engineering')).not.toBeInTheDocument();
+    });
+
+    it('should start the tree at an explicit rootOuId instead of the selected project', async () => {
+      mockUseGetOrganizationUnit.mockReturnValue({
+        data: {id: 'root-ou-1', handle: 'root-handle', name: 'Root OU', description: null, parent: null},
+        isLoading: false,
+        error: null,
+      });
+      mockUseGetChildOrganizationUnits.mockReturnValue({
+        data: {totalResults: 0, startIndex: 1, count: 0, organizationUnits: []},
+        isLoading: false,
+        error: null,
+      });
+
+      renderWithProviders(
+        <ProjectContext.Provider value={projectContextValue}>
+          <OrganizationUnitTreePicker {...defaultProps} rootOuId="root-ou-1" />
+        </ProjectContext.Provider>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Root OU')).toBeInTheDocument();
+      });
+      expect(mockUseGetOrganizationUnit).toHaveBeenCalledWith('root-ou-1', true);
+      expect(mockUseGetOrganizationUnit).not.toHaveBeenCalledWith('project-ou', expect.anything());
+      expect(mockUseGetChildOrganizationUnits).toHaveBeenCalledWith('root-ou-1');
+      expect(mockUseGetChildOrganizationUnits).not.toHaveBeenCalledWith('project-ou');
+    });
+
+    it('should list all root organization units when no project is selected', async () => {
+      renderWithProviders(<OrganizationUnitTreePicker {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Root Organization')).toBeInTheDocument();
+        expect(screen.getByText('Engineering')).toBeInTheDocument();
+      });
+      expect(mockUseGetOrganizationUnit).not.toHaveBeenCalledWith('project-ou', expect.anything());
     });
   });
 

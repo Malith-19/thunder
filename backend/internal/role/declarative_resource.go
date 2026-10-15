@@ -50,7 +50,7 @@ func (e *roleExporter) GetAllResourceIDs(ctx context.Context) ([]string, *tidcom
 	ids := []string{}
 
 	for {
-		roles, err := e.service.GetRoleList(ctx, limit, offset)
+		roles, err := e.service.GetRoleList(ctx, limit, offset, "")
 		if err != nil {
 			return nil, err
 		}

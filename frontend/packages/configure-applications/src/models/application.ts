@@ -70,6 +70,12 @@ export type BasicApplication = Pick<
    * @example 'myapp_client_id'
    */
   clientId?: string;
+
+  /**
+   * Organization unit ID this application belongs to
+   * @example '550e8400-e29b-41d4-a716-446655440000'
+   */
+  ouId?: string;
 };
 
 /**

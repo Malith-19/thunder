@@ -10,13 +10,14 @@ import type {ResourceServerListResponse} from '../models/resource-server';
 export default function useGetResourceServers(params?: {
   limit?: number;
   offset?: number;
+  ouId?: string;
 }): UseQueryResult<ResourceServerListResponse> {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
-  const {limit = 30, offset = 0} = params ?? {};
+  const {limit = 30, offset = 0, ouId} = params ?? {};
 
   return useQuery<ResourceServerListResponse>({
-    queryKey: [ResourceServerQueryKeys.RESOURCE_SERVERS, {limit, offset}],
+    queryKey: [ResourceServerQueryKeys.RESOURCE_SERVERS, {limit, offset, ouId}],
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<ResourceServerListResponse> => {
       const serverUrl = getServerUrl();
@@ -24,6 +25,9 @@ export default function useGetResourceServers(params?: {
         limit: limit.toString(),
         offset: offset.toString(),
       });
+      if (ouId) {
+        queryParams.append('ouId', ouId);
+      }
 
       const response: {data: ResourceServerListResponse} = await http.request({
         url: `${serverUrl}/resource-servers?${queryParams.toString()}`,

@@ -17,10 +17,10 @@ import type {GroupListParams} from '../models/requests';
 export default function useGetGroups(params?: GroupListParams): UseQueryResult<GroupListResponse> {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
-  const {limit = 30, offset = 0} = params ?? {};
+  const {limit = 30, offset = 0, ouId} = params ?? {};
 
   return useQuery<GroupListResponse>({
-    queryKey: [GroupQueryKeys.GROUPS, {limit, offset}],
+    queryKey: [GroupQueryKeys.GROUPS, {limit, offset, ouId}],
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<GroupListResponse> => {
       const serverUrl: string = getServerUrl();
@@ -29,6 +29,9 @@ export default function useGetGroups(params?: GroupListParams): UseQueryResult<G
         offset: offset.toString(),
         include: 'display',
       });
+      if (ouId) {
+        queryParams.append('ouId', ouId);
+      }
 
       const response: {
         data: GroupListResponse;

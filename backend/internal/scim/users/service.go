@@ -79,7 +79,7 @@ func (s *scimUsersService) ListUsers(ctx context.Context, startIndex, count int,
 	}
 
 	offset := startIndex - 1
-	listResp, svcErr := s.userService.GetUserList(ctx, fetchLimit, offset, filters, false)
+	listResp, svcErr := s.userService.GetUserList(ctx, fetchLimit, offset, "", filters, false)
 	if svcErr != nil {
 		s.logger.Error(ctx, "SCIM ListUsers: failed to get user list", log.Any("error", svcErr))
 		return SCIMUserListResponse{}, mapUserServiceErrorToSCIM(svcErr)

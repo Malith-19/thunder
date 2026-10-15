@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {QueryErrorNotice} from '@thunderid/components';
+import {useProject} from '@thunderid/contexts';
 import {useDataGridLocaleText} from '@thunderid/hooks';
 import {useLogger} from '@thunderid/logger/react';
 import {Box, Chip, DataGrid, IconButton, ListingTable, Menu, MenuItem, Tooltip, Typography} from '@wso2/oxygen-ui';
@@ -34,14 +35,26 @@ export default function ResourceServersList(): JSX.Element {
   );
 
   const [paginationModel, setPaginationModel] = useState<DataGrid.GridPaginationModel>({pageSize: 10, page: 0});
+  const {selectedProject} = useProject();
+
+  // A page number means nothing in another project, so switching projects starts from the first page.
+  const [pagedProjectId, setPagedProjectId] = useState<string | undefined>(selectedProject?.id);
+  const isPagedProject = pagedProjectId === selectedProject?.id;
+  if (!isPagedProject) {
+    setPagedProjectId(selectedProject?.id);
+    setPaginationModel((prev) => ({...prev, page: 0}));
+  }
+  // The reset above only lands on the next render, so this render already asks for the first page.
+  const currentPaginationModel = isPagedProject ? paginationModel : {...paginationModel, page: 0};
   const [deleteTarget, setDeleteTarget] = useState<ResourceServer | null>(null);
   const [setDefaultTarget, setSetDefaultTarget] = useState<ResourceServer | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [menuTarget, setMenuTarget] = useState<ResourceServer | null>(null);
 
   const {data, isLoading, error, refetch} = useGetResourceServers({
-    limit: paginationModel.pageSize,
-    offset: paginationModel.page * paginationModel.pageSize,
+    limit: currentPaginationModel.pageSize,
+    offset: currentPaginationModel.page * currentPaginationModel.pageSize,
+    ouId: selectedProject?.id,
   });
   const {data: defaultConfig, isLoading: isDefaultLoading, error: defaultError} = useGetDefaultResourceServer();
   const defaultId = defaultConfig?.merged?.resourceServerId;
@@ -247,7 +260,7 @@ export default function ResourceServersList(): JSX.Element {
             }}
             rowCount={data?.totalResults ?? 0}
             paginationMode="server"
-            paginationModel={paginationModel}
+            paginationModel={currentPaginationModel}
             onPaginationModelChange={setPaginationModel}
             pageSizeOptions={[5, 10, 25]}
             disableRowSelectionOnClick
