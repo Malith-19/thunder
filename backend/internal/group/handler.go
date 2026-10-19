@@ -47,7 +47,9 @@ func (gh *groupHandler) HandleGroupListRequest(w http.ResponseWriter, r *http.Re
 
 	includeDisplay := r.URL.Query().Get(sysutils.QueryParamInclude) == sysutils.IncludeValueDisplay
 
-	groupListResponse, svcErr := gh.groupService.GetGroupList(ctx, limit, offset, includeDisplay)
+	ouID := r.URL.Query().Get(sysutils.QueryParamOUID)
+
+	groupListResponse, svcErr := gh.groupService.GetGroupList(ctx, limit, offset, ouID, includeDisplay)
 	if svcErr != nil {
 		gh.handleError(ctx, w, svcErr)
 		return

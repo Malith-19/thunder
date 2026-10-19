@@ -585,6 +585,33 @@ func (ts *GroupAuthzTestSuite) TestListGroups() {
 		"list must NOT include target group in OU2 (sibling), got IDs: %v", ids)
 }
 
+// TestListGroupsScopedToOwnOU verifies the group-manager can scope the group list to their own OU.
+func (ts *GroupAuthzTestSuite) TestListGroupsScopedToOwnOU() {
+	resp := ts.doGroup(http.MethodGet, "/groups?ouId="+ts.groupOU1ID, nil)
+	defer resp.Body.Close()
+
+	ts.Require().Equal(http.StatusOK, resp.StatusCode, "listing groups of the own OU should succeed")
+
+	var listResp GroupListResponse
+	ts.Require().NoError(json.NewDecoder(resp.Body).Decode(&listResp))
+
+	ids := make([]string, 0, len(listResp.Groups))
+	for _, g := range listResp.Groups {
+		ids = append(ids, g.Id)
+	}
+	ts.Contains(ids, ts.targetGroupOU1ID)
+	ts.NotContains(ids, ts.targetGroupOU2ID)
+}
+
+// TestListGroupsScopedToOtherOU verifies the group-manager is denied scoping the group list to OU2.
+func (ts *GroupAuthzTestSuite) TestListGroupsScopedToOtherOU() {
+	resp := ts.doGroup(http.MethodGet, "/groups?ouId="+ts.groupOU2ID, nil)
+	defer resp.Body.Close()
+
+	ts.Equal(http.StatusForbidden, resp.StatusCode,
+		"group-manager must be denied listing groups of a different OU")
+}
+
 // TestGetGroupInOwnOU verifies the group-manager can read a group in their own OU.
 func (ts *GroupAuthzTestSuite) TestGetGroupInOwnOU() {
 	resp := ts.doGroup(http.MethodGet, "/groups/"+ts.targetGroupOU1ID, nil)

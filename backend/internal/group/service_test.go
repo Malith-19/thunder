@@ -298,7 +298,7 @@ func (suite *GroupServiceTestSuite) TestGroupService_GetGroupList() {
 				groupStore:   storeMock,
 			}
 
-			response, err := service.GetGroupList(context.Background(), tc.limit, tc.offset, false)
+			response, err := service.GetGroupList(context.Background(), tc.limit, tc.offset, "", false)
 
 			if tc.wantErr != nil {
 				suite.Require().Nil(response)
@@ -1088,7 +1088,7 @@ func (suite *GroupServiceTestSuite) TestGroupService_GetGroupList_WithIncludeDis
 	}
 
 	response, err := service.GetGroupList(
-		context.Background(), 10, 0, true)
+		context.Background(), 10, 0, "", true)
 	suite.Require().Nil(err)
 	suite.Require().NotNil(response)
 	suite.Require().Len(response.Groups, 2)
@@ -2726,7 +2726,7 @@ func TestListGroupsByOUIDs_CountError(t *testing.T) {
 		groupStore:   storeMock,
 	}
 
-	response, err := service.GetGroupList(context.Background(), 5, 0, false)
+	response, err := service.GetGroupList(context.Background(), 5, 0, "", false)
 	require.Nil(t, response)
 	require.NotNil(t, err)
 	require.Equal(t, tidcommon.InternalServerError.Code, err.Code)
@@ -2744,7 +2744,7 @@ func TestListGroupsByOUIDs_ListError(t *testing.T) {
 		groupStore:   storeMock,
 	}
 
-	response, err := service.GetGroupList(context.Background(), 5, 0, false)
+	response, err := service.GetGroupList(context.Background(), 5, 0, "", false)
 	require.Nil(t, response)
 	require.NotNil(t, err)
 	require.Equal(t, tidcommon.InternalServerError.Code, err.Code)
@@ -3389,4 +3389,72 @@ func (suite *GroupServiceTestSuite) TestGetDirectGroupMember_CarriesTheReadError
 	suite.Require().NotNil(svcErr)
 	suite.Equal(ErrorGroupNotFound.Code, svcErr.Code)
 	suite.Nil(member)
+}
+
+func TestGroupService_GetGroupList_OUScope(t *testing.T) {
+	scoped := []string{testOUID1}
+
+	t.Run("Allowed_ListsOnlyTheUnit", func(t *testing.T) {
+		storeMock := newGroupStoreInterfaceMock(t)
+		storeMock.On("GetGroupListCountByOUIDs", mock.Anything, scoped).Return(2, nil).Once()
+		storeMock.On("GetGroupListByOUIDs", mock.Anything, scoped, 1, 0).
+			Return([]GroupBasicDAO{{ID: "grp-001", Name: "group-1", OUID: testOUID1}}, nil).Once()
+		ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+		ouServiceMock.On("IsOrganizationUnitExists", mock.Anything, testOUID1).Return(true, nil).Once()
+		authzMock := sysauthzmock.NewSystemAuthorizationServiceInterfaceMock(t)
+		authzMock.On("IsActionAllowed", mock.Anything, security.ActionListGroups,
+			&sysauthz.ActionContext{ResourceType: security.ResourceTypeGroup, OUID: testOUID1}).
+			Return(true, (*tidcommon.ServiceError)(nil)).Once()
+
+		service := &groupService{
+			groupStore:   storeMock,
+			ouService:    ouServiceMock,
+			authzService: authzMock,
+		}
+
+		response, err := service.GetGroupList(context.Background(), 1, 0, testOUID1, false)
+		require.Nil(t, err)
+		require.NotNil(t, response)
+		require.Equal(t, 2, response.TotalResults)
+		require.Len(t, response.Groups, 1)
+		require.NotEmpty(t, response.Links)
+		for _, link := range response.Links {
+			require.Contains(t, link.Href, "&ouId="+testOUID1)
+		}
+	})
+
+	t.Run("NotAllowed_ReturnsUnauthorized", func(t *testing.T) {
+		ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+		ouServiceMock.On("IsOrganizationUnitExists", mock.Anything, testOUID1).Return(true, nil).Once()
+		authzMock := sysauthzmock.NewSystemAuthorizationServiceInterfaceMock(t)
+		authzMock.On("IsActionAllowed", mock.Anything, security.ActionListGroups, mock.Anything).
+			Return(false, (*tidcommon.ServiceError)(nil)).Once()
+
+		service := &groupService{
+			groupStore:   newGroupStoreInterfaceMock(t),
+			ouService:    ouServiceMock,
+			authzService: authzMock,
+		}
+
+		response, err := service.GetGroupList(context.Background(), 1, 0, testOUID1, false)
+		require.Nil(t, response)
+		require.NotNil(t, err)
+		require.Equal(t, tidcommon.ErrorUnauthorized.Code, err.Code)
+	})
+
+	t.Run("UnknownOU_ReturnsInvalidOUID", func(t *testing.T) {
+		ouServiceMock := oumock.NewOrganizationUnitServiceInterfaceMock(t)
+		ouServiceMock.On("IsOrganizationUnitExists", mock.Anything, "missing-ou").Return(false, nil).Once()
+
+		service := &groupService{
+			groupStore:   newGroupStoreInterfaceMock(t),
+			ouService:    ouServiceMock,
+			authzService: sysauthzmock.NewSystemAuthorizationServiceInterfaceMock(t),
+		}
+
+		response, err := service.GetGroupList(context.Background(), 1, 0, "missing-ou", false)
+		require.Nil(t, response)
+		require.NotNil(t, err)
+		require.Equal(t, ErrorInvalidOUID.Code, err.Code)
+	})
 }
