@@ -306,6 +306,33 @@ func (ts *UserAuthzTestSuite) TestListUsers() {
 		"list must NOT include target user in OU2 (sibling), got IDs: %v", ids)
 }
 
+// TestListUsersScopedToOwnOU verifies the user-manager can scope the user list to their own OU.
+func (ts *UserAuthzTestSuite) TestListUsersScopedToOwnOU() {
+	resp := ts.doUser(http.MethodGet, "/users?ouId="+ts.userOU1ID, nil)
+	defer resp.Body.Close()
+
+	ts.Require().Equal(http.StatusOK, resp.StatusCode, "listing users of the own OU should succeed")
+
+	var listResp testutils.UserListResponse
+	ts.Require().NoError(json.NewDecoder(resp.Body).Decode(&listResp))
+
+	ids := make([]string, 0, len(listResp.Users))
+	for _, u := range listResp.Users {
+		ids = append(ids, u.ID)
+	}
+	ts.Contains(ids, ts.targetUserOU1ID)
+	ts.NotContains(ids, ts.targetUserOU2ID)
+}
+
+// TestListUsersScopedToOtherOU verifies the user-manager is denied scoping the user list to OU2.
+func (ts *UserAuthzTestSuite) TestListUsersScopedToOtherOU() {
+	resp := ts.doUser(http.MethodGet, "/users?ouId="+ts.userOU2ID, nil)
+	defer resp.Body.Close()
+
+	ts.Equal(http.StatusForbidden, resp.StatusCode,
+		"user-manager must be denied listing users of a different OU")
+}
+
 // TestGetUserInOwnOU verifies the user-manager can read a user in their own OU.
 func (ts *UserAuthzTestSuite) TestGetUserInOwnOU() {
 	resp := ts.doUser(http.MethodGet, "/users/"+ts.targetUserOU1ID, nil)
