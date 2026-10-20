@@ -48,6 +48,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/notification"
 	"github.com/thunder-id/thunderid/internal/notificationtemplate"
 	"github.com/thunder-id/thunderid/internal/ou"
+	"github.com/thunder-id/thunderid/internal/project"
 	"github.com/thunder-id/thunderid/internal/resource"
 	"github.com/thunder-id/thunderid/internal/role"
 	"github.com/thunder-id/thunderid/internal/serverconfig"
@@ -86,6 +87,11 @@ var observabilitySvc observability.ObservabilityServiceInterface
 // changeCapture captures the configuration as the current version after each change to it, and is
 // wrapped around the routes by createHTTPServer.
 var changeCapture = gateway.NewChangeCapture()
+
+// projectScope scopes the project aware management APIs to the project a request names. It is set by
+// registerServices and wrapped around the routes, inside the security middleware, so it sees the
+// authenticated caller.
+var projectScope = func(next http.Handler) http.Handler { return next }
 
 // registerServices registers the Control Plane management services with the provided HTTP
 // multiplexer. It also returns the import service so the bootstrap subcommand can create default
@@ -156,6 +162,10 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	// Complete the two-phase initialization: inject the OU hierarchy resolver into the
 	// authz service now that the ou package is ready.
 	ouAuthzService.SetOUHierarchyResolver(ouHierarchyResolver)
+
+	// Projects are a control plane concept: each is backed by a root organization unit, and the
+	// management APIs act on the project a request names.
+	_, projectScope = project.Initialize(mux, ouService, true)
 
 	hashCfg, err := buildHashConfig()
 	fatalOnError(ctx, logger, err, "Failed to build HashService config")

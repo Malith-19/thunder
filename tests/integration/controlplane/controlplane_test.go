@@ -24,7 +24,9 @@ import (
 
 type ControlPlaneTestSuite struct {
 	suite.Suite
-	ouID string
+	// projectID is the project the suite's resources are created in, and ouID its root organization unit.
+	projectID string
+	ouID      string
 }
 
 func TestControlPlaneTestSuite(t *testing.T) {
@@ -32,12 +34,7 @@ func TestControlPlaneTestSuite(t *testing.T) {
 }
 
 func (ts *ControlPlaneTestSuite) SetupSuite() {
-	ouID, err := testutils.CreateOrganizationUnit(testutils.OrganizationUnit{
-		Handle: unique("cp-suite"),
-		Name:   "Control Plane suite",
-	})
-	ts.Require().NoError(err)
-	ts.ouID = ouID
+	ts.projectID, ts.ouID = ts.createProject(unique("cp-suite"), "Control Plane suite")
 }
 
 func (ts *ControlPlaneTestSuite) TearDownSuite() {

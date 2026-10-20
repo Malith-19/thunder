@@ -257,9 +257,8 @@ func (ts *ControlPlaneTestSuite) TestAWrittenUsersPasswordReachesTheDefaultGatew
 	attributes, err := json.Marshal(map[string]any{"username": unique("cp-capture-user"), "password": password})
 	ts.Require().NoError(err)
 
-	userID, err := testutils.CreateUser(testutils.User{OUID: ts.ouID, Type: userType, Attributes: attributes})
-	ts.Require().NoError(err)
-	defer func() { _ = testutils.DeleteUser(userID) }()
+	userID := ts.createUserInProject(ts.projectID, userType, attributes)
+	defer ts.deleteUserInProject(ts.projectID, userID)
 
 	ts.True(g.holdsValueSoon("secrets", password), "the password was not captured as a secret")
 	ts.False(g.holdsValue("variables", password), "the password was captured as a variable")

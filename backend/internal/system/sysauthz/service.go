@@ -11,6 +11,7 @@ import (
 	tidcommon "github.com/thunder-id/thunderid/pkg/thunderidengine/common"
 
 	"github.com/thunder-id/thunderid/internal/system/log"
+	"github.com/thunder-id/thunderid/internal/system/projectscope"
 	"github.com/thunder-id/thunderid/internal/system/security"
 )
 
@@ -65,6 +66,9 @@ type systemAuthorizationService struct {
 	// permissionResolver enumerates effective permissions for the grant checks. nil until
 	// SetPermissionResolver is called at startup, in which case those checks refuse.
 	permissionResolver PermissionResolver
+	// ouResolver answers whether an organization unit sits beneath a project's root. nil until
+	// SetOUHierarchyResolver is called, in which case only the root itself is in a project.
+	ouResolver OUHierarchyResolver
 }
 
 type policies struct {
@@ -95,6 +99,7 @@ func (s *systemAuthorizationService) SetOUHierarchyResolver(resolver OUHierarchy
 		return
 	}
 	s.policies.inheritancePolicy = &ouInheritancePolicy{resolver: resolver}
+	s.ouResolver = resolver
 }
 
 // IsActionAllowed evaluates whether the authenticated caller may perform the given action.
@@ -118,6 +123,13 @@ func (s *systemAuthorizationService) IsActionAllowed(ctx context.Context, action
 	}
 
 	permissions := security.GetPermissions(ctx)
+
+	// A control plane request scoped to a project is decided against the project instead of the
+	// caller's own organization unit. This comes before the system permission short-circuit, so a
+	// system administrator acting in one project cannot reach the resources of another.
+	if scope, ok := projectscope.FromContext(ctx); ok {
+		return s.isActionAllowedInProject(ctx, scope, action, actionCtx, permissions)
+	}
 
 	// Step 3: Short-circuit: the "system" permission grants access to all system operations.
 	if security.HasSystemPermission(permissions) {
@@ -168,6 +180,42 @@ func (s *systemAuthorizationService) IsActionAllowed(ctx context.Context, action
 	return true, nil
 }
 
+// isActionAllowedInProject decides an action of a request scoped to a project. The organization unit
+// the action targets must be the project's root or one beneath it; the caller's permissions are then
+// checked as usual. The caller's own organization unit plays no part: access to the project itself was
+// decided before the scope was set.
+func (s *systemAuthorizationService) isActionAllowedInProject(ctx context.Context, scope projectscope.Scope,
+	action security.Action, actionCtx *ActionContext, permissions []string) (bool, *tidcommon.ServiceError) {
+	if actionCtx != nil && actionCtx.OUID != "" {
+		inProject, svcErr := s.isOUInProject(ctx, scope, actionCtx.OUID)
+		if svcErr != nil {
+			return false, svcErr
+		}
+		if !inProject {
+			s.logger.Debug(ctx, "Authorization denied: organization unit is outside the project",
+				log.String("action", string(action)), log.String("projectID", scope.ProjectID))
+			return false, nil
+		}
+	}
+
+	if security.HasSystemPermission(permissions) || isResourceOwner(ctx, actionCtx) {
+		return true, nil
+	}
+	return security.HasSufficientPermission(permissions, security.ResolveActionPermission(action)), nil
+}
+
+// isOUInProject reports whether ouID is the project's root organization unit or one beneath it.
+func (s *systemAuthorizationService) isOUInProject(ctx context.Context, scope projectscope.Scope,
+	ouID string) (bool, *tidcommon.ServiceError) {
+	if ouID == scope.RootOUID {
+		return true, nil
+	}
+	if s.ouResolver == nil {
+		return false, nil
+	}
+	return s.ouResolver.IsAncestor(ctx, scope.RootOUID, ouID)
+}
+
 // isResourceOwner checks whether the authenticated caller is the owner of the resource
 // being acted upon. This enables self-service operations (e.g., a user accessing their own
 // profile) without requiring system-level permissions.
@@ -213,6 +261,16 @@ func (s *systemAuthorizationService) GetAccessibleResources(ctx context.Context,
 	}
 
 	permissions := security.GetPermissions(ctx)
+
+	// A control plane request scoped to a project sees the project's root organization unit, whatever
+	// organization unit the caller's token names and even when the caller holds the system permission.
+	if scope, ok := projectscope.FromContext(ctx); ok && resourceType == security.ResourceTypeOU {
+		if !security.HasSystemPermission(permissions) &&
+			!security.HasSufficientPermission(permissions, security.ResolveActionPermission(action)) {
+			return &AccessibleResources{AllAllowed: false, IDs: []string{}}, nil
+		}
+		return &AccessibleResources{AllAllowed: false, IDs: []string{scope.RootOUID}}, nil
+	}
 
 	// Step 3: Short-circuit: the "system" permission grants access to all resources.
 	if security.HasSystemPermission(permissions) {

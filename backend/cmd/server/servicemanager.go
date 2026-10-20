@@ -74,6 +74,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
 	"github.com/thunder-id/thunderid/internal/openid4vci"
 	"github.com/thunder-id/thunderid/internal/ou"
+	"github.com/thunder-id/thunderid/internal/project"
 	"github.com/thunder-id/thunderid/internal/resource"
 	"github.com/thunder-id/thunderid/internal/role"
 	"github.com/thunder-id/thunderid/internal/runtimestore"
@@ -116,6 +117,11 @@ import (
 
 // observabilitySvc is the observability service instance. This is used for graceful shutdown.
 var observabilitySvc observability.ObservabilityServiceInterface
+
+// projectScope scopes the project aware management APIs to the project a request names. It is set by
+// registerServices and wrapped around the routes, inside the security middleware, so it sees the
+// authenticated caller.
+var projectScope = func(next http.Handler) http.Handler { return next }
 
 // registerServices registers all the services with the provided HTTP multiplexer.
 // It also returns the import service so the bootstrap subcommand can create default
@@ -185,6 +191,10 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	// authz service now that the ou package is ready. This breaks the import-cycle that
 	// would arise if sysauthz were to directly import the ou package.
 	ouAuthzService.SetOUHierarchyResolver(ouHierarchyResolver)
+
+	// Projects: each is backed by a root organization unit. A management request that names a project
+	// acts on it; one that does not is served unscoped, so the caller's token decides as before.
+	_, projectScope = project.Initialize(mux, ouService, false)
 
 	hashCfg, err := buildHashConfig()
 	fatalOnError(ctx, logger, err, "Failed to build HashService config")

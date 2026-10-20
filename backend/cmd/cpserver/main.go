@@ -247,9 +247,10 @@ func accessLogExcludePaths(configured []string) []string {
 func createHTTPServer(ctx context.Context, logger *log.Logger, cfg *config.Config, mux *http.ServeMux,
 	jwtService jwt.JWTServiceInterface, revocationEnforcer revocationcache.EnforcerInterface) *http.Server {
 	// A successful change to the configuration is captured as the current version once it is answered,
-	// for the user the security middleware authenticated.
-	securityMiddleware := createSecurityMiddleware(ctx, logger, cfg, changeCapture.Middleware(mux), jwtService,
-		revocationEnforcer)
+	// for the user the security middleware authenticated. The project scope runs inside the security
+	// middleware too, so it sees the authenticated caller.
+	routes := changeCapture.Middleware(projectScope(mux))
+	securityMiddleware := createSecurityMiddleware(ctx, logger, cfg, routes, jwtService, revocationEnforcer)
 
 	// Build the middleware chain with proper execution order.
 	// Request flow: CorrelationID (outermost) -> SecurityHeaders -> AccessLog -> Security -> Route Handler (innermost)

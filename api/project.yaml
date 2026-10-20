@@ -1,0 +1,621 @@
+openapi: 3.0.3
+info:
+  title: Project Management API
+  version: "1.0"
+  description: |
+    Create and manage projects. A project groups the configuration of one product or solution:
+    its applications, resource servers, roles, users and other organization unit bound resources.
+
+    This API is served by the control plane only. A data plane has no project management surface.
+
+    ## How a project relates to organization units
+
+    Every project is backed by exactly one root organization unit. Creating a project creates its
+    root organization unit, and the response reports it as `rootOuId`. The project ID and the root
+    organization unit ID are separate identifiers.
+
+    Resources keep belonging to organization units. A resource is part of a project when its
+    organization unit is the project's root organization unit or one of its descendants. Other
+    control plane management APIs take a project ID, resolve it to the root organization unit, and
+    apply their existing organization unit logic.
+
+    A root organization unit can only be created through this API. The Organization Unit API
+    creates organization units beneath an existing one.
+
+    The default organization unit is represented by the **Default** project, with the handle
+    `default`. It cannot be deleted.
+
+    ## Handles
+
+    A project's handle identifies it across environments, so the same project can be promoted from
+    one deployment to another under the same handle. A handle is unique within a deployment and
+    cannot be changed after the project is created. The project's root organization unit uses the
+    same handle.
+
+    ## Declarative projects
+
+    A project can also be declared in a resource file. A declared project is listed by this API with
+    `isReadOnly: true` and cannot be changed or deleted through it; change the file instead.
+
+    ## Authorization
+
+    A management token does not carry a project, and one caller can work with several projects
+    using the same token. Access is therefore decided for each request:
+
+    - Creating, changing and deleting a project requires the **root system permission**.
+    - Reading and listing projects return only the projects the caller may access.
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: https://{host}:{port}
+    variables:
+      host:
+        default: "localhost"
+      port:
+        default: "8090"
+
+tags:
+  - name: Projects
+    description: Create and manage projects and their root organization units.
+
+security:
+  - OAuth2: [system]
+
+paths:
+  /projects:
+    get:
+      tags:
+        - Projects
+      summary: List projects
+      description: Lists the projects the caller may access, in creation order.
+      parameters:
+        - $ref: '#/components/parameters/limitQueryParam'
+        - $ref: '#/components/parameters/offsetQueryParam'
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectListResponse'
+              example:
+                totalResults: 3
+                startIndex: 1
+                count: 2
+                projects:
+                  - id: "0193a5c2-7f1e-7a3b-9c41-2d6e8f0a1b23"
+                    handle: "default"
+                    name: "Default"
+                    description: "Default project"
+                    rootOuId: "01900000-0000-7000-8000-000000000001"
+                    isReadOnly: true
+                    createdAt: "2026-10-01T08:00:00Z"
+                    updatedAt: "2026-10-01T08:00:00Z"
+                  - id: "0193a5c3-1b2d-7c4e-8f5a-6b7c8d9e0f12"
+                    handle: "car-insurance"
+                    name: "Car Insurance"
+                    description: "Customer apps for car insurance"
+                    rootOuId: "0193a5c3-1b2d-7c4e-8f5a-6b7c8d9e0f13"
+                    isReadOnly: false
+                    createdAt: "2026-10-20T09:15:00Z"
+                    updatedAt: "2026-10-20T09:15:00Z"
+                links:
+                  - href: "projects?offset=2&limit=2"
+                    rel: "next"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid-limit:
+                  summary: Invalid limit parameter
+                  value:
+                    code: "PRJ-1005"
+                    message:
+                      key: "error.projectservice.invalid_limit_parameter"
+                      defaultValue: "Invalid limit parameter"
+                    description:
+                      key: "error.projectservice.invalid_limit_parameter_description"
+                      defaultValue: "The limit parameter must be a positive integer"
+                invalid-offset:
+                  summary: Invalid offset parameter
+                  value:
+                    code: "PRJ-1006"
+                    message:
+                      key: "error.projectservice.invalid_offset_parameter"
+                      defaultValue: "Invalid offset parameter"
+                    description:
+                      key: "error.projectservice.invalid_offset_parameter_description"
+                      defaultValue: "The offset parameter must be a non-negative integer"
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "500":
+          description: Internal server error
+
+    post:
+      tags:
+        - Projects
+      summary: Create a project
+      description: |
+        Creates a project together with its root organization unit, in one transaction.
+
+        `id` is optional. A caller that manages projects across several tools can supply its own
+        project ID so the same ID is used everywhere. When it is omitted, an ID is generated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+            examples:
+              generated-id:
+                summary: Project with a generated ID
+                value:
+                  handle: "car-insurance"
+                  name: "Car Insurance"
+                  description: "Customer apps for car insurance"
+              supplied-id:
+                summary: Project with a caller-supplied ID
+                value:
+                  id: "0193a5c3-1b2d-7c4e-8f5a-6b7c8d9e0f12"
+                  handle: "car-insurance"
+                  name: "Car Insurance"
+      responses:
+        "201":
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+              example:
+                id: "0193a5c3-1b2d-7c4e-8f5a-6b7c8d9e0f12"
+                handle: "car-insurance"
+                name: "Car Insurance"
+                description: "Customer apps for car insurance"
+                rootOuId: "0193a5c3-1b2d-7c4e-8f5a-6b7c8d9e0f13"
+                isReadOnly: false
+                createdAt: "2026-10-20T09:15:00Z"
+                updatedAt: "2026-10-20T09:15:00Z"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid-request:
+                  summary: Invalid request format
+                  value:
+                    code: "PRJ-1001"
+                    message:
+                      key: "error.projectservice.invalid_request_format"
+                      defaultValue: "Invalid request format"
+                    description:
+                      key: "error.projectservice.invalid_request_format_description"
+                      defaultValue: "The request body is malformed, or a required field is missing"
+                invalid-id:
+                  summary: Invalid project ID
+                  value:
+                    code: "PRJ-1007"
+                    message:
+                      key: "error.projectservice.invalid_project_id"
+                      defaultValue: "Invalid project ID"
+                    description:
+                      key: "error.projectservice.invalid_project_id_description"
+                      defaultValue: "The supplied project ID must be a UUID"
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "409":
+          description: The project conflicts with one that already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                handle-conflict:
+                  summary: Handle already in use
+                  value:
+                    code: "PRJ-1003"
+                    message:
+                      key: "error.projectservice.handle_conflict"
+                      defaultValue: "Project handle conflict"
+                    description:
+                      key: "error.projectservice.handle_conflict_description"
+                      defaultValue: "A project with the same handle already exists"
+                id-conflict:
+                  summary: Supplied ID already in use
+                  value:
+                    code: "PRJ-1004"
+                    message:
+                      key: "error.projectservice.id_conflict"
+                      defaultValue: "Project ID conflict"
+                    description:
+                      key: "error.projectservice.id_conflict_description"
+                      defaultValue: "A project or organization unit with the same ID already exists"
+        "500":
+          description: Internal server error
+
+  /projects/{id}:
+    parameters:
+      - $ref: '#/components/parameters/projectIdPathParam'
+
+    get:
+      tags:
+        - Projects
+      summary: Get a project
+      responses:
+        "200":
+          description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+              example:
+                id: "0193a5c3-1b2d-7c4e-8f5a-6b7c8d9e0f12"
+                handle: "car-insurance"
+                name: "Car Insurance"
+                description: "Customer apps for car insurance"
+                rootOuId: "0193a5c3-1b2d-7c4e-8f5a-6b7c8d9e0f13"
+                isReadOnly: false
+                createdAt: "2026-10-20T09:15:00Z"
+                updatedAt: "2026-10-20T09:15:00Z"
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "500":
+          description: Internal server error
+
+    put:
+      tags:
+        - Projects
+      summary: Update a project
+      description: |
+        Changes a project's name and description. The root organization unit's name is kept in
+        step with the project's. The handle cannot be changed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+            example:
+              name: "Car Insurance Portal"
+              description: "Customer and broker apps for car insurance"
+      responses:
+        "200":
+          description: Project updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+              example:
+                id: "0193a5c3-1b2d-7c4e-8f5a-6b7c8d9e0f12"
+                handle: "car-insurance"
+                name: "Car Insurance Portal"
+                description: "Customer and broker apps for car insurance"
+                rootOuId: "0193a5c3-1b2d-7c4e-8f5a-6b7c8d9e0f13"
+                isReadOnly: false
+                createdAt: "2026-10-20T09:15:00Z"
+                updatedAt: "2026-10-20T10:02:00Z"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid-request:
+                  summary: Invalid request format
+                  value:
+                    code: "PRJ-1001"
+                    message:
+                      key: "error.projectservice.invalid_request_format"
+                      defaultValue: "Invalid request format"
+                    description:
+                      key: "error.projectservice.invalid_request_format_description"
+                      defaultValue: "The request body is malformed, or a required field is missing"
+                declarative:
+                  summary: Project is declared in a file
+                  value:
+                    code: "PRJ-1009"
+                    message:
+                      key: "error.projectservice.cannot_modify_declarative_project"
+                      defaultValue: "Cannot modify a declarative project"
+                    description:
+                      key: "error.projectservice.cannot_modify_declarative_project_description"
+                      defaultValue: "The project is declared in a resource file and cannot be changed through the API"
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "500":
+          description: Internal server error
+
+    delete:
+      tags:
+        - Projects
+      summary: Delete a project
+      description: |
+        Deletes a project and its root organization unit. The project must be empty: deleting a
+        project that still has organization units or resources beneath its root is refused, so
+        that no resource is removed by accident.
+      responses:
+        "204":
+          description: Project deleted
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                declarative:
+                  summary: Project is declared in a file
+                  value:
+                    code: "PRJ-1009"
+                    message:
+                      key: "error.projectservice.cannot_modify_declarative_project"
+                      defaultValue: "Cannot modify a declarative project"
+                    description:
+                      key: "error.projectservice.cannot_modify_declarative_project_description"
+                      defaultValue: "The project is declared in a resource file and cannot be changed through the API"
+                default-project:
+                  summary: Default project cannot be deleted
+                  value:
+                    code: "PRJ-1010"
+                    message:
+                      key: "error.projectservice.cannot_delete_default_project"
+                      defaultValue: "Cannot delete the default project"
+                    description:
+                      key: "error.projectservice.cannot_delete_default_project_description"
+                      defaultValue: "The default project cannot be deleted"
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          description: The project is not empty
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "PRJ-1008"
+                message:
+                  key: "error.projectservice.project_not_empty"
+                  defaultValue: "Project is not empty"
+                description:
+                  key: "error.projectservice.project_not_empty_description"
+                  defaultValue: "Remove the project's organization units and resources before deleting it"
+        "500":
+          description: Internal server error
+
+components:
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://localhost:8090/oauth2/authorize
+          tokenUrl: https://localhost:8090/oauth2/token
+          scopes:
+            system: Access to system management APIs
+        clientCredentials:
+          tokenUrl: https://localhost:8090/oauth2/token
+          scopes:
+            system: Access to system management APIs
+
+  parameters:
+    projectIdPathParam:
+      in: path
+      name: id
+      required: true
+      description: The project's ID.
+      schema:
+        type: string
+        format: uuid
+    limitQueryParam:
+      in: query
+      name: limit
+      required: false
+      description: |
+        Maximum number of records to return.
+      schema:
+        type: integer
+        minimum: 1
+        default: 30
+    offsetQueryParam:
+      in: query
+      name: offset
+      required: false
+      description: |
+        Number of records to skip for pagination.
+      schema:
+        type: integer
+        default: 0
+
+  responses:
+    Unauthorized:
+      description: No valid credentials were presented
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: The caller is authenticated but may not perform this operation on the project
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: No project of that ID exists, or the caller may not access it
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "PRJ-1002"
+            message:
+              key: "error.projectservice.project_not_found"
+              defaultValue: "Project not found"
+            description:
+              key: "error.projectservice.project_not_found_description"
+              defaultValue: "The project with the specified ID does not exist"
+
+  schemas:
+    Project:
+      type: object
+      required: [id, handle, name, rootOuId, isReadOnly, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The project's ID.
+        handle:
+          type: string
+          description: Identifies the project across environments. Unique within a deployment and immutable.
+          example: "car-insurance"
+        name:
+          type: string
+          description: Display name of the project.
+          example: "Car Insurance"
+        description:
+          type: string
+          description: Description of the project.
+        rootOuId:
+          type: string
+          format: uuid
+          readOnly: true
+          description: ID of the root organization unit that backs the project.
+        isReadOnly:
+          type: boolean
+          readOnly: true
+          description: Whether the project is declared in a resource file and cannot be changed through this API.
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Creation timestamp in UTC.
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Last update timestamp in UTC.
+
+    CreateProjectRequest:
+      type: object
+      required: [handle, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: |
+            Optional caller-supplied project ID. Must not already be used by a project or an
+            organization unit. Generated when omitted.
+        handle:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: |
+            Identifies the project across environments. Also used as the root organization unit's
+            handle, so it follows the same rules: it must not contain `/`.
+          example: "car-insurance"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Display name of the project. Also used as the root organization unit's name.
+          example: "Car Insurance"
+        description:
+          type: string
+          maxLength: 255
+          description: Description of the project.
+
+    UpdateProjectRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Display name of the project.
+        description:
+          type: string
+          maxLength: 255
+          description: Description of the project.
+
+    ProjectListResponse:
+      type: object
+      required: [totalResults, startIndex, count, projects]
+      properties:
+        totalResults:
+          type: integer
+          description: "Number of projects the caller may access."
+          example: 15
+        startIndex:
+          type: integer
+          description: "Index of the first element of the page, which will be equal to offset + 1."
+          example: 1
+        count:
+          type: integer
+          description: "Number of elements in the returned page."
+          example: 10
+        projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+
+    Link:
+      type: object
+      properties:
+        href:
+          type: string
+          example: "projects?offset=20&limit=10"
+        rel:
+          type: string
+          example: "next"
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: "Error code. Codes follow the PRJ-XXXX convention."
+          example: "PRJ-1001"
+        message:
+          $ref: '#/components/schemas/I18nMessage'
+        description:
+          $ref: '#/components/schemas/I18nMessage'
+
+    I18nMessage:
+      type: object
+      description: Internationalized message with translation key and default value.
+      required:
+        - key
+        - defaultValue
+      properties:
+        key:
+          type: string
+          description: Translation key for fetching localized message.
+        defaultValue:
+          type: string
+          description: Default message in English (fallback).

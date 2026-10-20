@@ -637,3 +637,19 @@ CREATE TABLE "NOTIFICATION_TEMPLATE" (
     PRIMARY KEY (DEPLOYMENT_ID, ID),
     UNIQUE (DEPLOYMENT_ID, CHANNEL, HANDLE)
 );
+
+-- Table to store projects. A project groups the configuration of one product and is backed by
+-- exactly one root organization unit, which lives in the entity database.
+CREATE TABLE "PROJECT" (
+    DEPLOYMENT_ID VARCHAR(255) NOT NULL,
+    ID            VARCHAR(36)  NOT NULL,
+    HANDLE        VARCHAR(100) NOT NULL,
+    NAME          VARCHAR(100) NOT NULL,
+    DESCRIPTION   VARCHAR(255),
+    ROOT_OU_ID    VARCHAR(36)  NOT NULL,
+    CREATED_AT    TEXT         DEFAULT (datetime('now')),
+    UPDATED_AT    TEXT         DEFAULT (datetime('now')),
+    PRIMARY KEY (DEPLOYMENT_ID, ID),
+    UNIQUE (DEPLOYMENT_ID, HANDLE),
+    UNIQUE (DEPLOYMENT_ID, ROOT_OU_ID)
+);
