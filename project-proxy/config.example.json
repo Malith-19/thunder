@@ -1,0 +1,16 @@
+{
+  "listenAddress": "localhost:8097",
+  "thunderidUrl": "https://localhost:8090",
+  "insecureSkipVerify": true,
+  "platformIssuer": {
+    "issuer": "http://localhost:8096",
+    "jwksUrl": "http://localhost:8096/jwks",
+    "audience": "project-proxy"
+  },
+  "projectsClaim": "projects",
+  "client": {
+    "clientId": "project-proxy",
+    "resource": "https://localhost:8090/project-proxy",
+    "scopes": ["system:ou", "system:user", "system:group", "system:usertype"]
+  }
+}

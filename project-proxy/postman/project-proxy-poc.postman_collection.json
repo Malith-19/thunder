@@ -1,0 +1,659 @@
+{
+  "info": {
+    "name": "ThunderID project proxy POC",
+    "description": "Demo scenarios for the project proxy. Run the folders in order against a running ThunderID, development issuer and proxy. See project-proxy/README.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Platform tokens",
+      "item": [
+        {
+          "name": "Get platform token for alice (shop)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('aliceToken', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "The development issuer stands in for the cloud platform's identity provider.",
+            "url": {
+              "raw": "{{issuer}}/token?sub=alice&projects={{shop}}",
+              "host": [
+                "{{issuer}}"
+              ],
+              "path": [
+                "token"
+              ],
+              "query": [
+                {
+                  "key": "sub",
+                  "value": "alice"
+                },
+                {
+                  "key": "projects",
+                  "value": "{{shop}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get platform token for bob (bank)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('bobToken', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "The development issuer stands in for the cloud platform's identity provider.",
+            "url": {
+              "raw": "{{issuer}}/token?sub=bob&projects={{bank}}",
+              "host": [
+                "{{issuer}}"
+              ],
+              "path": [
+                "token"
+              ],
+              "query": [
+                {
+                  "key": "sub",
+                  "value": "bob"
+                },
+                {
+                  "key": "projects",
+                  "value": "{{bank}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Allowed inside the project",
+      "item": [
+        {
+          "name": "Alice creates a user in shop without ouId",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{aliceToken}}"
+              },
+              {
+                "key": "X-Project-Id",
+                "value": "{{shop}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{proxy}}/users",
+              "host": [
+                "{{proxy}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "The proxy sets ouId to the project's root OU, because the request names none.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"shop-person\",\n  \"attributes\": {\n    \"username\": \"ann-{{$timestamp}}\",\n    \"email\": \"ann-{{$timestamp}}@shop.test\"\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('user lands in shop root OU', () => pm.expect(pm.response.json().ouId).to.eql(pm.collectionVariables.get('shop')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bob creates a user in bank",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bobToken}}"
+              },
+              {
+                "key": "X-Project-Id",
+                "value": "{{bank}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{proxy}}/users",
+              "host": [
+                "{{proxy}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"bank-person\",\n  \"attributes\": {\n    \"username\": \"bill-{{$timestamp}}\",\n    \"email\": \"bill-{{$timestamp}}@bank.test\"\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('bankUserId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Alice lists users in shop",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{aliceToken}}"
+              },
+              {
+                "key": "X-Project-Id",
+                "value": "{{shop}}"
+              }
+            ],
+            "url": {
+              "raw": "{{proxy}}/users",
+              "host": [
+                "{{proxy}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "ThunderID filters the list by the token's OU."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('only shop users', () => pm.response.json().users.forEach(u => pm.expect(u.ouId).to.eql(pm.collectionVariables.get('shop'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Alice lists organization units",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{aliceToken}}"
+              },
+              {
+                "key": "X-Project-Id",
+                "value": "{{shop}}"
+              }
+            ],
+            "url": {
+              "raw": "{{proxy}}/organization-units",
+              "host": [
+                "{{proxy}}"
+              ],
+              "path": [
+                "organization-units"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('only shop root OU', () => pm.expect(pm.response.json().organizationUnits.map(o => o.id)).to.eql([pm.collectionVariables.get('shop')]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Alice creates a child OU in shop",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{aliceToken}}"
+              },
+              {
+                "key": "X-Project-Id",
+                "value": "{{shop}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{proxy}}/organization-units",
+              "host": [
+                "{{proxy}}"
+              ],
+              "path": [
+                "organization-units"
+              ]
+            },
+            "description": "The proxy sets parent to the project's root OU.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"handle\": \"eng-{{$timestamp}}\",\n  \"name\": \"Engineering {{$timestamp}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('parent is shop root', () => pm.expect(pm.response.json().parent).to.eql(pm.collectionVariables.get('shop')));",
+                  "pm.collectionVariables.set('childOuId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Refused across projects",
+      "item": [
+        {
+          "name": "Alice reads bob's bank user from shop",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{aliceToken}}"
+              },
+              {
+                "key": "X-Project-Id",
+                "value": "{{shop}}"
+              }
+            ],
+            "url": {
+              "raw": "{{proxy}}/users/{{bankUserId}}",
+              "host": [
+                "{{proxy}}"
+              ],
+              "path": [
+                "users",
+                "{{bankUserId}}"
+              ]
+            },
+            "description": "Refused by ThunderID: the user is outside the token's OU."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Alice creates a user in bank's OU",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{aliceToken}}"
+              },
+              {
+                "key": "X-Project-Id",
+                "value": "{{shop}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{proxy}}/users",
+              "host": [
+                "{{proxy}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Refused by ThunderID.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"shop-person\",\n  \"ouId\": \"{{bank}}\",\n  \"attributes\": {\n    \"username\": \"x-{{$timestamp}}\",\n    \"email\": \"x-{{$timestamp}}@x.test\"\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Alice deletes bank's root OU",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{aliceToken}}"
+              },
+              {
+                "key": "X-Project-Id",
+                "value": "{{shop}}"
+              }
+            ],
+            "url": {
+              "raw": "{{proxy}}/organization-units/{{bank}}",
+              "host": [
+                "{{proxy}}"
+              ],
+              "path": [
+                "organization-units",
+                "{{bank}}"
+              ]
+            },
+            "description": "Refused by ThunderID."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Alice names bank, which her token does not list",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{aliceToken}}"
+              },
+              {
+                "key": "X-Project-Id",
+                "value": "{{bank}}"
+              }
+            ],
+            "url": {
+              "raw": "{{proxy}}/users",
+              "host": [
+                "{{proxy}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Refused by the proxy: bank is not in the token's projects claim."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Request without a project",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{aliceToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{proxy}}/users",
+              "host": [
+                "{{proxy}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Refused by the proxy."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "API the proxy does not serve",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{aliceToken}}"
+              },
+              {
+                "key": "X-Project-Id",
+                "value": "{{shop}}"
+              }
+            ],
+            "url": {
+              "raw": "{{proxy}}/flows",
+              "host": [
+                "{{proxy}}"
+              ],
+              "path": [
+                "flows"
+              ]
+            },
+            "description": "Refused by the proxy: only users, groups, organization units and user types are forwarded."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid platform token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer not-a-token"
+              },
+              {
+                "key": "X-Project-Id",
+                "value": "{{shop}}"
+              }
+            ],
+            "url": {
+              "raw": "{{proxy}}/users",
+              "host": [
+                "{{proxy}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Refused by the proxy."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Known gap",
+      "item": [
+        {
+          "name": "Alice reads the child OU",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{aliceToken}}"
+              },
+              {
+                "key": "X-Project-Id",
+                "value": "{{shop}}"
+              }
+            ],
+            "url": {
+              "raw": "{{proxy}}/organization-units/{{childOuId}}",
+              "host": [
+                "{{proxy}}"
+              ],
+              "path": [
+                "organization-units",
+                "{{childOuId}}"
+              ]
+            },
+            "description": "Known gap: ThunderID lets a caller act only on its own OU, so child OUs inside a project cannot be managed yet."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "proxy",
+      "value": "http://localhost:8097"
+    },
+    {
+      "key": "issuer",
+      "value": "http://localhost:8096"
+    },
+    {
+      "key": "shop",
+      "value": "project-shop"
+    },
+    {
+      "key": "bank",
+      "value": "project-bank"
+    },
+    {
+      "key": "aliceToken",
+      "value": ""
+    },
+    {
+      "key": "bobToken",
+      "value": ""
+    },
+    {
+      "key": "bankUserId",
+      "value": ""
+    },
+    {
+      "key": "childOuId",
+      "value": ""
+    }
+  ]
+}

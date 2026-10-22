@@ -1,0 +1,131 @@
+# Resources the project proxy needs in ThunderID, plus two demo projects. Copy this file into the
+# ThunderID distribution's bootstrap directory and run setup.sh with PROJECT_PROXY_CLIENT_SECRET set.
+
+# Owns the proxy's client and its role. Not a project.
+resource_type: organization_unit
+id: project-proxy-platform
+handle: project-proxy-platform
+name: Platform
+description: Owns the project proxy client
+---
+# Declares fine-grained system permissions. ThunderID ships only the top-level "system" permission,
+# which would let the proxy reach every organization unit.
+resource_type: resource_server
+id: project-proxy-permissions
+name: Project Proxy Permissions
+description: System permissions the project proxy acts with inside a project
+identifier: "{{ .PUBLIC_URL }}/project-proxy"
+ouId: project-proxy-platform
+delimiter: ":"
+resources:
+  - name: System
+    handle: system
+  - name: Organization Units
+    handle: ou
+    parent: system
+  - name: Users
+    handle: user
+    parent: system
+  - name: Groups
+    handle: group
+    parent: system
+  - name: User Types
+    handle: usertype
+    parent: system
+---
+# The proxy's client. Shared with every organization unit so that it can request a token for any
+# project's root organization unit. A policy reaching every organization unit can only be declared,
+# not created over REST.
+resource_type: application
+id: project-proxy-client
+name: Project Proxy
+type: m2m
+description: Acts in a project's root organization unit on behalf of the project proxy
+ouId: project-proxy-platform
+sharingPolicies:
+  - allUnits: {}
+inboundAuthConfig:
+  - type: oauth2
+    config:
+      clientId: project-proxy
+      clientSecret: "{{ .PROJECT_PROXY_CLIENT_SECRET }}"
+      grantTypes:
+        - client_credentials
+      tokenEndpointAuthMethod: client_secret_basic
+      pkceRequired: false
+      publicClient: false
+      token:
+        accessToken:
+          clientConfig:
+            attributes:
+              - ouId
+              - ouHandle
+---
+# What the proxy may do inside a project. Never grant "system" here.
+resource_type: role
+id: project-proxy-role
+name: Project Administrator
+description: Manages a project's identities through the project proxy
+ouId: project-proxy-platform
+permissions:
+  - resourceServerId: project-proxy-permissions
+    permissions:
+      - system:ou
+      - system:user
+      - system:group
+      - system:usertype
+assignments:
+  - id: project-proxy-client
+    type: app
+---
+# Demo project "shop". The project ID is the ID of its root organization unit.
+resource_type: organization_unit
+id: project-shop
+handle: project-shop
+name: Shop
+description: Demo project
+---
+# A user type is visible only within its own organization unit tree, and handles are unique across the
+# deployment, so each project has its own.
+resource_type: user_type
+id: project-shop-person
+handle: shop-person
+displayName: Person
+ouId: project-shop
+allowSelfRegistration: false
+systemAttributes:
+  display: username
+  primaryEmail: email
+schema: |
+  {
+    "username": {"displayName": "Username", "type": "string", "required": true, "unique": true},
+    "email": {"displayName": "Email", "type": "email", "required": true, "unique": true},
+    "given_name": {"displayName": "First Name", "type": "string"},
+    "family_name": {"displayName": "Last Name", "type": "string"},
+    "password": {"displayName": "Password", "type": "string", "credential": true}
+  }
+---
+# Demo project "bank".
+resource_type: organization_unit
+id: project-bank
+handle: project-bank
+name: Bank
+description: Demo project
+---
+resource_type: user_type
+id: project-bank-person
+handle: bank-person
+displayName: Person
+ouId: project-bank
+allowSelfRegistration: false
+systemAttributes:
+  display: username
+  primaryEmail: email
+schema: |
+  {
+    "username": {"displayName": "Username", "type": "string", "required": true, "unique": true},
+    "email": {"displayName": "Email", "type": "email", "required": true, "unique": true},
+    "given_name": {"displayName": "First Name", "type": "string"},
+    "family_name": {"displayName": "Last Name", "type": "string"},
+    "password": {"displayName": "Password", "type": "string", "credential": true}
+  }
