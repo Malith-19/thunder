@@ -77,6 +77,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
 	"github.com/thunder-id/thunderid/internal/openid4vci"
 	"github.com/thunder-id/thunderid/internal/ou"
+	"github.com/thunder-id/thunderid/internal/project"
 	"github.com/thunder-id/thunderid/internal/resource"
 	"github.com/thunder-id/thunderid/internal/role"
 	"github.com/thunder-id/thunderid/internal/runtimestore"
@@ -193,6 +194,9 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	sharingService, err := sharing.Initialize(cacheManager, ouHierarchyResolver, ouEnumerator,
 		runtime.Config.ResourceSharing.AllowChildOUCrossTreeSharing)
 	fatalOnError(ctx, logger, err, "Failed to initialize SharingService")
+
+	projectService, err := project.Initialize(mux, ouService)
+	fatalOnError(ctx, logger, err, "Failed to initialize ProjectService")
 
 	hashCfg, err := buildHashConfig()
 	fatalOnError(ctx, logger, err, "Failed to build HashService config")
@@ -527,7 +531,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		notifTemplate: notifTemplateSvc,
 	}, applicationService, agentService, flowMgtService, roleAssignmentService, roleService,
 		groupService, ouService, ouUserResolver, ouGroupResolver, entityTypeService, resourceService,
-		sharingService, notifTemplateSvc)
+		sharingService, notifTemplateSvc, projectService)
 
 	// Initialize design resolve service for theme and layout resolution
 	designResolveService := resolve.Initialize(mux, themeMgtService, layoutMgtService, applicationService)
