@@ -126,6 +126,15 @@ type ouAdapter interface {
 	DeleteOrganizationUnit(ctx context.Context, id string) *tidcommon.ServiceError
 }
 
+// ProjectAdapter creates the project of a root organization unit the importer brings in. Only the
+// Control Plane serves projects, so the all-in-one server passes none and imports organization units
+// alone.
+type ProjectAdapter interface {
+	CreateProjectWithRootOU(ctx context.Context, rootOU ou.OrganizationUnitRequestWithID) (
+		ou.OrganizationUnit, *tidcommon.ServiceError)
+	EnsureProjectForRootOU(ctx context.Context, rootOUID string) *tidcommon.ServiceError
+}
+
 type entityTypeAdapter interface {
 	CreateEntityType(ctx context.Context, category entitytype.TypeCategory,
 		request entitytype.CreateEntityTypeRequestWithID) (*entitytype.EntityType,
@@ -296,6 +305,7 @@ type importService struct {
 	authZENPDPService              authZENPDPAdapter
 	flowService                    flowAdapter
 	ouService                      ouAdapter
+	projectService                 ProjectAdapter
 	entityTypeService              entityTypeAdapter
 	roleService                    roleAdapter
 	roleAssignmentService          roleAssignmentAdapter

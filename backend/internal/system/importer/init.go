@@ -58,6 +58,7 @@ func Initialize(
 	authZENPDPService authzenpdp.AuthZENPDPServiceInterface,
 	sharingService sharing.SharingServiceInterface,
 	authorizationDetailService authzdetailmgt.AuthorizationDetailMgtServiceInterface,
+	projectService ProjectAdapter,
 	references *secretresolver.Resolver,
 ) ImportServiceInterface {
 	service := newImportService(
@@ -87,6 +88,7 @@ func Initialize(
 	service.(*importService).references = references
 	service.(*importService).sharingService = sharingService
 	service.(*importService).authorizationDetailTypeService = authorizationDetailService
+	service.(*importService).projectService = projectService
 	importHandler := newImportHandler(service)
 
 	registerRoutes(mux, importHandler)

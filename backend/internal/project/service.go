@@ -36,6 +36,9 @@ type ProjectServiceInterface interface {
 	GetProjectList(ctx context.Context, limit, offset int) (*ProjectListResponse, *tidcommon.ServiceError)
 	UpdateProject(ctx context.Context, id string, request ProjectRequest) (*Project, *tidcommon.ServiceError)
 	DeleteProject(ctx context.Context, id string) *tidcommon.ServiceError
+	CreateProjectWithRootOU(ctx context.Context, rootOU ou.OrganizationUnitRequestWithID) (
+		ou.OrganizationUnit, *tidcommon.ServiceError)
+	EnsureProjectForRootOU(ctx context.Context, rootOUID string) *tidcommon.ServiceError
 	GetResourceDependencies(
 		ctx context.Context, resourceType, id string) ([]resourcedependency.ResourceDependency, error)
 }
@@ -210,6 +213,52 @@ func (s *projectService) GetResourceDependencies(
 		DisplayName:      project.ID,
 		BehaviorOnDelete: resourcedependency.BehaviorRestrict,
 	}}, nil
+}
+
+// CreateProjectWithRootOU creates a project whose root organization unit is the given organization
+// unit, keeping every field of the request, and returns that organization unit. The project ID is
+// generated. Importing a root organization unit goes through here, so that it gets its project.
+func (s *projectService) CreateProjectWithRootOU(
+	ctx context.Context, rootOU ou.OrganizationUnitRequestWithID) (ou.OrganizationUnit, *tidcommon.ServiceError) {
+	details := ProjectRequest{DisplayName: rootOU.Name, Description: rootOU.Description}
+	if svcErr := validateDetails(details); svcErr != nil {
+		return ou.OrganizationUnit{}, svcErr
+	}
+
+	project, svcErr := s.createProject(ctx, "", rootOU)
+	if svcErr != nil {
+		return ou.OrganizationUnit{}, svcErr
+	}
+	return s.ouService.GetOrganizationUnit(ctx, project.RootOUID)
+}
+
+// EnsureProjectForRootOU creates a project for an existing root organization unit that has none, so a
+// root organization unit created before projects existed, such as the default one, gets its project
+// when it is imported again. It does nothing when the organization unit already has a project.
+func (s *projectService) EnsureProjectForRootOU(ctx context.Context, rootOUID string) *tidcommon.ServiceError {
+	_, err := s.store.GetProjectByRootOUID(ctx, rootOUID)
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, errProjectNotFound) {
+		s.logger.Error(ctx, "Failed to get project by root organization unit", log.Error(err))
+		return &tidcommon.InternalServerError
+	}
+
+	projectID, err := utils.GenerateUUIDv7()
+	if err != nil {
+		s.logger.Error(ctx, "Failed to generate project ID", log.Error(err))
+		return &tidcommon.InternalServerError
+	}
+	if err := s.store.CreateProject(ctx, projectRecord{
+		ID: projectID, RootOUID: rootOUID, CreatedAt: time.Now().UTC().Truncate(time.Microsecond),
+	}); err != nil {
+		s.logger.Error(ctx, "Failed to create project for root organization unit", log.Error(err))
+		return &tidcommon.InternalServerError
+	}
+
+	s.logger.Debug(ctx, "Created project for root organization unit", log.String("projectID", projectID))
+	return nil
 }
 
 // createProject creates the root organization unit and the project record in one transaction. An

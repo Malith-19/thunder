@@ -183,9 +183,25 @@ func (s *importService) importOrganizationUnit(
 		return successOutcome(resourceTypeOrganizationUnit, req.ID, req.Name, operationCreate)
 	}
 
+	// A root organization unit is a project's, so where projects are served it is created with its
+	// project, and an existing one gets a project when it has none.
+	withProject := s.projectService != nil && (req.Parent == nil || *req.Parent == "")
+	createOU := func() (ou.OrganizationUnit, *tidcommon.ServiceError) {
+		if withProject {
+			return s.projectService.CreateProjectWithRootOU(ctx, createReq)
+		}
+		return s.ouService.CreateOrganizationUnit(ctx, createReq)
+	}
+
 	if options.IsUpsertEnabled() && req.ID != "" {
 		updated, svcErr := s.ouService.UpdateOrganizationUnit(ctx, req.ID, updateReq)
 		if svcErr == nil {
+			if withProject {
+				if projectErr := s.projectService.EnsureProjectForRootOU(ctx, updated.ID); projectErr != nil {
+					return serviceErrorOutcome(
+						resourceTypeOrganizationUnit, req.ID, req.Name, operationUpdate, projectErr)
+				}
+			}
 			return successOutcome(resourceTypeOrganizationUnit, updated.ID, updated.Name, operationUpdate)
 		}
 
@@ -193,7 +209,7 @@ func (s *importService) importOrganizationUnit(
 			return serviceErrorOutcome(resourceTypeOrganizationUnit, req.ID, req.Name, operationUpdate, svcErr)
 		}
 
-		created, createErr := s.ouService.CreateOrganizationUnit(ctx, createReq)
+		created, createErr := createOU()
 		if createErr != nil {
 			return serviceErrorOutcome(resourceTypeOrganizationUnit, req.ID, req.Name, operationCreate, createErr)
 		}
@@ -201,7 +217,7 @@ func (s *importService) importOrganizationUnit(
 		return successOutcome(resourceTypeOrganizationUnit, created.ID, created.Name, operationCreate)
 	}
 
-	created, svcErr := s.ouService.CreateOrganizationUnit(ctx, createReq)
+	created, svcErr := createOU()
 	if svcErr != nil {
 		return serviceErrorOutcome(resourceTypeOrganizationUnit, req.ID, req.Name, operationCreate, svcErr)
 	}

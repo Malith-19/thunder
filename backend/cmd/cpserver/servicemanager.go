@@ -408,6 +408,8 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		authZENPDPService,
 		sharingService,
 		authzDetailMgtService,
+		// An imported root organization unit is created with its project.
+		projectService,
 		// A control plane keeps configuration as references and holds no values, so none are resolved.
 		nil,
 	)

@@ -4864,3 +4864,133 @@ func (s *ImportConnectionOUTestSuite) TestDryRunAcceptsTheOwnerAnExistingConnect
 		})
 	}
 }
+
+// fakeProjectService creates a root organization unit through the fake organization unit service and
+// records the projects it is asked to create.
+type fakeProjectService struct {
+	ouService  *fakeOUService
+	withRootOU []ou.OrganizationUnitRequestWithID
+	ensured    []string
+	ensureErr  *tidcommon.ServiceError
+}
+
+func (f *fakeProjectService) CreateProjectWithRootOU(
+	ctx context.Context, rootOU ou.OrganizationUnitRequestWithID,
+) (ou.OrganizationUnit, *tidcommon.ServiceError) {
+	f.withRootOU = append(f.withRootOU, rootOU)
+	return f.ouService.CreateOrganizationUnit(ctx, rootOU)
+}
+
+func (f *fakeProjectService) EnsureProjectForRootOU(_ context.Context, rootOUID string) *tidcommon.ServiceError {
+	f.ensured = append(f.ensured, rootOUID)
+	return f.ensureErr
+}
+
+func newImportServiceWithProjects(ouSvc *fakeOUService, projectSvc *fakeProjectService) ImportServiceInterface {
+	svc := newImportService(
+		nil, nil, nil, nil, ouSvc, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	svc.(*importService).projectService = projectSvc
+	return svc
+}
+
+func TestImportResources_RootOrganizationUnitIsCreatedWithItsProject(t *testing.T) {
+	ouSvc := &fakeOUService{existing: map[string]ou.OrganizationUnit{}}
+	projectSvc := &fakeProjectService{ouService: ouSvc}
+	upsert := true
+	content := strings.Join([]string{
+		"resource_type: organization_unit",
+		"id: root-ou",
+		"handle: shop",
+		"name: Shop",
+		"authFlowId: auth-flow-1",
+		"",
+	}, "\n")
+
+	resp, err := newImportServiceWithProjects(ouSvc, projectSvc).ImportResources(context.Background(),
+		&ImportRequest{Content: content, Options: &ImportOptions{Upsert: &upsert}})
+
+	require.Nil(t, err)
+	require.Len(t, resp.Results, 1)
+	assert.Equal(t, statusSuccess, resp.Results[0].Status)
+	assert.Equal(t, operationCreate, resp.Results[0].Operation)
+	assert.Equal(t, "root-ou", resp.Results[0].ResourceID)
+	require.Len(t, projectSvc.withRootOU, 1)
+	assert.Equal(t, "root-ou", projectSvc.withRootOU[0].ID)
+	assert.Equal(t, "auth-flow-1", projectSvc.withRootOU[0].AuthFlowID)
+	assert.Empty(t, projectSvc.ensured)
+}
+
+func TestImportResources_ChildOrganizationUnitIsCreatedWithoutAProject(t *testing.T) {
+	parent := "root-ou"
+	ouSvc := &fakeOUService{existing: map[string]ou.OrganizationUnit{
+		parent: {ID: parent, Handle: "shop", Name: "Shop"},
+	}}
+	projectSvc := &fakeProjectService{ouService: ouSvc}
+	content := strings.Join([]string{
+		"resource_type: organization_unit",
+		"id: child-ou",
+		"handle: shop-eu",
+		"name: Shop EU",
+		"parent: " + parent,
+		"",
+	}, "\n")
+
+	resp, err := newImportServiceWithProjects(ouSvc, projectSvc).ImportResources(context.Background(),
+		&ImportRequest{Content: content})
+
+	require.Nil(t, err)
+	require.Len(t, resp.Results, 1)
+	assert.Equal(t, statusSuccess, resp.Results[0].Status)
+	require.Len(t, ouSvc.created, 1)
+	assert.Equal(t, "child-ou", ouSvc.created[0].ID)
+	assert.Empty(t, projectSvc.withRootOU)
+}
+
+func TestImportResources_ExistingRootOrganizationUnitGetsAProject(t *testing.T) {
+	ouSvc := &fakeOUService{existing: map[string]ou.OrganizationUnit{
+		"default-ou": {ID: "default-ou", Handle: "default", Name: "Default"},
+	}}
+	projectSvc := &fakeProjectService{ouService: ouSvc}
+	upsert := true
+	content := strings.Join([]string{
+		"resource_type: organization_unit",
+		"id: default-ou",
+		"handle: default",
+		"name: Default",
+		"",
+	}, "\n")
+
+	resp, err := newImportServiceWithProjects(ouSvc, projectSvc).ImportResources(context.Background(),
+		&ImportRequest{Content: content, Options: &ImportOptions{Upsert: &upsert}})
+
+	require.Nil(t, err)
+	require.Len(t, resp.Results, 1)
+	assert.Equal(t, statusSuccess, resp.Results[0].Status)
+	assert.Equal(t, operationUpdate, resp.Results[0].Operation)
+	assert.Equal(t, []string{"default-ou"}, projectSvc.ensured)
+	assert.Empty(t, projectSvc.withRootOU)
+}
+
+func TestImportResources_RootOrganizationUnitProjectFailureFailsTheImport(t *testing.T) {
+	ouSvc := &fakeOUService{existing: map[string]ou.OrganizationUnit{
+		"default-ou": {ID: "default-ou", Handle: "default", Name: "Default"},
+	}}
+	projectSvc := &fakeProjectService{ouService: ouSvc, ensureErr: &tidcommon.InternalServerError}
+	upsert := true
+	continueOnError := true
+	content := strings.Join([]string{
+		"resource_type: organization_unit",
+		"id: default-ou",
+		"handle: default",
+		"name: Default",
+		"",
+	}, "\n")
+
+	resp, err := newImportServiceWithProjects(ouSvc, projectSvc).ImportResources(context.Background(),
+		&ImportRequest{Content: content, Options: &ImportOptions{Upsert: &upsert, ContinueOnError: &continueOnError}})
+
+	require.Nil(t, err)
+	require.Len(t, resp.Results, 1)
+	assert.Equal(t, statusFailed, resp.Results[0].Status)
+	assert.Equal(t, tidcommon.InternalServerError.Code, resp.Results[0].Code)
+}

@@ -8,6 +8,7 @@ import (
 	"context"
 
 	mock "github.com/stretchr/testify/mock"
+	"github.com/thunder-id/thunderid/internal/ou"
 	"github.com/thunder-id/thunderid/internal/system/resourcedependency"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine/common"
 )
@@ -118,6 +119,74 @@ func (_c *ProjectServiceInterfaceMock_CreateProject_Call) RunAndReturn(run func(
 	return _c
 }
 
+// CreateProjectWithRootOU provides a mock function for the type ProjectServiceInterfaceMock
+func (_mock *ProjectServiceInterfaceMock) CreateProjectWithRootOU(ctx context.Context, rootOU ou.OrganizationUnitRequestWithID) (ou.OrganizationUnit, *common.ServiceError) {
+	ret := _mock.Called(ctx, rootOU)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateProjectWithRootOU")
+	}
+
+	var r0 ou.OrganizationUnit
+	var r1 *common.ServiceError
+	if returnFunc, ok := ret.Get(0).(func(context.Context, ou.OrganizationUnitRequestWithID) (ou.OrganizationUnit, *common.ServiceError)); ok {
+		return returnFunc(ctx, rootOU)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, ou.OrganizationUnitRequestWithID) ou.OrganizationUnit); ok {
+		r0 = returnFunc(ctx, rootOU)
+	} else {
+		r0 = ret.Get(0).(ou.OrganizationUnit)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, ou.OrganizationUnitRequestWithID) *common.ServiceError); ok {
+		r1 = returnFunc(ctx, rootOU)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*common.ServiceError)
+		}
+	}
+	return r0, r1
+}
+
+// ProjectServiceInterfaceMock_CreateProjectWithRootOU_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateProjectWithRootOU'
+type ProjectServiceInterfaceMock_CreateProjectWithRootOU_Call struct {
+	*mock.Call
+}
+
+// CreateProjectWithRootOU is a helper method to define mock.On call
+//   - ctx context.Context
+//   - rootOU ou.OrganizationUnitRequestWithID
+func (_e *ProjectServiceInterfaceMock_Expecter) CreateProjectWithRootOU(ctx any, rootOU any) *ProjectServiceInterfaceMock_CreateProjectWithRootOU_Call {
+	return &ProjectServiceInterfaceMock_CreateProjectWithRootOU_Call{Call: _e.mock.On("CreateProjectWithRootOU", ctx, rootOU)}
+}
+
+func (_c *ProjectServiceInterfaceMock_CreateProjectWithRootOU_Call) Run(run func(ctx context.Context, rootOU ou.OrganizationUnitRequestWithID)) *ProjectServiceInterfaceMock_CreateProjectWithRootOU_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 ou.OrganizationUnitRequestWithID
+		if args[1] != nil {
+			arg1 = args[1].(ou.OrganizationUnitRequestWithID)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *ProjectServiceInterfaceMock_CreateProjectWithRootOU_Call) Return(organizationUnit ou.OrganizationUnit, serviceError *common.ServiceError) *ProjectServiceInterfaceMock_CreateProjectWithRootOU_Call {
+	_c.Call.Return(organizationUnit, serviceError)
+	return _c
+}
+
+func (_c *ProjectServiceInterfaceMock_CreateProjectWithRootOU_Call) RunAndReturn(run func(ctx context.Context, rootOU ou.OrganizationUnitRequestWithID) (ou.OrganizationUnit, *common.ServiceError)) *ProjectServiceInterfaceMock_CreateProjectWithRootOU_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteProject provides a mock function for the type ProjectServiceInterfaceMock
 func (_mock *ProjectServiceInterfaceMock) DeleteProject(ctx context.Context, id string) *common.ServiceError {
 	ret := _mock.Called(ctx, id)
@@ -173,6 +242,65 @@ func (_c *ProjectServiceInterfaceMock_DeleteProject_Call) Return(serviceError *c
 }
 
 func (_c *ProjectServiceInterfaceMock_DeleteProject_Call) RunAndReturn(run func(ctx context.Context, id string) *common.ServiceError) *ProjectServiceInterfaceMock_DeleteProject_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// EnsureProjectForRootOU provides a mock function for the type ProjectServiceInterfaceMock
+func (_mock *ProjectServiceInterfaceMock) EnsureProjectForRootOU(ctx context.Context, rootOUID string) *common.ServiceError {
+	ret := _mock.Called(ctx, rootOUID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for EnsureProjectForRootOU")
+	}
+
+	var r0 *common.ServiceError
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *common.ServiceError); ok {
+		r0 = returnFunc(ctx, rootOUID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*common.ServiceError)
+		}
+	}
+	return r0
+}
+
+// ProjectServiceInterfaceMock_EnsureProjectForRootOU_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EnsureProjectForRootOU'
+type ProjectServiceInterfaceMock_EnsureProjectForRootOU_Call struct {
+	*mock.Call
+}
+
+// EnsureProjectForRootOU is a helper method to define mock.On call
+//   - ctx context.Context
+//   - rootOUID string
+func (_e *ProjectServiceInterfaceMock_Expecter) EnsureProjectForRootOU(ctx any, rootOUID any) *ProjectServiceInterfaceMock_EnsureProjectForRootOU_Call {
+	return &ProjectServiceInterfaceMock_EnsureProjectForRootOU_Call{Call: _e.mock.On("EnsureProjectForRootOU", ctx, rootOUID)}
+}
+
+func (_c *ProjectServiceInterfaceMock_EnsureProjectForRootOU_Call) Run(run func(ctx context.Context, rootOUID string)) *ProjectServiceInterfaceMock_EnsureProjectForRootOU_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *ProjectServiceInterfaceMock_EnsureProjectForRootOU_Call) Return(serviceError *common.ServiceError) *ProjectServiceInterfaceMock_EnsureProjectForRootOU_Call {
+	_c.Call.Return(serviceError)
+	return _c
+}
+
+func (_c *ProjectServiceInterfaceMock_EnsureProjectForRootOU_Call) RunAndReturn(run func(ctx context.Context, rootOUID string) *common.ServiceError) *ProjectServiceInterfaceMock_EnsureProjectForRootOU_Call {
 	_c.Call.Return(run)
 	return _c
 }

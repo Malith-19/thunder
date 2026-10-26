@@ -394,3 +394,81 @@ func (suite *ProjectServiceTestSuite) TestGetResourceDependencies() {
 		suite.Error(err)
 	})
 }
+
+func (suite *ProjectServiceTestSuite) TestCreateProjectWithRootOU() {
+	rootOURequest := ou.OrganizationUnitRequestWithID{
+		ID: testRootOUID, Handle: "shop", Name: "Shop", Description: "Online shop",
+		LogoURL: "https://example.com/logo.png", AuthFlowID: "auth-flow",
+	}
+
+	suite.Run("creates the root OU with every field and a project for it", func() {
+		suite.SetupTest()
+		suite.mockOUService.On("CreateOrganizationUnit", mock.Anything, rootOURequest).Return(suite.rootOU(), nil)
+		suite.mockStore.On("CreateProject", mock.Anything, mock.MatchedBy(func(r projectRecord) bool {
+			return r.ID != "" && r.ID != testRootOUID && r.RootOUID == testRootOUID && !r.CreatedAt.IsZero()
+		})).Return(nil)
+		suite.mockOUService.On("GetOrganizationUnit", mock.Anything, testRootOUID).Return(suite.rootOU(), nil)
+
+		created, svcErr := suite.service.CreateProjectWithRootOU(context.Background(), rootOURequest)
+
+		suite.Nil(svcErr)
+		suite.Equal(suite.rootOU(), created)
+	})
+	suite.Run("invalid name", func() {
+		suite.SetupTest()
+
+		_, svcErr := suite.service.CreateProjectWithRootOU(context.Background(),
+			ou.OrganizationUnitRequestWithID{Handle: "shop", Name: strings.Repeat("n", maxDisplayNameLength+1)})
+
+		suite.Equal(ErrorInvalidDisplayName, *svcErr)
+	})
+	suite.Run("organization unit error passes through", func() {
+		suite.SetupTest()
+		suite.mockOUService.On("CreateOrganizationUnit", mock.Anything, rootOURequest).
+			Return(ou.OrganizationUnit{}, &ou.ErrorOrganizationUnitHandleConflict)
+
+		_, svcErr := suite.service.CreateProjectWithRootOU(context.Background(), rootOURequest)
+
+		suite.Equal(ou.ErrorOrganizationUnitHandleConflict, *svcErr)
+		suite.mockStore.AssertNotCalled(suite.T(), "CreateProject", mock.Anything, mock.Anything)
+	})
+}
+
+func (suite *ProjectServiceTestSuite) TestEnsureProjectForRootOU() {
+	suite.Run("root OU already has a project", func() {
+		suite.SetupTest()
+		suite.mockStore.On("GetProjectByRootOUID", mock.Anything, testRootOUID).Return(suite.record(), nil)
+
+		suite.Nil(suite.service.EnsureProjectForRootOU(context.Background(), testRootOUID))
+		suite.mockStore.AssertNotCalled(suite.T(), "CreateProject", mock.Anything, mock.Anything)
+	})
+	suite.Run("creates a project for a root OU without one", func() {
+		suite.SetupTest()
+		suite.mockStore.On("GetProjectByRootOUID", mock.Anything, testRootOUID).
+			Return(projectRecord{}, errProjectNotFound)
+		suite.mockStore.On("CreateProject", mock.Anything, mock.MatchedBy(func(r projectRecord) bool {
+			return r.ID != "" && r.RootOUID == testRootOUID && !r.CreatedAt.IsZero()
+		})).Return(nil)
+
+		suite.Nil(suite.service.EnsureProjectForRootOU(context.Background(), testRootOUID))
+	})
+	suite.Run("lookup failure", func() {
+		suite.SetupTest()
+		suite.mockStore.On("GetProjectByRootOUID", mock.Anything, testRootOUID).
+			Return(projectRecord{}, errors.New("db"))
+
+		svcErr := suite.service.EnsureProjectForRootOU(context.Background(), testRootOUID)
+
+		suite.Equal(tidcommon.InternalServerError, *svcErr)
+	})
+	suite.Run("create failure", func() {
+		suite.SetupTest()
+		suite.mockStore.On("GetProjectByRootOUID", mock.Anything, testRootOUID).
+			Return(projectRecord{}, errProjectNotFound)
+		suite.mockStore.On("CreateProject", mock.Anything, mock.Anything).Return(errors.New("db"))
+
+		svcErr := suite.service.EnsureProjectForRootOU(context.Background(), testRootOUID)
+
+		suite.Equal(tidcommon.InternalServerError, *svcErr)
+	})
+}
