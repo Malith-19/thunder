@@ -2178,3 +2178,179 @@ func (suite *OrganizationUnitHandlerTestSuite) TestOUHandler_handleErrorStatusMa
 		})
 	}
 }
+
+func (suite *OrganizationUnitHandlerTestSuite) TestOUHandler_RootOUsManagedByProjects() {
+	parentID := "parent-1"
+	rootOU := OrganizationUnit{ID: defaultOURequestID, Handle: defaultOUHandle, Name: testOUNameFinance}
+	childOU := OrganizationUnit{
+		ID: defaultOURequestID, Handle: defaultOUHandle, Name: testOUNameFinance, Parent: &parentID,
+	}
+	rootBody := `{"handle":"finance","name":"Finance"}`
+	childBody := `{"handle":"finance","name":"Finance","parent":"parent-1"}`
+
+	byID := func(method, body string,
+		invoke func(*organizationUnitHandler, http.ResponseWriter, *http.Request)) func(
+		*organizationUnitHandler, *httptest.ResponseRecorder) {
+		return func(h *organizationUnitHandler, recorder *httptest.ResponseRecorder) {
+			req := httptest.NewRequest(method, "/organization-units/"+defaultOURequestID, strings.NewReader(body))
+			req.SetPathValue("id", defaultOURequestID)
+			invoke(h, recorder, req)
+		}
+	}
+	byPath := func(method, body string,
+		invoke func(*organizationUnitHandler, http.ResponseWriter, *http.Request)) func(
+		*organizationUnitHandler, *httptest.ResponseRecorder) {
+		return func(h *organizationUnitHandler, recorder *httptest.ResponseRecorder) {
+			req := httptest.NewRequest(method, "/organization-units/tree/"+defaultOUPath, strings.NewReader(body))
+			req.SetPathValue("path", defaultOUPath)
+			invoke(h, recorder, req)
+		}
+	}
+	post := func(body string) func(*organizationUnitHandler, *httptest.ResponseRecorder) {
+		return func(h *organizationUnitHandler, recorder *httptest.ResponseRecorder) {
+			h.HandleOUPostRequest(recorder, httptest.NewRequest(http.MethodPost, "/organization-units",
+				strings.NewReader(body)))
+		}
+	}
+
+	testCases := []struct {
+		name       string
+		invoke     func(*organizationUnitHandler, *httptest.ResponseRecorder)
+		setup      func(*OrganizationUnitServiceInterfaceMock)
+		wantStatus int
+		wantCode   string
+	}{
+		{
+			name:       "create root refused",
+			invoke:     post(rootBody),
+			wantStatus: http.StatusBadRequest,
+			wantCode:   ErrorRootOUManagedByProject.Code,
+		},
+		{
+			name:       "create root with empty parent refused",
+			invoke:     post(`{"handle":"finance","name":"Finance","parent":""}`),
+			wantStatus: http.StatusBadRequest,
+			wantCode:   ErrorRootOUManagedByProject.Code,
+		},
+		{
+			name:   "create child allowed",
+			invoke: post(childBody),
+			setup: func(m *OrganizationUnitServiceInterfaceMock) {
+				m.On("CreateOrganizationUnit", mock.Anything, mock.Anything).Return(childOU, nil).Once()
+			},
+			wantStatus: http.StatusCreated,
+		},
+		{
+			name:   "update root refused",
+			invoke: byID(http.MethodPut, childBody, (*organizationUnitHandler).HandleOUPutRequest),
+			setup: func(m *OrganizationUnitServiceInterfaceMock) {
+				m.On("GetOrganizationUnit", mock.Anything, defaultOURequestID).Return(rootOU, nil).Once()
+			},
+			wantStatus: http.StatusBadRequest,
+			wantCode:   ErrorRootOUManagedByProject.Code,
+		},
+		{
+			name:       "update to a root refused",
+			invoke:     byID(http.MethodPut, rootBody, (*organizationUnitHandler).HandleOUPutRequest),
+			wantStatus: http.StatusBadRequest,
+			wantCode:   ErrorRootOUManagedByProject.Code,
+		},
+		{
+			name:   "update missing organization unit",
+			invoke: byID(http.MethodPut, childBody, (*organizationUnitHandler).HandleOUPutRequest),
+			setup: func(m *OrganizationUnitServiceInterfaceMock) {
+				m.On("GetOrganizationUnit", mock.Anything, defaultOURequestID).
+					Return(OrganizationUnit{}, &ErrorOrganizationUnitNotFound).Once()
+			},
+			wantStatus: http.StatusNotFound,
+			wantCode:   ErrorOrganizationUnitNotFound.Code,
+		},
+		{
+			name:   "update child allowed",
+			invoke: byID(http.MethodPut, childBody, (*organizationUnitHandler).HandleOUPutRequest),
+			setup: func(m *OrganizationUnitServiceInterfaceMock) {
+				m.On("GetOrganizationUnit", mock.Anything, defaultOURequestID).Return(childOU, nil).Once()
+				m.On("UpdateOrganizationUnit", mock.Anything, defaultOURequestID, mock.Anything).
+					Return(childOU, nil).Once()
+			},
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:   "update root by path refused",
+			invoke: byPath(http.MethodPut, childBody, (*organizationUnitHandler).HandleOUPutByPathRequest),
+			setup: func(m *OrganizationUnitServiceInterfaceMock) {
+				m.On("GetOrganizationUnitByPath", mock.Anything, defaultOUPath).Return(rootOU, nil).Once()
+			},
+			wantStatus: http.StatusBadRequest,
+			wantCode:   ErrorRootOUManagedByProject.Code,
+		},
+		{
+			name:   "update child by path allowed",
+			invoke: byPath(http.MethodPut, childBody, (*organizationUnitHandler).HandleOUPutByPathRequest),
+			setup: func(m *OrganizationUnitServiceInterfaceMock) {
+				m.On("GetOrganizationUnitByPath", mock.Anything, defaultOUPath).Return(childOU, nil).Once()
+				m.On("UpdateOrganizationUnitByPath", mock.Anything, defaultOUPath, mock.Anything).
+					Return(childOU, nil).Once()
+			},
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:   "delete root refused",
+			invoke: byID(http.MethodDelete, "", (*organizationUnitHandler).HandleOUDeleteRequest),
+			setup: func(m *OrganizationUnitServiceInterfaceMock) {
+				m.On("GetOrganizationUnit", mock.Anything, defaultOURequestID).Return(rootOU, nil).Once()
+			},
+			wantStatus: http.StatusBadRequest,
+			wantCode:   ErrorRootOUManagedByProject.Code,
+		},
+		{
+			name:   "delete child allowed",
+			invoke: byID(http.MethodDelete, "", (*organizationUnitHandler).HandleOUDeleteRequest),
+			setup: func(m *OrganizationUnitServiceInterfaceMock) {
+				m.On("GetOrganizationUnit", mock.Anything, defaultOURequestID).Return(childOU, nil).Once()
+				m.On("DeleteOrganizationUnit", mock.Anything, defaultOURequestID).Return(nil).Once()
+			},
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:   "delete root by path refused",
+			invoke: byPath(http.MethodDelete, "", (*organizationUnitHandler).HandleOUDeleteByPathRequest),
+			setup: func(m *OrganizationUnitServiceInterfaceMock) {
+				m.On("GetOrganizationUnitByPath", mock.Anything, defaultOUPath).Return(rootOU, nil).Once()
+			},
+			wantStatus: http.StatusBadRequest,
+			wantCode:   ErrorRootOUManagedByProject.Code,
+		},
+		{
+			name:   "delete missing organization unit by path",
+			invoke: byPath(http.MethodDelete, "", (*organizationUnitHandler).HandleOUDeleteByPathRequest),
+			setup: func(m *OrganizationUnitServiceInterfaceMock) {
+				m.On("GetOrganizationUnitByPath", mock.Anything, defaultOUPath).
+					Return(OrganizationUnit{}, &ErrorOrganizationUnitNotFound).Once()
+			},
+			wantStatus: http.StatusNotFound,
+			wantCode:   ErrorOrganizationUnitNotFound.Code,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			serviceMock := NewOrganizationUnitServiceInterfaceMock(suite.T())
+			if tc.setup != nil {
+				tc.setup(serviceMock)
+			}
+			handler := newOrganizationUnitHandler(serviceMock)
+			WithRootOUsManagedByProjects()(handler)
+			recorder := httptest.NewRecorder()
+
+			tc.invoke(handler, recorder)
+
+			suite.Equal(tc.wantStatus, recorder.Code, recorder.Body.String())
+			if tc.wantCode != "" {
+				var resp apierror.ErrorResponse
+				suite.NoError(json.Unmarshal(recorder.Body.Bytes(), &resp))
+				suite.Equal(tc.wantCode, resp.Code)
+			}
+		})
+	}
+}

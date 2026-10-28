@@ -152,7 +152,12 @@ func (t *projectTools) createProject(
 	_ *mcp.CallToolRequest,
 	input createProjectMCPInput,
 ) (*mcp.CallToolResult, *projectMCPItem, error) {
-	project, svcErr := t.service.CreateProject(ctx, sanitizeProjectRequest(ProjectRequest(input)))
+	project, svcErr := t.service.CreateProject(ctx, sanitizeProjectRequest(ProjectRequest{
+		ID:          input.ID,
+		Handle:      input.Handle,
+		DisplayName: input.DisplayName,
+		Description: input.Description,
+	}))
 	if svcErr != nil {
 		return nil, nil, fmt.Errorf("failed to create project: %s", svcErr.ErrorDescription)
 	}
@@ -160,15 +165,21 @@ func (t *projectTools) createProject(
 	return nil, &item, nil
 }
 
-// updateProject handles the update_project tool call. The input is sanitized as the REST request is.
+// updateProject handles the update_project tool call. The input is sanitized as the REST request is,
+// and the project keeps its settings.
 func (t *projectTools) updateProject(
 	ctx context.Context,
 	_ *mcp.CallToolRequest,
 	input updateProjectMCPInput,
 ) (*mcp.CallToolResult, *projectMCPItem, error) {
+	existing, svcErr := t.service.GetProject(ctx, input.ID)
+	if svcErr != nil {
+		return nil, nil, fmt.Errorf("failed to update project: %s", svcErr.ErrorDescription)
+	}
 	project, svcErr := t.service.UpdateProject(ctx, input.ID, sanitizeProjectRequest(ProjectRequest{
-		DisplayName: input.DisplayName,
-		Description: input.Description,
+		DisplayName:     input.DisplayName,
+		Description:     input.Description,
+		ProjectSettings: existing.ProjectSettings,
 	}))
 	if svcErr != nil {
 		return nil, nil, fmt.Errorf("failed to update project: %s", svcErr.ErrorDescription)

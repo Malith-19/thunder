@@ -97,10 +97,11 @@ func (h *projectHandler) HandleProjectDeleteRequest(w http.ResponseWriter, r *ht
 // sanitizeProjectRequest sanitizes the string fields of a project request.
 func sanitizeProjectRequest(request ProjectRequest) ProjectRequest {
 	return ProjectRequest{
-		ID:          sysutils.SanitizeString(request.ID),
-		Handle:      sysutils.SanitizeString(request.Handle),
-		DisplayName: sysutils.SanitizeString(request.DisplayName),
-		Description: sysutils.SanitizeString(request.Description),
+		ID:              sysutils.SanitizeString(request.ID),
+		Handle:          sysutils.SanitizeString(request.Handle),
+		DisplayName:     sysutils.SanitizeString(request.DisplayName),
+		Description:     sysutils.SanitizeString(request.Description),
+		ProjectSettings: request.ProjectSettings,
 	}
 }
 

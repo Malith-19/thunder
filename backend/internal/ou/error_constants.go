@@ -247,6 +247,20 @@ var (
 			DefaultValue: "The userOnboardingFlowId does not reference an existing user onboarding flow",
 		},
 	}
+	// ErrorRootOUManagedByProject is the error returned when the organization unit API is used to
+	// create, change or delete a root organization unit, which the project API manages.
+	ErrorRootOUManagedByProject = tidcommon.ServiceError{
+		Type: tidcommon.ClientErrorType,
+		Code: "OU-1020",
+		Error: tidcommon.I18nMessage{
+			Key:          "error.ouservice.root_ou_managed_by_project",
+			DefaultValue: "Root organization unit is managed by its project",
+		},
+		ErrorDescription: tidcommon.I18nMessage{
+			Key:          "error.ouservice.root_ou_managed_by_project_description",
+			DefaultValue: "Create, update and delete root organization units through the projects API",
+		},
+	}
 )
 
 // Error variables

@@ -93,8 +93,8 @@ paths:
       summary: Create a project
       description: |
         Creates a project and its root organization unit in one operation. The root organization unit
-        takes the project's handle, display name and description. Supply `id` to keep an ID that another
-        system already uses for the project; otherwise one is generated.
+        takes the project's handle, display name, description and settings. Supply `id` to keep an ID that
+        another system already uses for the project; otherwise one is generated.
       requestBody:
         required: true
         content:
@@ -206,9 +206,9 @@ paths:
         - Projects
       summary: Update a project
       description: |
-        Updates the display name and description of a project, which are its root organization unit's name
-        and description, so the root organization unit is renamed too. The handle cannot change; send the
-        current handle or omit it.
+        Replaces the display name, description and settings of a project, which are its root organization
+        unit's name, description and settings, so the root organization unit changes too. A setting left out
+        of the request is cleared. The handle cannot change; send the current handle or omit it.
       requestBody:
         required: true
         content:
@@ -367,6 +367,8 @@ components:
     Project:
       type: object
       required: [id, handle, displayName, rootOuId, createdAt]
+      allOf:
+        - $ref: '#/components/schemas/ProjectSettings'
       properties:
         id:
           type: string
@@ -393,6 +395,8 @@ components:
     CreateProjectRequest:
       type: object
       required: [handle, displayName]
+      allOf:
+        - $ref: '#/components/schemas/ProjectSettings'
       properties:
         id:
           type: string
@@ -415,6 +419,8 @@ components:
     UpdateProjectRequest:
       type: object
       required: [displayName]
+      allOf:
+        - $ref: '#/components/schemas/ProjectSettings'
       properties:
         handle:
           type: string
@@ -428,6 +434,61 @@ components:
           type: string
           maxLength: 255
           description: Description of the project.
+
+    ProjectSettings:
+      type: object
+      description: Theme, layout, default flows and branding links of a project, kept on its root organization unit.
+      properties:
+        themeId:
+          type: string
+          format: uuid
+          description: Theme configuration ID.
+        layoutId:
+          type: string
+          format: uuid
+          description: Layout configuration ID.
+        authFlowId:
+          type: string
+          format: uuid
+          description: Default authentication flow ID.
+        registrationFlowId:
+          type: string
+          format: uuid
+          description: Default registration flow ID.
+        isRegistrationFlowEnabled:
+          type: boolean
+          description: Whether the registration flow is enabled.
+        recoveryFlowId:
+          type: string
+          format: uuid
+          description: Default recovery flow ID.
+        isRecoveryFlowEnabled:
+          type: boolean
+          description: Whether the recovery flow is enabled.
+        signOutFlowId:
+          type: string
+          format: uuid
+          description: Default sign-out flow ID.
+        userOnboardingFlowId:
+          type: string
+          format: uuid
+          description: Default user onboarding flow ID.
+        logoUrl:
+          type: string
+          format: uri
+          description: Logo URL.
+        tosUri:
+          type: string
+          format: uri
+          description: Terms of Service URI.
+        policyUri:
+          type: string
+          format: uri
+          description: Privacy Policy URI.
+        cookiePolicyUri:
+          type: string
+          format: uri
+          description: Cookie Policy URI.
 
     ProjectListResponse:
       type: object

@@ -65,12 +65,9 @@ func (ts *ControlPlaneTestSuite) importToDataPlane(content string) importOutcome
 // reference text where the value belongs.
 func (ts *ControlPlaneTestSuite) TestADataPlaneImportsTheExportWithItsOwnValues() {
 	ouHandle := unique("dp-ou")
-	ouID, err := testutils.CreateOrganizationUnit(testutils.OrganizationUnit{
-		Handle: ouHandle,
-		Name:   "Data Plane suite",
-	})
+	projectID, ouID, err := testutils.CreateProject(ouHandle, "Data Plane suite")
 	ts.Require().NoError(err)
-	defer func() { _ = testutils.DeleteOrganizationUnit(ouID) }()
+	defer func() { _ = testutils.DeleteProject(projectID) }()
 
 	name := unique("DP Import App")
 	appID, err := testutils.CreateApplication(testutils.Application{
@@ -143,12 +140,9 @@ func (ts *ControlPlaneTestSuite) TestADataPlaneImportsTheExportWithItsOwnValues(
 // what the Data Plane holds is read back through the import: a resource server is refused an
 // identifier another already has.
 func (ts *ControlPlaneTestSuite) TestADataPlaneHoldsAResourceServerUnderItsOwnIdentifier() {
-	ouID, err := testutils.CreateOrganizationUnit(testutils.OrganizationUnit{
-		Handle: unique("dp-rs-ou"),
-		Name:   "Data Plane resource server suite",
-	})
+	projectID, ouID, err := testutils.CreateProject(unique("dp-rs-ou"), "Data Plane resource server suite")
 	ts.Require().NoError(err)
-	defer func() { _ = testutils.DeleteOrganizationUnit(ouID) }()
+	defer func() { _ = testutils.DeleteProject(projectID) }()
 
 	name := unique("DP Import Orders")
 	cpIdentifier := "https://" + unique("cp-only-orders") + ".example.com"

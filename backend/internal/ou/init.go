@@ -18,6 +18,17 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/sysauthz"
 )
 
+// InitOption changes how the organization unit API is initialized.
+type InitOption func(*organizationUnitHandler)
+
+// WithRootOUsManagedByProjects makes the organization unit API refuse to create, change or delete a
+// root organization unit, leaving root organization units to the project API.
+func WithRootOUsManagedByProjects() InitOption {
+	return func(h *organizationUnitHandler) {
+		h.rootOUsManagedByProjects = true
+	}
+}
+
 // Initialize initializes the organization unit service and registers its routes.
 // It returns the service, a hierarchy resolver (for injection into the authz service to
 // avoid an import cycle), and the declarative resource exporter.
@@ -26,6 +37,7 @@ func Initialize(
 	mcpServer *mcp.Server,
 	cacheManager cache.CacheManagerInterface,
 	authzService sysauthz.SystemAuthorizationServiceInterface,
+	opts ...InitOption,
 ) (ConfigurableOUService, sysauthz.OUHierarchyResolver, HierarchyEnumeratorInterface,
 	declarativeresource.ResourceExporter, error) {
 	ouStore, transactioner, err := initializeStore(cacheManager)
@@ -36,6 +48,9 @@ func Initialize(
 	ouService := newOrganizationUnitService(authzService, ouStore, transactioner)
 
 	ouHandler := newOrganizationUnitHandler(ouService)
+	for _, opt := range opts {
+		opt(ouHandler)
+	}
 	registerRoutes(mux, ouHandler)
 
 	if mcpServer != nil {

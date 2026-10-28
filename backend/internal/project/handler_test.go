@@ -171,6 +171,23 @@ func (suite *ProjectHandlerTestSuite) TestHandleProjectPutRequest() {
 
 		suite.Equal(http.StatusOK, rec.Code)
 	})
+	suite.Run("passes the settings through", func() {
+		suite.SetupTest()
+		suite.mockService.On("UpdateProject", mock.Anything, testProjectID, ProjectRequest{
+			DisplayName: "Store", ProjectSettings: ProjectSettings{
+				ThemeID: "theme-1", IsRecoveryFlowEnabled: true, TosURI: "https://example.com/tos",
+			},
+		}).Return(&Project{ID: testProjectID, DisplayName: "Store"}, nil)
+		req := httptest.NewRequest(http.MethodPut, projectsPath+"/"+testProjectID, strings.NewReader(
+			`{"displayName":"Store","themeId":"theme-1","isRecoveryFlowEnabled":true,`+
+				`"tosUri":"https://example.com/tos"}`))
+		req.SetPathValue("id", testProjectID)
+		rec := httptest.NewRecorder()
+
+		suite.handler.HandleProjectPutRequest(rec, req)
+
+		suite.Equal(http.StatusOK, rec.Code)
+	})
 	suite.Run("malformed body", func() {
 		suite.SetupTest()
 		req := httptest.NewRequest(http.MethodPut, projectsPath+"/"+testProjectID, strings.NewReader(`[`))

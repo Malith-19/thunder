@@ -10,7 +10,8 @@ import (
 )
 
 // Project is a group of identity configuration backed by exactly one root organization unit. Its
-// handle, display name and description are the root organization unit's handle, name and description.
+// handle, display name, description and settings are the root organization unit's handle, name,
+// description and settings.
 type Project struct {
 	ID          string    `json:"id"`
 	Handle      string    `json:"handle"`
@@ -18,6 +19,7 @@ type Project struct {
 	Description string    `json:"description,omitempty"`
 	RootOUID    string    `json:"rootOuId"`
 	CreatedAt   time.Time `json:"createdAt"`
+	ProjectSettings
 }
 
 // ProjectRequest is the body of a create or update project request.
@@ -27,6 +29,25 @@ type ProjectRequest struct {
 	Handle      string `json:"handle"`
 	DisplayName string `json:"displayName"`
 	Description string `json:"description,omitempty"`
+	ProjectSettings
+}
+
+// ProjectSettings are the theme, layout, default flows and branding links of a project, kept on its
+// root organization unit.
+type ProjectSettings struct {
+	ThemeID                   string `json:"themeId,omitempty"`
+	LayoutID                  string `json:"layoutId,omitempty"`
+	AuthFlowID                string `json:"authFlowId,omitempty"`
+	RegistrationFlowID        string `json:"registrationFlowId,omitempty"`
+	IsRegistrationFlowEnabled bool   `json:"isRegistrationFlowEnabled"`
+	RecoveryFlowID            string `json:"recoveryFlowId,omitempty"`
+	IsRecoveryFlowEnabled     bool   `json:"isRecoveryFlowEnabled"`
+	SignOutFlowID             string `json:"signOutFlowId,omitempty"`
+	UserOnboardingFlowID      string `json:"userOnboardingFlowId,omitempty"`
+	LogoURL                   string `json:"logoUrl,omitempty"`
+	TosURI                    string `json:"tosUri,omitempty"`
+	PolicyURI                 string `json:"policyUri,omitempty"`
+	CookiePolicyURI           string `json:"cookiePolicyUri,omitempty"`
 }
 
 // ProjectListResponse is a page of projects.

@@ -832,6 +832,64 @@ func CreateOrganizationUnit(ou OrganizationUnit) (string, error) {
 	return ouID, nil
 }
 
+// CreateProject creates a project via API and returns the project ID and the ID of its root
+// organization unit.
+func CreateProject(handle, displayName string) (string, string, error) {
+	body, err := json.Marshal(map[string]string{"handle": handle, "displayName": displayName})
+	if err != nil {
+		return "", "", fmt.Errorf("failed to marshal project request: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", TestServerURL+"/projects", bytes.NewReader(body))
+	if err != nil {
+		return "", "", fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := GetHTTPClient().Do(req)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to read response body: %w", err)
+	}
+	if resp.StatusCode != http.StatusCreated {
+		return "", "", fmt.Errorf("expected status 201, got %d. Response: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var created struct {
+		ID       string `json:"id"`
+		RootOUID string `json:"rootOuId"`
+	}
+	if err := json.Unmarshal(bodyBytes, &created); err != nil {
+		return "", "", fmt.Errorf("failed to parse response body: %w. Response: %s", err, string(bodyBytes))
+	}
+	return created.ID, created.RootOUID, nil
+}
+
+// DeleteProject deletes a project, and with it its root organization unit, by ID.
+func DeleteProject(projectID string) error {
+	req, err := http.NewRequest("DELETE", TestServerURL+"/projects/"+projectID, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create delete request: %w", err)
+	}
+
+	resp, err := GetHTTPClient().Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to delete project: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		responseBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("expected status 204, got %d. Response: %s", resp.StatusCode, string(responseBody))
+	}
+	return nil
+}
+
 // DeleteOrganizationUnit deletes an organization unit by ID
 func DeleteOrganizationUnit(ouID string) error {
 	req, err := http.NewRequest("DELETE", TestServerURL+"/organization-units/"+ouID, nil)

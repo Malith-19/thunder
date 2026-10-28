@@ -25,7 +25,8 @@ import (
 
 type ControlPlaneTestSuite struct {
 	suite.Suite
-	ouID string
+	projectID string
+	ouID      string
 }
 
 func TestControlPlaneTestSuite(t *testing.T) {
@@ -33,16 +34,14 @@ func TestControlPlaneTestSuite(t *testing.T) {
 }
 
 func (ts *ControlPlaneTestSuite) SetupSuite() {
-	ouID, err := testutils.CreateOrganizationUnit(testutils.OrganizationUnit{
-		Handle: unique("cp-suite"),
-		Name:   "Control Plane suite",
-	})
+	projectID, ouID, err := testutils.CreateProject(unique("cp-suite"), "Control Plane suite")
 	ts.Require().NoError(err)
+	ts.projectID = projectID
 	ts.ouID = ouID
 }
 
 func (ts *ControlPlaneTestSuite) TearDownSuite() {
-	_ = testutils.DeleteOrganizationUnit(ts.ouID)
+	_ = testutils.DeleteProject(ts.projectID)
 }
 
 // unique returns a name no other run of the suite uses.

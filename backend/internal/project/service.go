@@ -60,7 +60,7 @@ func newProjectService(store projectStoreInterface, transactioner providers.Tran
 }
 
 // CreateProject creates a project together with the root organization unit that backs it. The
-// organization unit takes the request's handle, display name and description.
+// organization unit takes the request's handle, display name, description and settings.
 func (s *projectService) CreateProject(
 	ctx context.Context, request ProjectRequest) (*Project, *tidcommon.ServiceError) {
 	if request.ID != "" && !utils.IsValidUUID(request.ID) {
@@ -70,11 +70,12 @@ func (s *projectService) CreateProject(
 		return nil, svcErr
 	}
 
-	return s.createProject(ctx, request.ID, ou.OrganizationUnitRequestWithID{
+	rootOU := withSettings(ou.OrganizationUnitRequestWithID{
 		Handle:      request.Handle,
 		Name:        request.DisplayName,
 		Description: request.Description,
-	})
+	}, request.ProjectSettings)
+	return s.createProject(ctx, request.ID, rootOU)
 }
 
 // GetProject returns the project with the given ID.
@@ -125,8 +126,8 @@ func (s *projectService) GetProjectList(
 	}, nil
 }
 
-// UpdateProject updates the display name and description of a project, which are its root
-// organization unit's name and description. The handle cannot change.
+// UpdateProject replaces the display name, description and settings of a project, which are its root
+// organization unit's name, description and settings. The handle cannot change.
 func (s *projectService) UpdateProject(
 	ctx context.Context, id string, request ProjectRequest) (*Project, *tidcommon.ServiceError) {
 	if svcErr := validateDetails(request); svcErr != nil {
@@ -145,8 +146,14 @@ func (s *projectService) UpdateProject(
 		return nil, &ErrorHandleChangeNotAllowed
 	}
 
-	updated, svcErr := s.ouService.UpdateOrganizationUnit(ctx, project.RootOUID,
-		rootOUUpdateRequest(rootOU, request.DisplayName, request.Description))
+	updated, svcErr := s.ouService.UpdateOrganizationUnit(ctx, project.RootOUID, withSettings(
+		ou.OrganizationUnitRequestWithID{
+			ID:          rootOU.ID,
+			Handle:      rootOU.Handle,
+			Name:        request.DisplayName,
+			Description: request.Description,
+			Parent:      rootOU.Parent,
+		}, request.ProjectSettings))
 	if svcErr != nil {
 		return nil, svcErr
 	}
@@ -295,32 +302,40 @@ func toProject(record projectRecord, rootOU ou.OrganizationUnit) *Project {
 		Description: rootOU.Description,
 		RootOUID:    record.RootOUID,
 		CreatedAt:   record.CreatedAt,
+		ProjectSettings: ProjectSettings{
+			ThemeID:                   rootOU.ThemeID,
+			LayoutID:                  rootOU.LayoutID,
+			AuthFlowID:                rootOU.AuthFlowID,
+			RegistrationFlowID:        rootOU.RegistrationFlowID,
+			IsRegistrationFlowEnabled: rootOU.IsRegistrationFlowEnabled,
+			RecoveryFlowID:            rootOU.RecoveryFlowID,
+			IsRecoveryFlowEnabled:     rootOU.IsRecoveryFlowEnabled,
+			SignOutFlowID:             rootOU.SignOutFlowID,
+			UserOnboardingFlowID:      rootOU.UserOnboardingFlowID,
+			LogoURL:                   rootOU.LogoURL,
+			TosURI:                    rootOU.TosURI,
+			PolicyURI:                 rootOU.PolicyURI,
+			CookiePolicyURI:           rootOU.CookiePolicyURI,
+		},
 	}
 }
 
-// rootOUUpdateRequest copies a root organization unit into an update request with a new name and
-// description, leaving every other field as it is.
-func rootOUUpdateRequest(rootOU ou.OrganizationUnit, name, description string) ou.OrganizationUnitRequestWithID {
-	return ou.OrganizationUnitRequestWithID{
-		ID:                        rootOU.ID,
-		Handle:                    rootOU.Handle,
-		Name:                      name,
-		Description:               description,
-		Parent:                    rootOU.Parent,
-		ThemeID:                   rootOU.ThemeID,
-		LayoutID:                  rootOU.LayoutID,
-		AuthFlowID:                rootOU.AuthFlowID,
-		RegistrationFlowID:        rootOU.RegistrationFlowID,
-		IsRegistrationFlowEnabled: rootOU.IsRegistrationFlowEnabled,
-		RecoveryFlowID:            rootOU.RecoveryFlowID,
-		IsRecoveryFlowEnabled:     rootOU.IsRecoveryFlowEnabled,
-		SignOutFlowID:             rootOU.SignOutFlowID,
-		UserOnboardingFlowID:      rootOU.UserOnboardingFlowID,
-		LogoURL:                   rootOU.LogoURL,
-		TosURI:                    rootOU.TosURI,
-		PolicyURI:                 rootOU.PolicyURI,
-		CookiePolicyURI:           rootOU.CookiePolicyURI,
-	}
+// withSettings returns the organization unit request with a project's settings applied.
+func withSettings(request ou.OrganizationUnitRequestWithID, settings ProjectSettings) ou.OrganizationUnitRequestWithID {
+	request.ThemeID = settings.ThemeID
+	request.LayoutID = settings.LayoutID
+	request.AuthFlowID = settings.AuthFlowID
+	request.RegistrationFlowID = settings.RegistrationFlowID
+	request.IsRegistrationFlowEnabled = settings.IsRegistrationFlowEnabled
+	request.RecoveryFlowID = settings.RecoveryFlowID
+	request.IsRecoveryFlowEnabled = settings.IsRecoveryFlowEnabled
+	request.SignOutFlowID = settings.SignOutFlowID
+	request.UserOnboardingFlowID = settings.UserOnboardingFlowID
+	request.LogoURL = settings.LogoURL
+	request.TosURI = settings.TosURI
+	request.PolicyURI = settings.PolicyURI
+	request.CookiePolicyURI = settings.CookiePolicyURI
+	return request
 }
 
 // validateDetails validates the display name and description of a project request.

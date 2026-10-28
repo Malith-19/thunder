@@ -152,8 +152,9 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	ouAuthzService, err := sysauthz.Initialize()
 	fatalOnError(ctx, logger, err, "Failed to initialize system authorization service")
 
+	// Root organization units belong to projects, so only the project API manages them.
 	ouService, ouHierarchyResolver, ouEnumerator, ouExporter, err := ou.Initialize(
-		mux, mcpServer, cacheManager, ouAuthzService)
+		mux, mcpServer, cacheManager, ouAuthzService, ou.WithRootOUsManagedByProjects())
 	fatalOnError(ctx, logger, err, "Failed to initialize OrganizationUnitService")
 	exporters = append(exporters, ouExporter)
 

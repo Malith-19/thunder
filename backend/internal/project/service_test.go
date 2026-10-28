@@ -62,7 +62,7 @@ func (suite *ProjectServiceTestSuite) rootOU() ou.OrganizationUnit {
 func (suite *ProjectServiceTestSuite) expectedProject() *Project {
 	return &Project{
 		ID: testProjectID, Handle: "shop", DisplayName: "Shop", Description: "Online shop", RootOUID: testRootOUID,
-		CreatedAt: testCreatedAt,
+		CreatedAt: testCreatedAt, ProjectSettings: ProjectSettings{LogoURL: "https://example.com/logo.png"},
 	}
 }
 
@@ -82,6 +82,38 @@ func (suite *ProjectServiceTestSuite) TestCreateProject_CreatesRootOUAndRecord()
 	suite.Equal("shop", created.Handle)
 	suite.Equal("Shop", created.DisplayName)
 	suite.Equal(testRootOUID, created.RootOUID)
+}
+
+func (suite *ProjectServiceTestSuite) TestCreateProject_AppliesSettingsToRootOU() {
+	settings := ProjectSettings{
+		ThemeID: "theme-1", LayoutID: "layout-1", AuthFlowID: "auth-1", RegistrationFlowID: "reg-1",
+		IsRegistrationFlowEnabled: true, RecoveryFlowID: "rec-1", IsRecoveryFlowEnabled: true,
+		SignOutFlowID: "signout-1", UserOnboardingFlowID: "onboard-1", LogoURL: "https://example.com/logo.png",
+		TosURI: "https://example.com/tos", PolicyURI: "https://example.com/policy",
+		CookiePolicyURI: "https://example.com/cookies",
+	}
+	rootOU := ou.OrganizationUnit{
+		ID: testRootOUID, Handle: "shop", Name: "Shop", ThemeID: "theme-1", LayoutID: "layout-1",
+		AuthFlowID: "auth-1", RegistrationFlowID: "reg-1", IsRegistrationFlowEnabled: true,
+		RecoveryFlowID: "rec-1", IsRecoveryFlowEnabled: true, SignOutFlowID: "signout-1",
+		UserOnboardingFlowID: "onboard-1", LogoURL: "https://example.com/logo.png",
+		TosURI: "https://example.com/tos", PolicyURI: "https://example.com/policy",
+		CookiePolicyURI: "https://example.com/cookies",
+	}
+	suite.mockOUService.On("CreateOrganizationUnit", mock.Anything, ou.OrganizationUnitRequestWithID{
+		Handle: "shop", Name: "Shop", ThemeID: "theme-1", LayoutID: "layout-1", AuthFlowID: "auth-1",
+		RegistrationFlowID: "reg-1", IsRegistrationFlowEnabled: true, RecoveryFlowID: "rec-1",
+		IsRecoveryFlowEnabled: true, SignOutFlowID: "signout-1", UserOnboardingFlowID: "onboard-1",
+		LogoURL: "https://example.com/logo.png", TosURI: "https://example.com/tos",
+		PolicyURI: "https://example.com/policy", CookiePolicyURI: "https://example.com/cookies",
+	}).Return(rootOU, nil)
+	suite.mockStore.On("CreateProject", mock.Anything, mock.Anything).Return(nil)
+
+	created, svcErr := suite.service.CreateProject(context.Background(),
+		ProjectRequest{Handle: "shop", DisplayName: "Shop", ProjectSettings: settings})
+
+	suite.Nil(svcErr)
+	suite.Equal(settings, created.ProjectSettings)
 }
 
 func (suite *ProjectServiceTestSuite) TestCreateProject_KeepsSuppliedID() {
@@ -252,23 +284,28 @@ func (suite *ProjectServiceTestSuite) TestGetProjectList() {
 }
 
 func (suite *ProjectServiceTestSuite) TestUpdateProject() {
-	suite.Run("updates the root OU name and description and keeps everything else", func() {
+	suite.Run("replaces the root OU name, description and settings and keeps its handle", func() {
 		suite.SetupTest()
 		suite.mockStore.On("GetProject", mock.Anything, testProjectID).Return(suite.record(), nil)
 		suite.mockOUService.On("GetOrganizationUnit", mock.Anything, testRootOUID).Return(suite.rootOU(), nil)
-		suite.mockOUService.On("UpdateOrganizationUnit", mock.Anything, testRootOUID,
-			mock.MatchedBy(func(r ou.OrganizationUnitRequestWithID) bool {
-				return r.Name == "Store" && r.Description == "Renamed" && r.Handle == "shop" &&
-					r.Parent == nil && r.LogoURL == "https://example.com/logo.png"
-			})).
-			Return(ou.OrganizationUnit{ID: testRootOUID, Handle: "shop", Name: "Store", Description: "Renamed"}, nil)
+		suite.mockOUService.On("UpdateOrganizationUnit", mock.Anything, testRootOUID, ou.OrganizationUnitRequestWithID{
+			ID: testRootOUID, Handle: "shop", Name: "Store", Description: "Renamed", ThemeID: "theme-2",
+			AuthFlowID: "auth-2", IsRegistrationFlowEnabled: true,
+		}).Return(ou.OrganizationUnit{
+			ID: testRootOUID, Handle: "shop", Name: "Store", Description: "Renamed", ThemeID: "theme-2",
+			AuthFlowID: "auth-2", IsRegistrationFlowEnabled: true,
+		}, nil)
 
 		updated, svcErr := suite.service.UpdateProject(context.Background(), testProjectID,
-			ProjectRequest{DisplayName: "Store", Description: "Renamed"})
+			ProjectRequest{DisplayName: "Store", Description: "Renamed", ProjectSettings: ProjectSettings{
+				ThemeID: "theme-2", AuthFlowID: "auth-2", IsRegistrationFlowEnabled: true,
+			}})
 
 		suite.Nil(svcErr)
 		suite.Equal("Store", updated.DisplayName)
 		suite.Equal(testRootOUID, updated.RootOUID)
+		suite.Equal(ProjectSettings{ThemeID: "theme-2", AuthFlowID: "auth-2", IsRegistrationFlowEnabled: true},
+			updated.ProjectSettings)
 	})
 	suite.Run("handle change refused", func() {
 		suite.SetupTest()

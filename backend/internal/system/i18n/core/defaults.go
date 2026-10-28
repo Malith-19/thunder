@@ -1274,6 +1274,8 @@ var defaultMessages = map[string]string{
 	"error.ouservice.parent_organization_unit_not_found": "Parent organization unit not found",
 	"error.ouservice.parent_organization_unit_not_found_description": "Parent organization unit not found",
 	"error.ouservice.result_limit_exceeded": "Result limit exceeded",
+	"error.ouservice.root_ou_managed_by_project": "Root organization unit is managed by its project",
+	"error.ouservice.root_ou_managed_by_project_description": "Create, update and delete root organization units through the projects API",
 	"error.passkeyservice.credential_not_found": "Passkey credential not found",
 	"error.passkeyservice.credential_not_found_description": "The specified credential was not found for the user",
 	"error.passkeyservice.empty_credential_id": "Empty credential ID",

@@ -5,6 +5,8 @@ package ou
 
 import (
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/thunder-id/thunderid/internal/system/config"
@@ -225,4 +227,18 @@ func (suite *InitTestSuite) TestInitialize_MultipleInitializations() {
 	// Services should be different instances
 	assert.NotSame(suite.T(), service1, service2)
 	assert.NotSame(suite.T(), exporter1, exporter2)
+}
+
+func (suite *InitTestSuite) TestInitialize_WithRootOUsManagedByProjects() {
+	mux := http.NewServeMux()
+
+	_, _, _, _, err := Initialize(mux, nil, nil, nil, WithRootOUsManagedByProjects())
+	suite.Require().NoError(err)
+
+	recorder := httptest.NewRecorder()
+	mux.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/organization-units",
+		strings.NewReader(`{"handle":"finance","name":"Finance"}`)))
+
+	suite.Equal(http.StatusBadRequest, recorder.Code)
+	suite.Contains(recorder.Body.String(), ErrorRootOUManagedByProject.Code)
 }

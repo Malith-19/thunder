@@ -26,6 +26,8 @@ type project struct {
 	Description string    `json:"description,omitempty"`
 	RootOUID    string    `json:"rootOuId"`
 	CreatedAt   time.Time `json:"createdAt"`
+	LogoURL     string    `json:"logoUrl,omitempty"`
+	TosURI      string    `json:"tosUri,omitempty"`
 }
 
 type projectList struct {
@@ -35,10 +37,12 @@ type projectList struct {
 }
 
 type organizationUnit struct {
-	ID     string  `json:"id"`
-	Handle string  `json:"handle"`
-	Name   string  `json:"name"`
-	Parent *string `json:"parent"`
+	ID      string  `json:"id"`
+	Handle  string  `json:"handle"`
+	Name    string  `json:"name"`
+	Parent  *string `json:"parent"`
+	LogoURL string  `json:"logoUrl,omitempty"`
+	TosURI  string  `json:"tosUri,omitempty"`
 }
 
 type errorResponse struct {
@@ -200,10 +204,83 @@ func (ts *ProjectAPITestSuite) TestRootOUCannotBeDeletedOutsideItsProject() {
 	created := ts.create(fmt.Sprintf(`{"handle":%q,"displayName":"Guarded"}`, ts.handle("guard")))
 
 	status, body := ts.do(http.MethodDelete, "/organization-units/"+created.RootOUID, "")
+	ts.Equal(http.StatusBadRequest, status)
+	ts.Equal("OU-1020", codeOf(ts.T(), body))
+
+	status, body = ts.do(http.MethodDelete, "/organization-units/tree/"+ts.handle("guard"), "")
+	ts.Equal(http.StatusBadRequest, status)
+	ts.Equal("OU-1020", codeOf(ts.T(), body))
+
+	ts.Equal(http.StatusOK, ts.getJSON("/projects/"+created.ID, &project{}))
+}
+
+func (ts *ProjectAPITestSuite) TestRootOUCannotBeCreatedOutsideAProject() {
+	status, body := ts.do(http.MethodPost, "/organization-units",
+		fmt.Sprintf(`{"handle":%q,"name":"Orphan"}`, ts.handle("orphan")))
 
 	ts.Equal(http.StatusBadRequest, status)
-	ts.Equal("OU-1006", codeOf(ts.T(), body))
-	ts.Equal(http.StatusOK, ts.getJSON("/projects/"+created.ID, &project{}))
+	ts.Equal("OU-1020", codeOf(ts.T(), body))
+}
+
+func (ts *ProjectAPITestSuite) TestRootOUCannotBeUpdatedOutsideItsProject() {
+	created := ts.create(fmt.Sprintf(`{"handle":%q,"displayName":"Locked"}`, ts.handle("locked")))
+	other := ts.create(fmt.Sprintf(`{"handle":%q,"displayName":"Other"}`, ts.handle("other")))
+	update := fmt.Sprintf(`{"handle":%q,"name":"Renamed"}`, ts.handle("locked"))
+
+	status, body := ts.do(http.MethodPut, "/organization-units/"+created.RootOUID, update)
+	ts.Equal(http.StatusBadRequest, status)
+	ts.Equal("OU-1020", codeOf(ts.T(), body))
+
+	status, body = ts.do(http.MethodPut, "/organization-units/"+created.RootOUID,
+		fmt.Sprintf(`{"handle":%q,"name":"Locked","parent":%q}`, ts.handle("locked"), other.RootOUID))
+	ts.Equal(http.StatusBadRequest, status)
+	ts.Equal("OU-1020", codeOf(ts.T(), body))
+
+	status, body = ts.do(http.MethodPut, "/organization-units/tree/"+ts.handle("locked"), update)
+	ts.Equal(http.StatusBadRequest, status)
+	ts.Equal("OU-1020", codeOf(ts.T(), body))
+
+	var rootOU organizationUnit
+	ts.Require().Equal(http.StatusOK, ts.getJSON("/organization-units/"+created.RootOUID, &rootOU))
+	ts.Equal("Locked", rootOU.Name)
+	ts.Nil(rootOU.Parent)
+}
+
+func (ts *ProjectAPITestSuite) TestChildOUCannotBeMovedToTheRoot() {
+	created := ts.create(fmt.Sprintf(`{"handle":%q,"displayName":"Home"}`, ts.handle("home")))
+	childID, err := testutils.CreateOrganizationUnit(testutils.OrganizationUnit{
+		Handle: ts.handle("mover"), Name: "Mover", Parent: &created.RootOUID,
+	})
+	ts.Require().NoError(err)
+	ts.childOUs = append(ts.childOUs, childID)
+
+	status, body := ts.do(http.MethodPut, "/organization-units/"+childID,
+		fmt.Sprintf(`{"handle":%q,"name":"Mover"}`, ts.handle("mover")))
+	ts.Equal(http.StatusBadRequest, status)
+	ts.Equal("OU-1020", codeOf(ts.T(), body))
+
+	status, body = ts.do(http.MethodPut, "/organization-units/"+childID,
+		fmt.Sprintf(`{"handle":%q,"name":"Moved","parent":%q}`, ts.handle("mover"), created.RootOUID))
+	ts.Equal(http.StatusOK, status, body)
+}
+
+func (ts *ProjectAPITestSuite) TestUpdateProjectReplacesItsSettings() {
+	created := ts.create(fmt.Sprintf(`{"handle":%q,"displayName":"Branded","logoUrl":"https://example.com/a.png"}`,
+		ts.handle("branded")))
+	ts.Equal("https://example.com/a.png", created.LogoURL)
+
+	status, body := ts.do(http.MethodPut, "/projects/"+created.ID,
+		`{"displayName":"Branded","tosUri":"https://example.com/tos"}`)
+	ts.Require().Equal(http.StatusOK, status, body)
+	var updated project
+	ts.Require().NoError(json.Unmarshal([]byte(body), &updated))
+	ts.Empty(updated.LogoURL)
+	ts.Equal("https://example.com/tos", updated.TosURI)
+
+	var rootOU organizationUnit
+	ts.Require().Equal(http.StatusOK, ts.getJSON("/organization-units/"+created.RootOUID, &rootOU))
+	ts.Empty(rootOU.LogoURL)
+	ts.Equal("https://example.com/tos", rootOU.TosURI)
 }
 
 func (ts *ProjectAPITestSuite) TestDeleteProjectWithChildOUIsRefused() {

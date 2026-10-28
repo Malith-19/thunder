@@ -24,6 +24,8 @@ const loggerComponentName = "OrganizationUnitHandler"
 // organizationUnitHandler is the handler for organization unit management operations.
 type organizationUnitHandler struct {
 	service OrganizationUnitServiceInterface
+	// rootOUsManagedByProjects refuses requests that create, change or delete a root organization unit.
+	rootOUsManagedByProjects bool
 }
 
 // newOrganizationUnitHandler creates a new instance of organizationUnitHandler
@@ -89,6 +91,10 @@ func (ouh *organizationUnitHandler) HandleOUPostRequest(w http.ResponseWriter, r
 	}
 
 	sanitizedRequest := ouh.sanitizeOrganizationUnitRequest(*createRequest)
+	if ouh.rootOUsManagedByProjects && isRootParent(sanitizedRequest.Parent) {
+		ouh.handleError(ctx, w, &ErrorRootOUManagedByProject)
+		return
+	}
 
 	createdOU, svcErr := ouh.service.CreateOrganizationUnit(ctx, sanitizedRequest)
 	if svcErr != nil {
@@ -146,6 +152,12 @@ func (ouh *organizationUnitHandler) HandleOUPutRequest(w http.ResponseWriter, r 
 		return
 	}
 	sanitizedRequest := ouh.sanitizeOrganizationUnitRequest(*updateRequest)
+	if svcErr := ouh.checkRootOUChange(func() (OrganizationUnit, *tidcommon.ServiceError) {
+		return ouh.service.GetOrganizationUnit(ctx, id)
+	}, isRootParent(sanitizedRequest.Parent)); svcErr != nil {
+		ouh.handleError(ctx, w, svcErr)
+		return
+	}
 
 	ou, svcErr := ouh.service.UpdateOrganizationUnit(ctx, id, sanitizedRequest)
 	if svcErr != nil {
@@ -165,6 +177,13 @@ func (ouh *organizationUnitHandler) HandleOUDeleteRequest(w http.ResponseWriter,
 
 	id, idValidateFailed := extractAndValidateID(w, r)
 	if idValidateFailed {
+		return
+	}
+
+	if svcErr := ouh.checkRootOUChange(func() (OrganizationUnit, *tidcommon.ServiceError) {
+		return ouh.service.GetOrganizationUnit(ctx, id)
+	}, false); svcErr != nil {
+		ouh.handleError(ctx, w, svcErr)
 		return
 	}
 
@@ -273,6 +292,32 @@ func (ouh *organizationUnitHandler) sanitizeOrganizationUnitRequest(
 		PolicyURI:                 request.PolicyURI,
 		CookiePolicyURI:           request.CookiePolicyURI,
 	}
+}
+
+// checkRootOUChange refuses, when root organization units are managed by projects, a change to an
+// organization unit that is a root or that the change moves to the root. get reads the organization
+// unit, and its error is returned as is.
+func (ouh *organizationUnitHandler) checkRootOUChange(
+	get func() (OrganizationUnit, *tidcommon.ServiceError), movesToRoot bool) *tidcommon.ServiceError {
+	if !ouh.rootOUsManagedByProjects {
+		return nil
+	}
+	if movesToRoot {
+		return &ErrorRootOUManagedByProject
+	}
+	existing, svcErr := get()
+	if svcErr != nil {
+		return svcErr
+	}
+	if isRootParent(existing.Parent) {
+		return &ErrorRootOUManagedByProject
+	}
+	return nil
+}
+
+// isRootParent reports whether a parent reference places an organization unit at the root.
+func isRootParent(parent *string) bool {
+	return parent == nil || *parent == ""
 }
 
 func extractAndValidateID(w http.ResponseWriter, r *http.Request) (string, bool) {
@@ -413,6 +458,12 @@ func (ouh *organizationUnitHandler) HandleOUPutByPathRequest(w http.ResponseWrit
 		return
 	}
 	sanitizedRequest := ouh.sanitizeOrganizationUnitRequest(*updateRequest)
+	if svcErr := ouh.checkRootOUChange(func() (OrganizationUnit, *tidcommon.ServiceError) {
+		return ouh.service.GetOrganizationUnitByPath(ctx, path)
+	}, isRootParent(sanitizedRequest.Parent)); svcErr != nil {
+		ouh.handleError(ctx, w, svcErr)
+		return
+	}
 
 	ou, svcErr := ouh.service.UpdateOrganizationUnitByPath(ctx, path, sanitizedRequest)
 	if svcErr != nil {
@@ -432,6 +483,13 @@ func (ouh *organizationUnitHandler) HandleOUDeleteByPathRequest(w http.ResponseW
 
 	path, pathValidationFailed := extractAndValidatePath(w, r)
 	if pathValidationFailed {
+		return
+	}
+
+	if svcErr := ouh.checkRootOUChange(func() (OrganizationUnit, *tidcommon.ServiceError) {
+		return ouh.service.GetOrganizationUnitByPath(ctx, path)
+	}, false); svcErr != nil {
+		ouh.handleError(ctx, w, svcErr)
 		return
 	}
 

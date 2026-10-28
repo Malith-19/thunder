@@ -197,10 +197,13 @@ func (s *ProjectToolsTestSuite) TestCreateProject() {
 }
 
 func (s *ProjectToolsTestSuite) TestUpdateProject() {
-	s.Run("updates the display name and description", func() {
+	s.Run("updates the display name and description and keeps the settings", func() {
 		s.SetupTest()
+		existing := s.project(testProjectID)
+		existing.ThemeID = "theme-1"
+		s.mockService.On("GetProject", mock.Anything, testProjectID).Return(existing, nil)
 		s.mockService.On("UpdateProject", mock.Anything, testProjectID, ProjectRequest{
-			DisplayName: "Shop (EU)", Description: "EU shop",
+			DisplayName: "Shop (EU)", Description: "EU shop", ProjectSettings: ProjectSettings{ThemeID: "theme-1"},
 		}).Return(s.project(testProjectID), nil)
 
 		var out projectMCPItem
@@ -210,10 +213,21 @@ func (s *ProjectToolsTestSuite) TestUpdateProject() {
 
 		s.Equal(testProjectID, out.ID)
 	})
+	s.Run("project not found", func() {
+		s.SetupTest()
+		s.mockService.On("GetProject", mock.Anything, testProjectID).Return(nil, &ErrorProjectNotFound)
+
+		text := s.errorText(s.call("thunderid_update_project", map[string]any{
+			"id": testProjectID, "displayName": "Shop",
+		}))
+		s.Contains(text, "failed to update project")
+		s.mockService.AssertNotCalled(s.T(), "UpdateProject", mock.Anything, mock.Anything, mock.Anything)
+	})
 	s.Run("service error", func() {
 		s.SetupTest()
+		s.mockService.On("GetProject", mock.Anything, testProjectID).Return(s.project(testProjectID), nil)
 		s.mockService.On("UpdateProject", mock.Anything, testProjectID, mock.Anything).
-			Return(nil, &ErrorProjectNotFound)
+			Return(nil, &ErrorInvalidDisplayName)
 
 		text := s.errorText(s.call("thunderid_update_project", map[string]any{
 			"id": testProjectID, "displayName": "Shop",
