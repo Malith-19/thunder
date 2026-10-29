@@ -34,8 +34,9 @@ type AgentRequestWithID struct {
 
 // CreateAgentRequest is the HTTP request body for creating an agent.
 type CreateAgentRequest struct {
-	OUID        string          `json:"ouId" native:"required"`
+	OUID        string          `json:"ouId,omitempty"`
 	OUHandle    string          `json:"ouHandle,omitempty"`
+	ProjectID   string          `json:"projectId,omitempty"`
 	Type        string          `json:"type" native:"required"`
 	Description string          `json:"description,omitempty"`
 	LogoURL     string          `json:"logoUrl,omitempty"`
@@ -51,6 +52,7 @@ type CreateAgentRequest struct {
 type UpdateAgentRequest struct {
 	OUID        string          `json:"ouId,omitempty"`
 	OUHandle    string          `json:"ouHandle,omitempty"`
+	ProjectID   string          `json:"projectId,omitempty"`
 	Type        string          `json:"type,omitempty"`
 	Description string          `json:"description,omitempty"`
 	LogoURL     string          `json:"logoUrl,omitempty"`
