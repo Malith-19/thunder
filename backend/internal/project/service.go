@@ -36,6 +36,7 @@ type ProjectServiceInterface interface {
 	GetProjectList(ctx context.Context, limit, offset int) (*ProjectListResponse, *tidcommon.ServiceError)
 	UpdateProject(ctx context.Context, id string, request ProjectRequest) (*Project, *tidcommon.ServiceError)
 	DeleteProject(ctx context.Context, id string) *tidcommon.ServiceError
+	GetProjectRootOUID(ctx context.Context, id string) (string, *tidcommon.ServiceError)
 	GetResourceDependencies(
 		ctx context.Context, resourceType, id string) ([]resourcedependency.ResourceDependency, error)
 }
@@ -84,6 +85,15 @@ func (s *projectService) GetProject(ctx context.Context, id string) (*Project, *
 		return nil, s.mapStoreError(ctx, err, "Failed to get project")
 	}
 	return s.buildProject(ctx, project)
+}
+
+// GetProjectRootOUID returns the ID of the root organization unit that backs the project.
+func (s *projectService) GetProjectRootOUID(ctx context.Context, id string) (string, *tidcommon.ServiceError) {
+	project, err := s.store.GetProject(ctx, id)
+	if err != nil {
+		return "", s.mapStoreError(ctx, err, "Failed to get project")
+	}
+	return project.RootOUID, nil
 }
 
 // GetProjectList returns a page of projects, oldest first.

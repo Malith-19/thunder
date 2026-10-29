@@ -99,7 +99,7 @@ var changeCapture = gateway.NewChangeCapture()
 // complexity is low.
 func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterface) (
 	jwt.JWTServiceInterface, kmprovider.RuntimeCryptoProvider, importer.ImportServiceInterface,
-	*mcpsdk.Server) {
+	*mcpsdk.Server, func(http.Handler) http.Handler) {
 	logger := log.GetLogger()
 
 	// Service registration runs during application startup, outside any request.
@@ -166,7 +166,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		runtime.Config.ResourceSharing.AllowChildOUCrossTreeSharing)
 	fatalOnError(ctx, logger, err, "Failed to initialize SharingService")
 
-	projectService, err := project.Initialize(mux, mcpServer, ouService)
+	projectService, projectScope, err := project.Initialize(mux, mcpServer, ouService)
 	fatalOnError(ctx, logger, err, "Failed to initialize ProjectService")
 
 	hashCfg, err := buildHashConfig()
@@ -420,7 +420,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	healthSvc := healthcheckservice.Initialize(dbprovider.GetDBProvider(), dbprovider.GetRedisProvider())
 	services.NewHealthCheckService(mux, healthSvc)
 
-	return jwtService, runtimeCryptoSvc, importService, mcpServer
+	return jwtService, runtimeCryptoSvc, importService, mcpServer, projectScope
 }
 
 // initializeFlowValidation builds the flow services needed to validate a flow definition, without

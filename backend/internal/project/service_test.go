@@ -192,6 +192,36 @@ func (suite *ProjectServiceTestSuite) TestGetProject() {
 	})
 }
 
+func (suite *ProjectServiceTestSuite) TestGetProjectRootOUID() {
+	suite.Run("found", func() {
+		suite.SetupTest()
+		suite.mockStore.On("GetProject", mock.Anything, testProjectID).Return(suite.record(), nil)
+
+		rootOUID, svcErr := suite.service.GetProjectRootOUID(context.Background(), testProjectID)
+
+		suite.Nil(svcErr)
+		suite.Equal(testRootOUID, rootOUID)
+	})
+	suite.Run("not found", func() {
+		suite.SetupTest()
+		suite.mockStore.On("GetProject", mock.Anything, testProjectID).Return(projectRecord{}, errProjectNotFound)
+
+		rootOUID, svcErr := suite.service.GetProjectRootOUID(context.Background(), testProjectID)
+
+		suite.Empty(rootOUID)
+		suite.Equal(ErrorProjectNotFound, *svcErr)
+	})
+	suite.Run("store error", func() {
+		suite.SetupTest()
+		suite.mockStore.On("GetProject", mock.Anything, testProjectID).Return(projectRecord{}, errors.New("db"))
+
+		rootOUID, svcErr := suite.service.GetProjectRootOUID(context.Background(), testProjectID)
+
+		suite.Empty(rootOUID)
+		suite.Equal(tidcommon.InternalServerError, *svcErr)
+	})
+}
+
 func (suite *ProjectServiceTestSuite) TestGetProject_RootOULookupFails() {
 	suite.mockStore.On("GetProject", mock.Anything, testProjectID).Return(suite.record(), nil)
 	suite.mockOUService.On("GetOrganizationUnit", mock.Anything, testRootOUID).
