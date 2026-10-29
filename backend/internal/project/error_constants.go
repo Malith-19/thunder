@@ -134,4 +134,33 @@ var (
 			DefaultValue: "The offset parameter must be a non-negative integer",
 		},
 	}
+
+	// ErrorUnknownProject is the error returned when a request names a project that does not exist.
+	ErrorUnknownProject = tidcommon.ServiceError{
+		Type: tidcommon.ClientErrorType,
+		Code: "PRJ-1010",
+		Error: tidcommon.I18nMessage{
+			Key:          "error.projectservice.unknown_project",
+			DefaultValue: "Unknown project",
+		},
+		ErrorDescription: tidcommon.I18nMessage{
+			Key:          "error.projectservice.unknown_project_description",
+			DefaultValue: "No project exists with the given project ID",
+		},
+	}
+
+	// ErrorProjectAndOUConflict is the error returned when a request names both a project and an
+	// organization unit.
+	ErrorProjectAndOUConflict = tidcommon.ServiceError{
+		Type: tidcommon.ClientErrorType,
+		Code: "PRJ-1011",
+		Error: tidcommon.I18nMessage{
+			Key:          "error.projectservice.project_and_ou_conflict",
+			DefaultValue: "Conflicting project and organization unit",
+		},
+		ErrorDescription: tidcommon.I18nMessage{
+			Key:          "error.projectservice.project_and_ou_conflict_description",
+			DefaultValue: "Provide either a project ID or an organization unit, not both",
+		},
+	}
 )

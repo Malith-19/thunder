@@ -92,7 +92,7 @@ func main() {
 	}
 
 	// Register the services.
-	jwtService, runtimeCryptoSvc, importService, mcpServer := registerServices(mux, cacheManager)
+	jwtService, runtimeCryptoSvc, importService, mcpServer, projectScope := registerServices(mux, cacheManager)
 
 	// When invoked as the bootstrap one-shot (`cpserver bootstrap`), create the
 	// default resources in-process and exit without starting the HTTP server.
@@ -124,7 +124,7 @@ func main() {
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
 	// Create the HTTP server.
-	server := createHTTPServer(ctx, logger, cfg, mux, jwtService, revocationEnforcer)
+	server := createHTTPServer(ctx, logger, cfg, projectScope(mux), jwtService, revocationEnforcer)
 	var ln net.Listener
 	if cfg.Server.HTTPOnly {
 		logger.Info(ctx, "TLS is not enabled, starting server without TLS")
@@ -245,7 +245,7 @@ func accessLogExcludePaths(configured []string) []string {
 }
 
 // createHTTPServer creates and configures an HTTP server with common settings.
-func createHTTPServer(ctx context.Context, logger *log.Logger, cfg *config.Config, mux *http.ServeMux,
+func createHTTPServer(ctx context.Context, logger *log.Logger, cfg *config.Config, mux http.Handler,
 	jwtService jwt.JWTServiceInterface, revocationEnforcer revocationcache.EnforcerInterface) *http.Server {
 	// A successful change to the configuration is captured as the current version once it is answered,
 	// for the user the security middleware authenticated.
