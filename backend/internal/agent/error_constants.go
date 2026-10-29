@@ -516,4 +516,33 @@ var (
 			DefaultValue: "A delegated agent needs at least one of these grant types: {{param(grantTypes)}}",
 		},
 	}
+
+	// ErrorInvalidProject is returned when an agent names a project that does not exist.
+	ErrorInvalidProject = tidcommon.ServiceError{
+		Type: tidcommon.ClientErrorType,
+		Code: "AGT-1045",
+		Error: tidcommon.I18nMessage{
+			Key:          "error.agentservice.invalid_project",
+			DefaultValue: "Invalid project",
+		},
+		ErrorDescription: tidcommon.I18nMessage{
+			Key:          "error.agentservice.invalid_project_description",
+			DefaultValue: "No project exists with the given project ID",
+		},
+	}
+
+	// ErrorOUNotInProject is returned when an agent names an organization unit outside the project
+	// it names.
+	ErrorOUNotInProject = tidcommon.ServiceError{
+		Type: tidcommon.ClientErrorType,
+		Code: "AGT-1046",
+		Error: tidcommon.I18nMessage{
+			Key:          "error.agentservice.ou_not_in_project",
+			DefaultValue: "Organization unit not in project",
+		},
+		ErrorDescription: tidcommon.I18nMessage{
+			Key:          "error.agentservice.ou_not_in_project_description",
+			DefaultValue: "The organization unit must be the project's root organization unit or one below it",
+		},
+	}
 )
