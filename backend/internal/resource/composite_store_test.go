@@ -1187,3 +1187,41 @@ func (s *CompositeResourceStoreTestSuite) TestMergeAndDeduplicateResourceServers
 	assert.Len(s.T(), result, 1)
 	assert.True(s.T(), result[0].IsReadOnly, "File resource server should have IsReadOnly=true")
 }
+
+// Both stores are read for the same project, merged, and paged.
+func (s *CompositeResourceStoreTestSuite) TestGetResourceServerListByProject_MergesBothStores() {
+	dbServers := []providers.ResourceServer{{ID: "rs-db", ProjectID: "project-1"}}
+	fileServers := []providers.ResourceServer{{ID: "rs-file", ProjectID: "project-1"}}
+	s.dbStoreMock.On("GetResourceServerListCountByProject", s.ctx, "project-1").Return(1, nil)
+	s.fileStoreMock.On("GetResourceServerListCountByProject", s.ctx, "project-1").Return(1, nil)
+	s.dbStoreMock.On("GetResourceServerListByProject", s.ctx, "project-1", 1, 0).Return(dbServers, nil)
+	s.fileStoreMock.On("GetResourceServerListByProject", s.ctx, "project-1", 1, 0).Return(fileServers, nil)
+
+	result, err := s.compositeStore.GetResourceServerListByProject(s.ctx, "project-1", 1, 1)
+	s.Require().NoError(err)
+	s.Require().Len(result, 1)
+	s.Equal("rs-file", result[0].ID)
+	s.True(result[0].IsReadOnly)
+
+	count, err := s.compositeStore.GetResourceServerListCountByProject(s.ctx, "project-1")
+	s.NoError(err)
+	s.Equal(2, count)
+}
+
+// A store failure is returned, and empty stores read no lists.
+func (s *CompositeResourceStoreTestSuite) TestGetResourceServerListByProject_Failures() {
+	s.dbStoreMock.On("GetResourceServerListCountByProject", s.ctx, "").Return(0, errors.New("db")).Once()
+	_, err := s.compositeStore.GetResourceServerListByProject(s.ctx, "", 10, 0)
+	s.Error(err)
+
+	s.dbStoreMock.On("GetResourceServerListCountByProject", s.ctx, "").Return(0, nil).Once()
+	s.fileStoreMock.On("GetResourceServerListCountByProject", s.ctx, "").Return(0, errors.New("file")).Once()
+	_, err = s.compositeStore.GetResourceServerListCountByProject(s.ctx, "")
+	s.Error(err)
+
+	s.dbStoreMock.On("GetResourceServerListCountByProject", s.ctx, "").Return(0, nil).Once()
+	s.fileStoreMock.On("GetResourceServerListCountByProject", s.ctx, "").Return(0, nil).Once()
+	empty, err := s.compositeStore.GetResourceServerListByProject(s.ctx, "", 10, 0)
+	s.NoError(err)
+	s.Empty(empty)
+}

@@ -160,7 +160,7 @@ func (suite *ResourceServiceTestSuite) SetupTest() {
 	suite.mockOU = new(oumock.OrganizationUnitServiceInterfaceMock)
 	suite.mockTransactioner = &fakeTransactioner{}
 	suite.service, err = newResourceService(
-		suite.mockOU, suite.mockStore, suite.mockTransactioner, nil, nil,
+		suite.mockOU, suite.mockStore, suite.mockTransactioner, nil, nil, nil,
 	)
 	suite.NoError(err)
 	// The resource service is its own dependency provider: deletion consults the registry, which
@@ -202,7 +202,7 @@ func (suite *ResourceServiceTestSuite) TestNewResourceService_InvalidDelimiter()
 	mockOU := new(oumock.OrganizationUnitServiceInterfaceMock)
 
 	mockTransactioner := &fakeTransactioner{}
-	service, err := newResourceService(mockOU, mockStore, mockTransactioner, nil, nil)
+	service, err := newResourceService(mockOU, mockStore, mockTransactioner, nil, nil, nil)
 
 	suite.Error(err)
 	suite.Nil(service)
@@ -399,7 +399,7 @@ func (suite *ResourceServiceTestSuite) TestCreateResourceServer_MCPIdentifierRef
 		suite.Run(tc.name, func() {
 			mockStore := newResourceStoreInterfaceMock(suite.T())
 			mockOU := new(oumock.OrganizationUnitServiceInterfaceMock)
-			service, err := newResourceService(mockOU, mockStore, &fakeTransactioner{}, nil, nil, tc.options...)
+			service, err := newResourceService(mockOU, mockStore, &fakeTransactioner{}, nil, nil, nil, tc.options...)
 			suite.Require().NoError(err)
 			if tc.accepted {
 				mockOU.On("GetOrganizationUnit", mock.Anything, "ou-123").
@@ -434,7 +434,7 @@ func (suite *ResourceServiceTestSuite) TestUpdateResourceServer_ControlPlaneMCPI
 	reference := "var:RESOURCE_SERVER_ORDERS_IDENTIFIER"
 	mockStore := newResourceStoreInterfaceMock(suite.T())
 	mockOU := new(oumock.OrganizationUnitServiceInterfaceMock)
-	service, err := newResourceService(mockOU, mockStore, &fakeTransactioner{}, nil, nil,
+	service, err := newResourceService(mockOU, mockStore, &fakeTransactioner{}, nil, nil, nil,
 		KeepingValueReferences())
 	suite.Require().NoError(err)
 	mockStore.On("GetResourceServer", mock.Anything, "rs-123").Return(providers.ResourceServer{
@@ -867,12 +867,6 @@ func (suite *ResourceServiceTestSuite) TestUpdateResourceServer_ValidationErrors
 			expectedError:  ErrorInvalidRequestFormat,
 		},
 		{
-			name:           "EmptyOU",
-			id:             "rs-123",
-			resourceServer: providers.ResourceServer{Name: "test-rs", OUID: ""},
-			expectedError:  ErrorInvalidRequestFormat,
-		},
-		{
 			name: "UnsupportedAuthorizationEngine",
 			id:   "rs-123",
 			resourceServer: providers.ResourceServer{
@@ -895,6 +889,19 @@ func (suite *ResourceServiceTestSuite) TestUpdateResourceServer_ValidationErrors
 			suite.Equal(tc.expectedError.Code, err.Code)
 		})
 	}
+}
+
+// A resource server in no project must name its organization unit.
+func (suite *ResourceServiceTestSuite) TestUpdateResourceServer_EmptyOU() {
+	suite.mockStore.On("GetResourceServer", mock.Anything, "rs-123").
+		Return(providers.ResourceServer{ID: "rs-123", Name: "test-rs", OUID: "ou-123"}, nil)
+	suite.mockStore.On("IsResourceServerDeclarative", "rs-123").Return(false)
+
+	result, err := suite.service.UpdateResourceServer(context.Background(), "rs-123",
+		providers.ResourceServer{Name: "test-rs"})
+
+	suite.Nil(result)
+	suite.Equal(ErrorInvalidRequestFormat.Code, err.Code)
 }
 
 func (suite *ResourceServiceTestSuite) TestUpdateResourceServer_OUNotFound() {
@@ -5028,7 +5035,7 @@ func (suite *ResourceServiceTestSuite) TestValidatePermissions() {
 			// Create a fresh service instance with the fresh mocks
 			mockTransactioner := &fakeTransactioner{}
 			svc, err := newResourceService(
-				mockOU, mockStore, mockTransactioner, nil, nil,
+				mockOU, mockStore, mockTransactioner, nil, nil, nil,
 			)
 			suite.Require().NoError(err)
 
@@ -5710,4 +5717,310 @@ ouHandle: default
 	if rs.OUID != "" {
 		t.Errorf("OUID = %q, want empty (resolution happens later)", rs.OUID)
 	}
+}
+
+const testRSProjectID = "project-1"
+
+// projectResolverFor sets a project resolver on the service under test.
+func (suite *ResourceServiceTestSuite) projectResolverFor() *projectOUResolverMock {
+	resolver := newProjectOUResolverMock(suite.T())
+	suite.service.(*resourceService).projectResolver = resolver
+	return resolver
+}
+
+// A resource server created in a project is placed in the organization unit the project resolves, and
+// keeps the project.
+func (suite *ResourceServiceTestSuite) TestCreateResourceServer_InProject() {
+	suite.projectResolverFor().EXPECT().ResolveProjectOU(mock.Anything, testRSProjectID, "").
+		Return(oupkg.SystemOUID, nil).Once()
+	suite.mockOU.On("GetOrganizationUnit", mock.Anything, oupkg.SystemOUID).
+		Return(oupkg.OrganizationUnit{ID: oupkg.SystemOUID}, nil)
+	suite.mockStore.On("CheckResourceServerNameExists", mock.Anything, "test-rs").Return(false, nil)
+	suite.mockStore.On("CheckResourceServerIdentifierExists", mock.Anything, "test-identifier").Return(false, nil)
+	suite.mockStore.On("CreateResourceServer", mock.Anything, mock.AnythingOfType("string"),
+		mock.MatchedBy(func(r providers.ResourceServer) bool {
+			return r.OUID == oupkg.SystemOUID && r.ProjectID == testRSProjectID
+		})).Return(nil)
+
+	result, err := suite.service.CreateResourceServer(context.Background(), providers.ResourceServer{
+		Name: "test-rs", Identifier: "test-identifier", ProjectID: testRSProjectID,
+	})
+
+	suite.Require().Nil(err)
+	suite.Equal(oupkg.SystemOUID, result.OUID)
+	suite.Equal(testRSProjectID, result.ProjectID)
+}
+
+// A project that does not resolve refuses the create before anything is stored.
+func (suite *ResourceServiceTestSuite) TestCreateResourceServer_ProjectNotResolved() {
+	testCases := []struct {
+		name        string
+		resolverErr *tidcommon.ServiceError
+		expected    tidcommon.ServiceError
+	}{
+		{
+			name:        "an unknown project",
+			resolverErr: &tidcommon.ServiceError{Type: tidcommon.ClientErrorType, Code: projectNotFoundErrorCode},
+			expected:    ErrorInvalidProject,
+		},
+		{
+			name:        "an organization unit outside the project",
+			resolverErr: &tidcommon.ServiceError{Type: tidcommon.ClientErrorType, Code: ouNotInProjectErrorCode},
+			expected:    ErrorOUNotInProject,
+		},
+		{
+			name:        "an unknown organization unit",
+			resolverErr: &tidcommon.ServiceError{Type: tidcommon.ClientErrorType, Code: "OU-1003"},
+			expected:    ErrorOrganizationUnitNotFound,
+		},
+		{
+			name:        "a lookup failure",
+			resolverErr: &tidcommon.InternalServerError,
+			expected:    tidcommon.InternalServerError,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			suite.SetupTest()
+			suite.projectResolverFor().EXPECT().ResolveProjectOU(mock.Anything, testRSProjectID, "ou-123").
+				Return("", tc.resolverErr).Once()
+
+			result, err := suite.service.CreateResourceServer(context.Background(), providers.ResourceServer{
+				Name: "test-rs", Identifier: "test-identifier", OUID: "ou-123", ProjectID: testRSProjectID,
+			})
+
+			suite.Nil(result)
+			suite.Equal(tc.expected.Code, err.Code)
+			suite.mockStore.AssertNotCalled(suite.T(), "CreateResourceServer", mock.Anything, mock.Anything,
+				mock.Anything)
+		})
+	}
+}
+
+// A deployment without projects keeps the project ID unchecked and places the resource server as given,
+// or in the system organization unit.
+func (suite *ResourceServiceTestSuite) TestCreateResourceServer_ProjectWithoutProjectService() {
+	testCases := []struct {
+		name     string
+		ouID     string
+		expected string
+	}{
+		{name: "no organization unit", expected: oupkg.SystemOUID},
+		{name: "an organization unit", ouID: "ou-123", expected: "ou-123"},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			suite.SetupTest()
+			suite.mockOU.On("GetOrganizationUnit", mock.Anything, tc.expected).
+				Return(oupkg.OrganizationUnit{ID: tc.expected}, nil)
+			suite.mockStore.On("CheckResourceServerNameExists", mock.Anything, "test-rs").Return(false, nil)
+			suite.mockStore.On("CheckResourceServerIdentifierExists", mock.Anything, "test-identifier").
+				Return(false, nil)
+			suite.mockStore.On("CreateResourceServer", mock.Anything, mock.AnythingOfType("string"),
+				mock.MatchedBy(func(r providers.ResourceServer) bool {
+					return r.OUID == tc.expected && r.ProjectID == testRSProjectID
+				})).Return(nil)
+
+			result, err := suite.service.CreateResourceServer(context.Background(), providers.ResourceServer{
+				Name: "test-rs", Identifier: "test-identifier", OUID: tc.ouID, ProjectID: testRSProjectID,
+			})
+
+			suite.Require().Nil(err)
+			suite.Equal(tc.expected, result.OUID)
+		})
+	}
+}
+
+// An update that names no project keeps the resource server in its project, and a different project
+// moves it.
+func (suite *ResourceServiceTestSuite) TestUpdateResourceServer_Project() {
+	testCases := []struct {
+		name      string
+		requested string
+		expected  string
+	}{
+		{name: "no project", expected: testRSProjectID},
+		{name: "another project", requested: "project-2", expected: "project-2"},
+		{name: "the same project", requested: testRSProjectID, expected: testRSProjectID},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			suite.SetupTest()
+			suite.mockStore.On("GetResourceServer", mock.Anything, "rs-123").Return(providers.ResourceServer{
+				ID: "rs-123", Name: "test-rs", Identifier: "test-identifier", OUID: oupkg.SystemOUID,
+				ProjectID: testRSProjectID, Delimiter: ":",
+			}, nil)
+			suite.mockStore.On("IsResourceServerDeclarative", "rs-123").Return(false)
+			suite.projectResolverFor().EXPECT().ResolveProjectOU(mock.Anything, tc.expected, "").
+				Return(oupkg.SystemOUID, nil).Once()
+			suite.mockOU.On("GetOrganizationUnit", mock.Anything, oupkg.SystemOUID).
+				Return(oupkg.OrganizationUnit{ID: oupkg.SystemOUID}, nil)
+			suite.mockStore.On("UpdateResourceServer", mock.Anything, "rs-123",
+				mock.MatchedBy(func(r providers.ResourceServer) bool {
+					return r.ProjectID == tc.expected && r.OUID == oupkg.SystemOUID
+				})).Return(nil)
+
+			result, err := suite.service.UpdateResourceServer(context.Background(), "rs-123",
+				providers.ResourceServer{Name: "test-rs", ProjectID: tc.requested})
+
+			suite.Require().Nil(err)
+			suite.Equal(tc.expected, result.ProjectID)
+		})
+	}
+}
+
+// A resource server whose organization unit leaves its project is refused.
+func (suite *ResourceServiceTestSuite) TestUpdateResourceServer_OUNotInProject() {
+	suite.mockStore.On("GetResourceServer", mock.Anything, "rs-123").Return(providers.ResourceServer{
+		ID: "rs-123", Name: "test-rs", OUID: oupkg.SystemOUID, ProjectID: testRSProjectID,
+	}, nil)
+	suite.mockStore.On("IsResourceServerDeclarative", "rs-123").Return(false)
+	suite.projectResolverFor().EXPECT().ResolveProjectOU(mock.Anything, testRSProjectID, "other-ou").
+		Return("", &tidcommon.ServiceError{Type: tidcommon.ClientErrorType, Code: ouNotInProjectErrorCode}).Once()
+
+	result, err := suite.service.UpdateResourceServer(context.Background(), "rs-123",
+		providers.ResourceServer{Name: "test-rs", OUID: "other-ou"})
+
+	suite.Nil(result)
+	suite.Equal(ErrorOUNotInProject.Code, err.Code)
+}
+
+// The list is read for the project asked for, or for no project, and its links keep the project.
+func (suite *ResourceServiceTestSuite) TestGetResourceServerListByProject() {
+	suite.Run("in a project", func() {
+		suite.SetupTest()
+		suite.mockStore.On("GetResourceServerListCountByProject", mock.Anything, testRSProjectID).Return(3, nil)
+		suite.mockStore.On("GetResourceServerListByProject", mock.Anything, testRSProjectID, 1, 1).
+			Return([]providers.ResourceServer{{ID: "rs-2", ProjectID: testRSProjectID}}, nil)
+
+		result, err := suite.service.GetResourceServerListByProject(context.Background(), testRSProjectID, 1, 1)
+
+		suite.Require().Nil(err)
+		suite.Equal(3, result.TotalResults)
+		suite.Require().Len(result.ResourceServers, 1)
+		suite.Require().NotEmpty(result.Links)
+		for _, link := range result.Links {
+			suite.Contains(link.Href, "&projectId="+testRSProjectID)
+		}
+	})
+	suite.Run("in no project", func() {
+		suite.SetupTest()
+		suite.mockStore.On("GetResourceServerListCountByProject", mock.Anything, "").Return(0, nil)
+		suite.mockStore.On("GetResourceServerListByProject", mock.Anything, "", 10, 0).
+			Return([]providers.ResourceServer{}, nil)
+
+		result, err := suite.service.GetResourceServerListByProject(context.Background(), "", 10, 0)
+
+		suite.Require().Nil(err)
+		suite.Equal(0, result.TotalResults)
+	})
+	suite.Run("invalid limit", func() {
+		suite.SetupTest()
+		_, err := suite.service.GetResourceServerListByProject(context.Background(), "", 0, 0)
+		suite.NotNil(err)
+	})
+	suite.Run("composite limit exceeded", func() {
+		suite.SetupTest()
+		suite.mockStore.On("GetResourceServerListCountByProject", mock.Anything, "").
+			Return(0, errResultLimitExceededInCompositeMode)
+
+		_, err := suite.service.GetResourceServerListByProject(context.Background(), "", 10, 0)
+
+		suite.Equal(ErrResultLimitExceededInCompositeMode.Code, err.Code)
+	})
+	suite.Run("list failure", func() {
+		suite.SetupTest()
+		suite.mockStore.On("GetResourceServerListCountByProject", mock.Anything, "").Return(1, nil)
+		suite.mockStore.On("GetResourceServerListByProject", mock.Anything, "", 10, 0).
+			Return(nil, errors.New("db"))
+
+		_, err := suite.service.GetResourceServerListByProject(context.Background(), "", 10, 0)
+
+		suite.Equal(tidcommon.InternalServerError.Code, err.Code)
+	})
+}
+
+// The resource servers in a project are reported as blocking its deletion.
+func (suite *ResourceServiceTestSuite) TestGetResourceDependencies_Project() {
+	suite.Run("resource servers in the project", func() {
+		suite.SetupTest()
+		suite.mockStore.On("GetResourceServerListCountByProject", mock.Anything, testRSProjectID).Return(1, nil)
+		suite.mockStore.On("GetResourceServerListByProject", mock.Anything, testRSProjectID, 1, 0).
+			Return([]providers.ResourceServer{{ID: "rs-1", Name: "Orders"}}, nil)
+
+		deps, err := suite.service.GetResourceDependencies(context.Background(),
+			resourcedependency.ResourceTypeProject, testRSProjectID)
+
+		suite.NoError(err)
+		suite.Equal([]resourcedependency.ResourceDependency{{
+			ResourceType: resourcedependency.ResourceTypeResourceServer, ID: "rs-1", DisplayName: "Orders",
+			BehaviorOnDelete: resourcedependency.BehaviorRestrict,
+		}}, deps)
+	})
+	suite.Run("no resource servers in the project", func() {
+		suite.SetupTest()
+		suite.mockStore.On("GetResourceServerListCountByProject", mock.Anything, testRSProjectID).Return(0, nil)
+
+		deps, err := suite.service.GetResourceDependencies(context.Background(),
+			resourcedependency.ResourceTypeProject, testRSProjectID)
+
+		suite.NoError(err)
+		suite.Empty(deps)
+	})
+	suite.Run("count failure", func() {
+		suite.SetupTest()
+		suite.mockStore.On("GetResourceServerListCountByProject", mock.Anything, testRSProjectID).
+			Return(0, errors.New("db"))
+
+		_, err := suite.service.GetResourceDependencies(context.Background(),
+			resourcedependency.ResourceTypeProject, testRSProjectID)
+
+		suite.Error(err)
+	})
+	suite.Run("list failure", func() {
+		suite.SetupTest()
+		suite.mockStore.On("GetResourceServerListCountByProject", mock.Anything, testRSProjectID).Return(1, nil)
+		suite.mockStore.On("GetResourceServerListByProject", mock.Anything, testRSProjectID, 1, 0).
+			Return(nil, errors.New("db"))
+
+		_, err := suite.service.GetResourceDependencies(context.Background(),
+			resourcedependency.ResourceTypeProject, testRSProjectID)
+
+		suite.Error(err)
+	})
+}
+
+// A declared resource server in a project is placed in the organization unit the project resolves.
+func (suite *ResourceServiceTestSuite) TestResolveResourceServerOUHandle_Project() {
+	suite.Run("resolved", func() {
+		suite.SetupTest()
+		suite.projectResolverFor().EXPECT().ResolveProjectOU(mock.Anything, testRSProjectID, "").
+			Return(oupkg.SystemOUID, nil).Once()
+		server := &providers.ResourceServer{Name: "test-rs", ProjectID: testRSProjectID}
+
+		suite.Nil(suite.service.ResolveResourceServerOUHandle(context.Background(), server))
+		suite.Equal(oupkg.SystemOUID, server.OUID)
+	})
+	suite.Run("not resolved", func() {
+		suite.SetupTest()
+		suite.projectResolverFor().EXPECT().ResolveProjectOU(mock.Anything, testRSProjectID, "").
+			Return("", &tidcommon.ServiceError{Type: tidcommon.ClientErrorType, Code: projectNotFoundErrorCode}).
+			Once()
+		server := &providers.ResourceServer{Name: "test-rs", ProjectID: testRSProjectID}
+
+		svcErr := suite.service.ResolveResourceServerOUHandle(context.Background(), server)
+		suite.Equal(ErrorInvalidProject.Code, svcErr.Code)
+	})
+	suite.Run("unresolved handle", func() {
+		suite.SetupTest()
+		suite.mockOU.On("GetOrganizationUnitByPath", mock.Anything, "missing").
+			Return(oupkg.OrganizationUnit{}, &tidcommon.ServiceError{Type: tidcommon.ClientErrorType, Code: "OU-1003"})
+		server := &providers.ResourceServer{Name: "test-rs", OUHandle: "missing", ProjectID: testRSProjectID}
+
+		svcErr := suite.service.ResolveResourceServerOUHandle(context.Background(), server)
+		suite.Equal(ErrorInvalidRequestFormat.Code, svcErr.Code)
+	})
 }

@@ -69,6 +69,47 @@ func (f *fileBasedResourceStore) GetResourceServer(ctx context.Context, id strin
 
 func (f *fileBasedResourceStore) GetResourceServerList(
 	ctx context.Context, limit, offset int) ([]providers.ResourceServer, error) {
+	servers, err := f.listResourceServers(func(*providers.ResourceServer) bool { return true })
+	if err != nil {
+		return nil, err
+	}
+	return paginateResourceServers(servers, limit, offset), nil
+}
+
+func (f *fileBasedResourceStore) GetResourceServerListCount(ctx context.Context) (int, error) {
+	return f.GenericFileBasedStore.Count()
+}
+
+// GetResourceServerListByProject lists the declared resource servers in a project, or with an empty
+// project ID, the declared resource servers in no project.
+func (f *fileBasedResourceStore) GetResourceServerListByProject(
+	ctx context.Context, projectID string, limit, offset int) ([]providers.ResourceServer, error) {
+	servers, err := f.listResourceServersInProject(projectID)
+	if err != nil {
+		return nil, err
+	}
+	return paginateResourceServers(servers, limit, offset), nil
+}
+
+// GetResourceServerListCountByProject counts the declared resource servers in a project, or with an
+// empty project ID, the declared resource servers in no project.
+func (f *fileBasedResourceStore) GetResourceServerListCountByProject(
+	ctx context.Context, projectID string) (int, error) {
+	servers, err := f.listResourceServersInProject(projectID)
+	if err != nil {
+		return 0, err
+	}
+	return len(servers), nil
+}
+
+// listResourceServersInProject returns the declared resource servers whose project is projectID.
+func (f *fileBasedResourceStore) listResourceServersInProject(projectID string) ([]providers.ResourceServer, error) {
+	return f.listResourceServers(func(rs *providers.ResourceServer) bool { return rs.ProjectID == projectID })
+}
+
+// listResourceServers returns the declared resource servers that match.
+func (f *fileBasedResourceStore) listResourceServers(
+	match func(*providers.ResourceServer) bool) ([]providers.ResourceServer, error) {
 	list, err := f.GenericFileBasedStore.List()
 	if err != nil {
 		return nil, err
@@ -76,12 +117,15 @@ func (f *fileBasedResourceStore) GetResourceServerList(
 
 	servers := make([]providers.ResourceServer, 0, len(list))
 	for _, item := range list {
-		if rs, ok := item.Data.(*providers.ResourceServer); ok {
+		if rs, ok := item.Data.(*providers.ResourceServer); ok && match(rs) {
 			servers = append(servers, *rs)
 		}
 	}
+	return servers, nil
+}
 
-	// Apply pagination with bounds checking
+// paginateResourceServers returns the page of servers that limit and offset select.
+func paginateResourceServers(servers []providers.ResourceServer, limit, offset int) []providers.ResourceServer {
 	start := offset
 	if start < 0 {
 		start = 0
@@ -91,17 +135,13 @@ func (f *fileBasedResourceStore) GetResourceServerList(
 	}
 	end := start + limit
 	if start >= len(servers) {
-		return servers[:0], nil
+		return servers[:0]
 	}
 	if end > len(servers) {
 		end = len(servers)
 	}
 
-	return servers[start:end], nil
-}
-
-func (f *fileBasedResourceStore) GetResourceServerListCount(ctx context.Context) (int, error) {
-	return f.GenericFileBasedStore.Count()
+	return servers[start:end]
 }
 
 func (f *fileBasedResourceStore) UpdateResourceServer(

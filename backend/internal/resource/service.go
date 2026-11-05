@@ -41,6 +41,11 @@ const (
 		ValidPermissionDelimiters
 )
 
+// projectOUResolver resolves the organization unit of a project that a resource server is placed in.
+type projectOUResolver interface {
+	ResolveProjectOU(ctx context.Context, projectID, ouID string) (string, *tidcommon.ServiceError)
+}
+
 // IsPermissionDelimiter reports whether r is one of the allowed delimiter characters in a
 // permission string (see ValidPermissionDelimiters).
 func IsPermissionDelimiter(r rune) bool {
@@ -56,6 +61,10 @@ type ResourceServiceInterface interface {
 	) (*providers.ResourceServer, *tidcommon.ServiceError)
 	GetResourceServer(ctx context.Context, id string) (*providers.ResourceServer, *tidcommon.ServiceError)
 	GetResourceServerList(ctx context.Context, limit, offset int) (*ResourceServerList, *tidcommon.ServiceError)
+	// GetResourceServerListByProject lists the resource servers in a project, or with an empty project
+	// ID, the resource servers in no project.
+	GetResourceServerListByProject(
+		ctx context.Context, projectID string, limit, offset int) (*ResourceServerList, *tidcommon.ServiceError)
 	UpdateResourceServer(
 		ctx context.Context, id string, rs providers.ResourceServer,
 	) (*providers.ResourceServer, *tidcommon.ServiceError)
@@ -126,6 +135,9 @@ type resourceService struct {
 	valueCapturer      declarativeresource.ValueCapturer
 	// keepsReferences is set on a control plane, which keeps a value reference where a value belongs.
 	keepsReferences bool
+	// projectResolver is nil on a deployment that serves no projects, where a project ID is kept
+	// unchecked.
+	projectResolver projectOUResolver
 }
 
 // authZENPDPConnectionLookup retrieves AuthZEN PDP connections for resource-server validation.
@@ -201,6 +213,8 @@ func (rs *resourceService) GetResourceDependencies(
 	var hasDeps bool
 	var err error
 	switch resourceType {
+	case resourcedependency.ResourceTypeProject:
+		return rs.getProjectDependencies(ctx, id)
 	case resourcedependency.ResourceTypeResourceServer:
 		hasDeps, err = rs.resourceStore.CheckResourceServerHasDependencies(ctx, id)
 	case resourcedependency.ResourceTypeResource:
@@ -222,6 +236,32 @@ func (rs *resourceService) GetResourceDependencies(
 	}}, nil
 }
 
+// getProjectDependencies reports the resource servers in a project, which block deleting the project.
+func (rs *resourceService) getProjectDependencies(
+	ctx context.Context, projectID string) ([]resourcedependency.ResourceDependency, error) {
+	count, err := rs.resourceStore.GetResourceServerListCountByProject(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	if count == 0 {
+		return []resourcedependency.ResourceDependency{}, nil
+	}
+	servers, err := rs.resourceStore.GetResourceServerListByProject(ctx, projectID, count, 0)
+	if err != nil {
+		return nil, err
+	}
+	dependencies := make([]resourcedependency.ResourceDependency, 0, len(servers))
+	for _, server := range servers {
+		dependencies = append(dependencies, resourcedependency.ResourceDependency{
+			ResourceType:     resourcedependency.ResourceTypeResourceServer,
+			ID:               server.ID,
+			DisplayName:      server.Name,
+			BehaviorOnDelete: resourcedependency.BehaviorRestrict,
+		})
+	}
+	return dependencies, nil
+}
+
 // newResourceService creates a new instance of ResourceService.
 func newResourceService(
 	ouService oupkg.OrganizationUnitServiceInterface,
@@ -229,6 +269,7 @@ func newResourceService(
 	transactionerInstance providers.Transactioner,
 	authZENPDPService authZENPDPConnectionLookup,
 	valueCapturer declarativeresource.ValueCapturer,
+	projectResolver projectOUResolver,
 	options ...Option,
 ) (ResourceServiceInterface, error) {
 	// Load default delimiter from config
@@ -245,6 +286,7 @@ func newResourceService(
 		defaultDelimiter:  defaultDelimiter,
 		transactioner:     transactionerInstance,
 		valueCapturer:     valueCapturer,
+		projectResolver:   projectResolver,
 	}
 	for _, option := range options {
 		option(service)
@@ -266,6 +308,15 @@ func (rs *resourceService) CreateResourceServer(
 	}
 	if svcErr := rs.validateAuthorizationEngine(ctx, &resourceServer.AuthorizationEngine); svcErr != nil {
 		return nil, svcErr
+	}
+	// A project places the resource server in the system organization unit, or checks that the one
+	// named belongs to it.
+	if resourceServer.ProjectID != "" {
+		ouID, svcErr := rs.resolveProjectOU(ctx, resourceServer.ProjectID, resourceServer.OUID)
+		if svcErr != nil {
+			return nil, svcErr
+		}
+		resourceServer.OUID = ouID
 	}
 	if err := rs.validateResourceServerCreate(resourceServer); err != nil {
 		return nil, err
@@ -349,6 +400,7 @@ func (rs *resourceService) CreateResourceServer(
 			Identifier:          resourceServer.Identifier,
 			Type:                resourceServer.Type,
 			OUID:                resourceServer.OUID,
+			ProjectID:           resourceServer.ProjectID,
 			Delimiter:           resourceServer.Delimiter,
 			AuthorizationEngine: resourceServer.AuthorizationEngine,
 		}
@@ -442,6 +494,82 @@ func (rs *resourceService) GetResourceServerList(
 	return response, nil
 }
 
+// GetResourceServerListByProject retrieves a paginated list of the resource servers in a project, or
+// with an empty project ID, of the resource servers in no project.
+func (rs *resourceService) GetResourceServerListByProject(
+	ctx context.Context, projectID string, limit, offset int,
+) (*ResourceServerList, *tidcommon.ServiceError) {
+	if err := validatePaginationParams(limit, offset); err != nil {
+		return nil, err
+	}
+
+	totalCount, err := rs.resourceStore.GetResourceServerListCountByProject(ctx, projectID)
+	if err != nil {
+		return nil, rs.listError(ctx, err, "Failed to get resource server count")
+	}
+
+	resourceServers, err := rs.resourceStore.GetResourceServerListByProject(ctx, projectID, limit, offset)
+	if err != nil {
+		return nil, rs.listError(ctx, err, "Failed to list resource servers")
+	}
+
+	links := buildPaginationLinks("/resource-servers", limit, offset, totalCount)
+	if projectID != "" {
+		for i := range links {
+			links[i].Href += "&projectId=" + url.QueryEscape(projectID)
+		}
+	}
+	return &ResourceServerList{
+		TotalResults:    totalCount,
+		ResourceServers: resourceServers,
+		StartIndex:      offset + 1,
+		Count:           len(resourceServers),
+		Links:           links,
+	}, nil
+}
+
+// listError maps a failure to list resource servers to the error returned to the caller.
+func (rs *resourceService) listError(ctx context.Context, err error, message string) *tidcommon.ServiceError {
+	if errors.Is(err, errResultLimitExceededInCompositeMode) {
+		return &ErrResultLimitExceededInCompositeMode
+	}
+	rs.logger.Error(ctx, message, log.Error(err))
+	return &tidcommon.InternalServerError
+}
+
+// resolveProjectOU returns the organization unit of the project that a resource server is placed in:
+// the system organization unit when ouID is empty, or ouID when it belongs to the project.
+//
+// A deployment that serves no projects, such as a Data Plane, cannot check the project. It keeps the
+// project ID as given so that imported configuration retains it, and places the resource server as
+// above.
+func (rs *resourceService) resolveProjectOU(
+	ctx context.Context, projectID, ouID string) (string, *tidcommon.ServiceError) {
+	if rs.projectResolver == nil {
+		if ouID == "" {
+			return oupkg.SystemOUID, nil
+		}
+		return ouID, nil
+	}
+	resolved, svcErr := rs.projectResolver.ResolveProjectOU(ctx, projectID, ouID)
+	if svcErr == nil {
+		return resolved, nil
+	}
+	if svcErr.Type != tidcommon.ClientErrorType {
+		rs.logger.Error(ctx, "Failed to resolve the project organization unit",
+			log.String("projectID", projectID), log.String("error", svcErr.Error.DefaultValue))
+		return "", &tidcommon.InternalServerError
+	}
+	switch svcErr.Code {
+	case projectNotFoundErrorCode:
+		return "", &ErrorInvalidProject
+	case ouNotInProjectErrorCode:
+		return "", &ErrorOUNotInProject
+	default:
+		return "", &ErrorOrganizationUnitNotFound
+	}
+}
+
 // UpdateResourceServer updates a resource server.
 func (rs *resourceService) UpdateResourceServer(
 	ctx context.Context,
@@ -469,6 +597,22 @@ func (rs *resourceService) UpdateResourceServer(
 	if rs.IsResourceServerDeclarative(id) {
 		rs.logger.Debug(ctx, "Cannot modify declarative resource server", log.String("id", id))
 		return nil, ErrorImmutableResourceServer.WithParams(map[string]string{"id": id})
+	}
+
+	// An update that names no project keeps the resource server in its project, so the organization
+	// unit must still belong to it.
+	if resourceServer.ProjectID == "" {
+		resourceServer.ProjectID = existingResServer.ProjectID
+	}
+	if resourceServer.ProjectID != "" {
+		ouID, svcErr := rs.resolveProjectOU(ctx, resourceServer.ProjectID, resourceServer.OUID)
+		if svcErr != nil {
+			return nil, svcErr
+		}
+		resourceServer.OUID = ouID
+	}
+	if resourceServer.OUID == "" {
+		return nil, &ErrorInvalidRequestFormat
 	}
 
 	// Delimiter is always preserved from the existing record
@@ -541,6 +685,7 @@ func (rs *resourceService) UpdateResourceServer(
 			Identifier:          resourceServer.Identifier,
 			Type:                resourceServer.Type,
 			OUID:                resourceServer.OUID,
+			ProjectID:           resourceServer.ProjectID,
 			Delimiter:           resourceServer.Delimiter,
 			AuthorizationEngine: resourceServer.AuthorizationEngine,
 		}
@@ -1351,9 +1496,28 @@ func (rs *resourceService) ValidatePermissions(
 }
 
 // ResolveResourceServerOUHandle resolves ou_handle to an OU ID on the given resource server
-// in-place. Called by the declarative loader validator so that file-based resource servers
-// support ou_handle. If both ou_id and ou_handle are provided, ou_id wins and a warning is logged.
+// in-place, and places a resource server declared in a project in the project's organization unit.
+// Called by the declarative loader validator so that file-based resource servers support ou_handle
+// and projects. If both ou_id and ou_handle are provided, ou_id wins and a warning is logged.
 func (rs *resourceService) ResolveResourceServerOUHandle(
+	ctx context.Context, server *providers.ResourceServer,
+) *tidcommon.ServiceError {
+	if svcErr := rs.resolveDeclaredOUHandle(ctx, server); svcErr != nil {
+		return svcErr
+	}
+	if server.ProjectID == "" {
+		return nil
+	}
+	ouID, svcErr := rs.resolveProjectOU(security.WithRuntimeContext(ctx), server.ProjectID, server.OUID)
+	if svcErr != nil {
+		return svcErr
+	}
+	server.OUID = ouID
+	return nil
+}
+
+// resolveDeclaredOUHandle resolves ou_handle to an OU ID on the given resource server in-place.
+func (rs *resourceService) resolveDeclaredOUHandle(
 	ctx context.Context, server *providers.ResourceServer,
 ) *tidcommon.ServiceError {
 	if server.OUID != "" && server.OUHandle != "" {
@@ -1442,14 +1606,12 @@ func (rs *resourceService) validateResourceServerCreate(
 	return nil
 }
 
-// validateResourceServerUpdate validates the input for updating a resource server.
+// validateResourceServerUpdate validates the input for updating a resource server. The organization
+// unit is checked once the project the resource server stays in is known.
 func (rs *resourceService) validateResourceServerUpdate(
 	resourceServer providers.ResourceServer,
 ) *tidcommon.ServiceError {
 	if resourceServer.Name == "" {
-		return &ErrorInvalidRequestFormat
-	}
-	if resourceServer.OUID == "" {
 		return &ErrorInvalidRequestFormat
 	}
 	if resourceServer.AuthorizationEngine.Type != "" &&

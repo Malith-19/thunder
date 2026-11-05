@@ -79,7 +79,7 @@ func (suite *ResourceStoreTestSuite) TestCreateResourceServer() {
 				suite.mockDBClient.On("ExecuteContext", context.Background(),
 					queryCreateResourceServer, "rs1", "ou1", "Test Server",
 					"Test Description", "test-identifier", nil,
-					[]byte(`{"delimiter":":"}`), "test-deployment").
+					[]byte(`{"delimiter":":"}`), "test-deployment", nil).
 					Return(int64(1), nil)
 			},
 			shouldErr: false,
@@ -100,7 +100,7 @@ func (suite *ResourceStoreTestSuite) TestCreateResourceServer() {
 				suite.mockDBClient.On("ExecuteContext", context.Background(),
 					queryCreateResourceServer, "rs1", "ou1", "Test Server",
 					"Test Description", "test-identifier", "MCP",
-					[]byte(`{"delimiter":":"}`), "test-deployment").
+					[]byte(`{"delimiter":":"}`), "test-deployment", nil).
 					Return(int64(1), nil)
 			},
 			shouldErr: false,
@@ -120,7 +120,7 @@ func (suite *ResourceStoreTestSuite) TestCreateResourceServer() {
 				suite.mockDBClient.On("ExecuteContext", context.Background(),
 					queryCreateResourceServer, "rs1", "ou1", "Test Server",
 					"Test Description", "test-identifier", nil,
-					[]byte(`{"delimiter":":"}`), "test-deployment").
+					[]byte(`{"delimiter":":"}`), "test-deployment", nil).
 					Return(int64(0), errors.New("insert failed"))
 			},
 			shouldErr: true,
@@ -479,7 +479,7 @@ func (suite *ResourceStoreTestSuite) TestUpdateResourceServer() {
 				suite.mockDBClient.On("ExecuteContext", context.Background(),
 					queryUpdateResourceServer, "ou1", "Updated Server",
 					"Updated Description", "updated-identifier", "API",
-					[]byte(`{"delimiter":"-"}`), "rs1", "test-deployment").
+					[]byte(`{"delimiter":"-"}`), "rs1", "test-deployment", nil).
 					Return(int64(1), nil)
 			},
 			shouldErr: false,
@@ -500,7 +500,7 @@ func (suite *ResourceStoreTestSuite) TestUpdateResourceServer() {
 				suite.mockDBClient.On("ExecuteContext", context.Background(),
 					queryUpdateResourceServer, "ou1", "Updated Server",
 					"Updated Description", "updated-identifier", "API",
-					[]byte(`{"delimiter":"-"}`), "rs1", "test-deployment").
+					[]byte(`{"delimiter":"-"}`), "rs1", "test-deployment", nil).
 					Return(int64(0), errors.New("update failed"))
 			},
 			shouldErr: true,
@@ -3856,4 +3856,94 @@ func loadRuntimeForScope() {
 	_ = config.InitializeServerRuntime("", &config.Config{
 		Server: engineconfig.ServerConfig{Identifier: "test-deployment"},
 	})
+}
+
+// A project ID lists that project's resource servers; an empty one lists those in no project.
+func (suite *ResourceStoreTestSuite) TestGetResourceServerListByProject() {
+	row := map[string]interface{}{
+		"id": "rs1", "ou_id": "ou1", "project_id": "project-1", "name": "Server 1", "identifier": "id-1",
+	}
+	testCases := []struct {
+		name      string
+		projectID string
+		query     interface{}
+		args      []interface{}
+	}{
+		{
+			name:      "in a project",
+			projectID: "project-1",
+			query:     queryGetResourceServerListByProject,
+			args:      []interface{}{10, 0, "test-deployment", "project-1"},
+		},
+		{
+			name:  "in no project",
+			query: queryGetResourceServerListInNoProject,
+			args:  []interface{}{10, 0, "test-deployment"},
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			suite.SetupTest()
+			suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
+			suite.mockDBClient.On("QueryContext", append([]interface{}{context.Background(), tc.query},
+				tc.args...)...).Return([]map[string]interface{}{row}, nil)
+
+			servers, err := suite.store.GetResourceServerListByProject(context.Background(), tc.projectID, 10, 0)
+
+			suite.NoError(err)
+			suite.Require().Len(servers, 1)
+			suite.Equal("project-1", servers[0].ProjectID)
+		})
+	}
+}
+
+// A project ID counts that project's resource servers; an empty one counts those in no project.
+func (suite *ResourceStoreTestSuite) TestGetResourceServerListCountByProject() {
+	testCases := []struct {
+		name      string
+		projectID string
+		query     interface{}
+		args      []interface{}
+	}{
+		{
+			name:      "in a project",
+			projectID: "project-1",
+			query:     queryGetResourceServerListCountByProject,
+			args:      []interface{}{"test-deployment", "project-1"},
+		},
+		{
+			name:  "in no project",
+			query: queryGetResourceServerListCountInNoProject,
+			args:  []interface{}{"test-deployment"},
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			suite.SetupTest()
+			suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
+			suite.mockDBClient.On("QueryContext", append([]interface{}{context.Background(), tc.query},
+				tc.args...)...).Return([]map[string]interface{}{{"total": int64(2)}}, nil)
+
+			count, err := suite.store.GetResourceServerListCountByProject(context.Background(), tc.projectID)
+
+			suite.NoError(err)
+			suite.Equal(2, count)
+		})
+	}
+}
+
+// A resource server in a project is stored with its project ID.
+func (suite *ResourceStoreTestSuite) TestCreateResourceServer_InProject() {
+	suite.mockDBProvider.On("GetConfigDBClient").Return(suite.mockDBClient, nil)
+	suite.mockDBClient.On("ExecuteContext", context.Background(),
+		queryCreateResourceServer, "rs1", "ou1", "Test Server", "", "test-identifier", nil,
+		[]byte(`{"delimiter":":"}`), "test-deployment", "project-1").Return(int64(1), nil)
+
+	err := suite.store.CreateResourceServer(context.Background(), "rs1", providers.ResourceServer{
+		OUID: "ou1", ProjectID: "project-1", Name: "Test Server", Identifier: "test-identifier", Delimiter: ":",
+	})
+
+	suite.NoError(err)
 }

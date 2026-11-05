@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	dbmodel "github.com/thunder-id/thunderid/internal/system/database/model"
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
 	"github.com/thunder-id/thunderid/internal/system/deployment"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine/providers"
@@ -20,6 +21,13 @@ type resourceStoreInterface interface {
 	GetResourceServer(ctx context.Context, id string) (providers.ResourceServer, error)
 	GetResourceServerList(ctx context.Context, limit, offset int) ([]providers.ResourceServer, error)
 	GetResourceServerListCount(ctx context.Context) (int, error)
+	// GetResourceServerListByProject lists the resource servers in a project, or with an empty project
+	// ID, the resource servers in no project.
+	GetResourceServerListByProject(
+		ctx context.Context, projectID string, limit, offset int) ([]providers.ResourceServer, error)
+	// GetResourceServerListCountByProject counts the resource servers in a project, or with an empty
+	// project ID, the resource servers in no project.
+	GetResourceServerListCountByProject(ctx context.Context, projectID string) (int, error)
 	UpdateResourceServer(ctx context.Context, id string, rs providers.ResourceServer) error
 	DeleteResourceServer(ctx context.Context, id string) error
 	CheckResourceServerNameExists(ctx context.Context, name string) (bool, error)
@@ -113,6 +121,7 @@ func (s *resourceStore) CreateResourceServer(ctx context.Context, id string, rs 
 			resolveNullableString(string(rs.Type)),
 			buildPropertiesJSON(rs),
 			s.scope(ctx),
+			resolveNullableString(rs.ProjectID),
 		)
 		if err != nil {
 			return fmt.Errorf("failed to create resource server: %w", err)
@@ -146,9 +155,37 @@ func (s *resourceStore) GetResourceServerList(
 	ctx context.Context,
 	limit, offset int,
 ) ([]providers.ResourceServer, error) {
+	return s.queryResourceServers(ctx, queryGetResourceServerList, limit, offset, s.scope(ctx))
+}
+
+// GetResourceServerListByProject lists the resource servers in a project, or with an empty project ID,
+// the resource servers in no project.
+func (s *resourceStore) GetResourceServerListByProject(
+	ctx context.Context, projectID string, limit, offset int,
+) ([]providers.ResourceServer, error) {
+	if projectID == "" {
+		return s.queryResourceServers(ctx, queryGetResourceServerListInNoProject, limit, offset, s.scope(ctx))
+	}
+	return s.queryResourceServers(ctx, queryGetResourceServerListByProject, limit, offset, s.scope(ctx),
+		projectID)
+}
+
+// GetResourceServerListCountByProject counts the resource servers in a project, or with an empty
+// project ID, the resource servers in no project.
+func (s *resourceStore) GetResourceServerListCountByProject(ctx context.Context, projectID string) (int, error) {
+	if projectID == "" {
+		return s.countResourceServers(ctx, queryGetResourceServerListCountInNoProject, s.scope(ctx))
+	}
+	return s.countResourceServers(ctx, queryGetResourceServerListCountByProject, s.scope(ctx), projectID)
+}
+
+// queryResourceServers runs a resource server list query.
+func (s *resourceStore) queryResourceServers(
+	ctx context.Context, query dbmodel.DBQuery, args ...interface{},
+) ([]providers.ResourceServer, error) {
 	var resourceServers []providers.ResourceServer
 	err := s.withDBClient(func(dbClient provider.DBClientInterface) error {
-		results, err := dbClient.QueryContext(ctx, queryGetResourceServerList, limit, offset, s.scope(ctx))
+		results, err := dbClient.QueryContext(ctx, query, args...)
 		if err != nil {
 			return fmt.Errorf("failed to get resource server list: %w", err)
 		}
@@ -172,9 +209,16 @@ func (s *resourceStore) GetResourceServerList(
 
 // GetResourceServerListCount retrieves the total count of resource servers.
 func (s *resourceStore) GetResourceServerListCount(ctx context.Context) (int, error) {
+	return s.countResourceServers(ctx, queryGetResourceServerListCount, s.scope(ctx))
+}
+
+// countResourceServers runs a resource server count query.
+func (s *resourceStore) countResourceServers(
+	ctx context.Context, query dbmodel.DBQuery, args ...interface{},
+) (int, error) {
 	var count int
 	err := s.withDBClient(func(dbClient provider.DBClientInterface) error {
-		results, err := dbClient.QueryContext(ctx, queryGetResourceServerListCount, s.scope(ctx))
+		results, err := dbClient.QueryContext(ctx, query, args...)
 		if err != nil {
 			return fmt.Errorf("failed to get resource server count: %w", err)
 		}
@@ -199,6 +243,7 @@ func (s *resourceStore) UpdateResourceServer(ctx context.Context, id string, rs 
 			buildPropertiesJSON(rs),
 			id,
 			s.scope(ctx),
+			resolveNullableString(rs.ProjectID),
 		)
 		if err != nil {
 			return fmt.Errorf("failed to update resource server: %w", err)
@@ -1018,6 +1063,10 @@ func buildResourceServerFromResultRow(row map[string]interface{}) (providers.Res
 		rs.OUID = ouID
 	} else {
 		return rs, fmt.Errorf("ou_id field is missing or invalid")
+	}
+
+	if projectID, ok := row["project_id"].(string); ok {
+		rs.ProjectID = projectID
 	}
 
 	if name, ok := row["name"].(string); ok {

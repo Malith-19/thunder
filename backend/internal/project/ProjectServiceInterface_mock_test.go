@@ -631,6 +631,46 @@ func (_c *ProjectServiceInterfaceMock_ResolveProjectOU_Call) RunAndReturn(run fu
 	return _c
 }
 
+// SetDependencyRegistry provides a mock function for the type ProjectServiceInterfaceMock
+func (_mock *ProjectServiceInterfaceMock) SetDependencyRegistry(r resourcedependency.Registry) {
+	_mock.Called(r)
+	return
+}
+
+// ProjectServiceInterfaceMock_SetDependencyRegistry_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDependencyRegistry'
+type ProjectServiceInterfaceMock_SetDependencyRegistry_Call struct {
+	*mock.Call
+}
+
+// SetDependencyRegistry is a helper method to define mock.On call
+//   - r resourcedependency.Registry
+func (_e *ProjectServiceInterfaceMock_Expecter) SetDependencyRegistry(r any) *ProjectServiceInterfaceMock_SetDependencyRegistry_Call {
+	return &ProjectServiceInterfaceMock_SetDependencyRegistry_Call{Call: _e.mock.On("SetDependencyRegistry", r)}
+}
+
+func (_c *ProjectServiceInterfaceMock_SetDependencyRegistry_Call) Run(run func(r resourcedependency.Registry)) *ProjectServiceInterfaceMock_SetDependencyRegistry_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 resourcedependency.Registry
+		if args[0] != nil {
+			arg0 = args[0].(resourcedependency.Registry)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *ProjectServiceInterfaceMock_SetDependencyRegistry_Call) Return() *ProjectServiceInterfaceMock_SetDependencyRegistry_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *ProjectServiceInterfaceMock_SetDependencyRegistry_Call) RunAndReturn(run func(r resourcedependency.Registry)) *ProjectServiceInterfaceMock_SetDependencyRegistry_Call {
+	_c.Run(run)
+	return _c
+}
+
 // UpdateProject provides a mock function for the type ProjectServiceInterfaceMock
 func (_mock *ProjectServiceInterfaceMock) UpdateProject(ctx context.Context, id string, request ProjectRequest) (*Project, *common.ServiceError) {
 	ret := _mock.Called(ctx, id, request)

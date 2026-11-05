@@ -49,7 +49,7 @@ func (suite *HandlerTestSuite) TestHandleResourceServerListRequest_Success() {
 	links := []Link{
 		{Href: "/resource-servers?limit=30&offset=0", Rel: "self"},
 	}
-	suite.mockService.On("GetResourceServerList", mock.Anything,
+	suite.mockService.On("GetResourceServerListByProject", mock.Anything, "",
 		30, 0).Return(&ResourceServerList{
 		TotalResults:    2,
 		StartIndex:      1,
@@ -81,7 +81,7 @@ func (suite *HandlerTestSuite) TestHandleResourceServerListRequest_InvalidLimit(
 }
 
 func (suite *HandlerTestSuite) TestHandleResourceServerListRequest_Error() {
-	suite.mockService.On("GetResourceServerList", mock.Anything,
+	suite.mockService.On("GetResourceServerListByProject", mock.Anything, "",
 		30, 0).Return(nil, &tidcommon.InternalServerError)
 
 	req := httptest.NewRequest("GET", "/resource-servers", nil)
@@ -125,6 +125,56 @@ func (suite *HandlerTestSuite) TestHandleResourceServerPostRequest_Success() {
 	suite.Equal("rs-123", resp.ID)
 	suite.Equal("test-rs", resp.Name)
 	suite.Equal(providers.ResourceServerTypeMCP, resp.Type)
+}
+
+// The project in the query selects the project's resource servers.
+func (suite *HandlerTestSuite) TestHandleResourceServerListRequest_ByProject() {
+	suite.mockService.On("GetResourceServerListByProject", mock.Anything, "project-1", 30, 0).
+		Return(&ResourceServerList{
+			TotalResults:    1,
+			StartIndex:      1,
+			Count:           1,
+			ResourceServers: []providers.ResourceServer{{ID: "rs-1", ProjectID: "project-1"}},
+		}, nil)
+
+	req := httptest.NewRequest("GET", "/resource-servers?projectId=project-1", nil)
+	w := httptest.NewRecorder()
+
+	suite.handler.HandleResourceServerListRequest(w, req)
+
+	suite.Equal(http.StatusOK, w.Code)
+	var resp ResourceServerListResponse
+	suite.NoError(json.Unmarshal(w.Body.Bytes(), &resp))
+	suite.Require().Len(resp.ResourceServers, 1)
+	suite.Equal("project-1", resp.ResourceServers[0].ProjectID)
+}
+
+// A resource server created or updated in a project carries the project to the service and back.
+func (suite *HandlerTestSuite) TestHandleResourceServerRequests_Project() {
+	suite.mockService.On("CreateResourceServer", mock.Anything,
+		mock.MatchedBy(func(rs providers.ResourceServer) bool { return rs.ProjectID == "project-1" })).
+		Return(&providers.ResourceServer{ID: "rs-123", ProjectID: "project-1"}, nil).Once()
+	suite.mockService.On("UpdateResourceServer", mock.Anything, "rs-123",
+		mock.MatchedBy(func(rs providers.ResourceServer) bool { return rs.ProjectID == "project-1" })).
+		Return(&providers.ResourceServer{ID: "rs-123", ProjectID: "project-1"}, nil).Once()
+
+	body, _ := json.Marshal(CreateResourceServerRequest{
+		Name: "test-rs", Identifier: "test-identifier", ProjectID: "project-1",
+	})
+	w := httptest.NewRecorder()
+	suite.handler.HandleResourceServerPostRequest(w,
+		httptest.NewRequest("POST", "/resource-servers", bytes.NewReader(body)))
+	suite.Equal(http.StatusCreated, w.Code)
+	var created ResourceServerResponse
+	suite.NoError(json.Unmarshal(w.Body.Bytes(), &created))
+	suite.Equal("project-1", created.ProjectID)
+
+	body, _ = json.Marshal(UpdateResourceServerRequest{Name: "test-rs", ProjectID: "project-1"})
+	req := httptest.NewRequest("PUT", "/resource-servers/rs-123", bytes.NewReader(body))
+	req.SetPathValue("id", "rs-123")
+	w = httptest.NewRecorder()
+	suite.handler.HandleResourceServerPutRequest(w, req)
+	suite.Equal(http.StatusOK, w.Code)
 }
 
 func (suite *HandlerTestSuite) TestHandleResourceServerPostRequest_InvalidJSON() {

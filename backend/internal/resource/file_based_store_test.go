@@ -819,3 +819,30 @@ actions:
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), []string{"unknown"}, invalid)
 }
+
+// Declared resource servers are listed and counted by project, or in no project.
+func (s *FileBasedResourceStoreTestSuite) TestGetResourceServerListByProject() {
+	fileStore, ok := s.store.(*fileBasedResourceStore)
+	s.Require().True(ok)
+	s.Require().NoError(fileStore.Create("rs-org", &providers.ResourceServer{ID: "rs-org", Name: "Org"}))
+	s.Require().NoError(fileStore.Create("rs-project",
+		&providers.ResourceServer{ID: "rs-project", Name: "Project", ProjectID: "project-1"}))
+
+	inProject, err := s.store.GetResourceServerListByProject(s.ctx, "project-1", 10, 0)
+	s.Require().NoError(err)
+	s.Require().Len(inProject, 1)
+	s.Equal("rs-project", inProject[0].ID)
+
+	inNoProject, err := s.store.GetResourceServerListByProject(s.ctx, "", 10, 0)
+	s.Require().NoError(err)
+	s.Require().Len(inNoProject, 1)
+	s.Equal("rs-org", inNoProject[0].ID)
+
+	count, err := s.store.GetResourceServerListCountByProject(s.ctx, "project-1")
+	s.NoError(err)
+	s.Equal(1, count)
+
+	page, err := s.store.GetResourceServerListByProject(s.ctx, "project-1", 10, 5)
+	s.NoError(err)
+	s.Empty(page)
+}

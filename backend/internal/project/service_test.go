@@ -17,6 +17,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/resourcedependency"
 	tidcommon "github.com/thunder-id/thunderid/pkg/thunderidengine/common"
 	"github.com/thunder-id/thunderid/tests/mocks/oumock"
+	"github.com/thunder-id/thunderid/tests/mocks/resourcedependencymock"
 	"github.com/thunder-id/thunderid/tests/mocks/transactionmock"
 )
 
@@ -34,6 +35,7 @@ type ProjectServiceTestSuite struct {
 	mockStore     *projectStoreInterfaceMock
 	mockOUService *oumock.OrganizationUnitServiceInterfaceMock
 	mockEntities  *projectEntityReaderMock
+	mockRegistry  *resourcedependencymock.RegistryMock
 	service       *projectService
 }
 
@@ -49,6 +51,16 @@ func (suite *ProjectServiceTestSuite) SetupTest() {
 	mockTx.On("Transact", mock.Anything, mock.Anything).
 		Return(func(ctx context.Context, fn func(context.Context) error) error { return fn(ctx) }).Maybe()
 	suite.service = newProjectService(suite.mockStore, mockTx, suite.mockOUService, suite.mockEntities)
+	suite.mockRegistry = resourcedependencymock.NewRegistryMock(suite.T())
+	suite.service.SetDependencyRegistry(suite.mockRegistry)
+}
+
+// projectDependencies has the registry report the given resources in the test project.
+func (suite *ProjectServiceTestSuite) projectDependencies(usages ...resourcedependency.ResourceDependency) {
+	total := len(usages)
+	suite.mockRegistry.On("GetDependencies", mock.Anything, resourcedependency.ResourceTypeProject, testProjectID).
+		Return(&resourcedependency.DependenciesResponse{TotalResults: &total, Count: total, Usages: usages}, nil).
+		Once()
 }
 
 // project is the project the store holds in these tests.
@@ -364,6 +376,7 @@ func (suite *ProjectServiceTestSuite) TestUpdateProject() {
 func (suite *ProjectServiceTestSuite) TestDeleteProject() {
 	suite.Run("deletes the project and no organization unit", func() {
 		suite.SetupTest()
+		suite.projectDependencies()
 		suite.mockEntities.On("ProjectHasEntities", mock.Anything, testProjectID).Return(false, nil)
 		suite.mockStore.On("DeleteProject", mock.Anything, testProjectID).Return(nil)
 
@@ -372,6 +385,7 @@ func (suite *ProjectServiceTestSuite) TestDeleteProject() {
 	})
 	suite.Run("refused while resources are in the project", func() {
 		suite.SetupTest()
+		suite.projectDependencies()
 		suite.mockEntities.On("ProjectHasEntities", mock.Anything, testProjectID).Return(true, nil)
 
 		suite.Equal(ErrorProjectNotEmpty, *suite.service.DeleteProject(context.Background(), testProjectID))
@@ -379,14 +393,51 @@ func (suite *ProjectServiceTestSuite) TestDeleteProject() {
 	})
 	suite.Run("resource check fails", func() {
 		suite.SetupTest()
+		suite.projectDependencies()
 		suite.mockEntities.On("ProjectHasEntities", mock.Anything, testProjectID).Return(false, errors.New("db"))
 
 		suite.Equal(tidcommon.InternalServerError, *suite.service.DeleteProject(context.Background(), testProjectID))
 	})
 	suite.Run("delete fails", func() {
 		suite.SetupTest()
+		suite.projectDependencies()
 		suite.mockEntities.On("ProjectHasEntities", mock.Anything, testProjectID).Return(false, nil)
 		suite.mockStore.On("DeleteProject", mock.Anything, testProjectID).Return(errors.New("db"))
+
+		suite.Equal(tidcommon.InternalServerError, *suite.service.DeleteProject(context.Background(), testProjectID))
+	})
+}
+
+// A resource server in the project, reported through the dependency registry, refuses the deletion.
+// Missing dependency data refuses it too, since a deletion can't be undone.
+func (suite *ProjectServiceTestSuite) TestDeleteProject_OtherResources() {
+	suite.Run("refused while a resource server is in the project", func() {
+		suite.SetupTest()
+		suite.projectDependencies(resourcedependency.ResourceDependency{
+			ResourceType: resourcedependency.ResourceTypeResourceServer, ID: "rs-1",
+			BehaviorOnDelete: resourcedependency.BehaviorRestrict,
+		})
+
+		suite.Equal(ErrorProjectNotEmpty, *suite.service.DeleteProject(context.Background(), testProjectID))
+		suite.mockEntities.AssertNotCalled(suite.T(), "ProjectHasEntities", mock.Anything, mock.Anything)
+	})
+	suite.Run("dependency data unavailable", func() {
+		suite.SetupTest()
+		suite.mockRegistry.On("GetDependencies", mock.Anything, resourcedependency.ResourceTypeProject,
+			testProjectID).Return(&resourcedependency.DependenciesResponse{}, nil).Once()
+
+		suite.Equal(tidcommon.InternalServerError, *suite.service.DeleteProject(context.Background(), testProjectID))
+	})
+	suite.Run("dependency lookup fails", func() {
+		suite.SetupTest()
+		suite.mockRegistry.On("GetDependencies", mock.Anything, resourcedependency.ResourceTypeProject,
+			testProjectID).Return(nil, errors.New("registry")).Once()
+
+		suite.Equal(tidcommon.InternalServerError, *suite.service.DeleteProject(context.Background(), testProjectID))
+	})
+	suite.Run("no dependency registry", func() {
+		suite.SetupTest()
+		suite.service.SetDependencyRegistry(nil)
 
 		suite.Equal(tidcommon.InternalServerError, *suite.service.DeleteProject(context.Background(), testProjectID))
 	})

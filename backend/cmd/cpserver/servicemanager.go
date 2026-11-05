@@ -196,7 +196,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	fatalOnError(ctx, logger, err, "Failed to initialize AuthZENPDPService")
 
 	resourceService, resourceExporter, err := resource.Initialize(mux, ouService, authZENPDPService, valueCapture,
-		resource.KeepingValueReferences())
+		projectService, resource.KeepingValueReferences())
 	fatalOnError(ctx, logger, err, "Failed to initialize Resource Service")
 	exporters = append(exporters, resourceExporter)
 
@@ -379,6 +379,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		resource:       resourceService,
 		notifTemplate:  notifTemplateSvc,
 		httpConnection: httpConnectionService,
+		project:        projectService,
 	}, applicationService, agentService, flowMgtService, roleAssignmentService, roleService,
 		groupService, ouService, ouUserResolver, ouGroupResolver, entityTypeService, resourceService,
 		sharingService, notifTemplateSvc, ouDependencyProvider, projectService)
@@ -477,6 +478,7 @@ type dependencyConsumers struct {
 	resource       resource.ResourceServiceInterface
 	notifTemplate  notificationtemplate.NotificationTemplateServiceInterface
 	httpConnection httpconnection.HTTPConnectionServiceInterface
+	project        project.ProjectServiceInterface
 }
 
 // registerDependencyRegistry builds the dependency registry from the given providers and wires it
@@ -496,6 +498,7 @@ func registerDependencyRegistry(consumers dependencyConsumers, providers ...reso
 	consumers.resource.SetDependencyRegistry(registry)
 	consumers.notifTemplate.SetDependencyRegistry(registry)
 	consumers.httpConnection.SetDependencyRegistry(registry)
+	consumers.project.SetDependencyRegistry(registry)
 }
 
 // unregisterServices unregisters all services that require cleanup during shutdown.

@@ -707,6 +707,10 @@ func validateResourceServerWrapper(
 
 	if service != nil {
 		if svcErr := service.ResolveResourceServerOUHandle(context.Background(), rs); svcErr != nil {
+			if svcErr.Code == ErrorInvalidProject.Code || svcErr.Code == ErrorOUNotInProject.Code {
+				return fmt.Errorf("resource server '%s' cannot be placed in project %q: %s",
+					rs.Name, rs.ProjectID, svcErr.ErrorDescription.DefaultValue)
+			}
 			return fmt.Errorf("organization unit with handle %q not found for resource server '%s'",
 				rs.OUHandle, rs.Name)
 		}

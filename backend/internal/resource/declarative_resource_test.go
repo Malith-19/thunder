@@ -1450,6 +1450,19 @@ func TestValidateResourceServerWrapper_Success(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// A declared resource server whose project does not resolve names the project in the error.
+func TestValidateResourceServerWrapper_ProjectNotResolved(t *testing.T) {
+	service := NewResourceServiceInterfaceMock(t)
+	service.On("ResolveResourceServerOUHandle", mock.Anything, mock.Anything).Return(&ErrorInvalidProject)
+
+	err := validateResourceServerWrapper(
+		&providers.ResourceServer{ID: "rs1", Name: "Server", Identifier: "test-server", ProjectID: "project-1"},
+		newResourceStoreInterfaceMock(t), nil, service)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), `cannot be placed in project "project-1"`)
+}
+
 func TestLoadDeclarativeResources_CompositeFileStoreTypeError(t *testing.T) {
 	fileStore := newResourceStoreInterfaceMock(t)
 	dbStore := newResourceStoreInterfaceMock(t)

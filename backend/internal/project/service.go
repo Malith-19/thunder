@@ -41,6 +41,7 @@ type ProjectServiceInterface interface {
 		bool, *tidcommon.ServiceError)
 	GetResourceDependencies(
 		ctx context.Context, resourceType, id string) ([]resourcedependency.ResourceDependency, error)
+	SetDependencyRegistry(r resourcedependency.Registry)
 }
 
 // projectEntityReader reports whether any entity, such as an application or an agent, is in a project.
@@ -54,7 +55,10 @@ type projectService struct {
 	transactioner providers.Transactioner
 	ouService     ou.OrganizationUnitServiceInterface
 	entities      projectEntityReader
-	logger        *log.Logger
+	// dependencyRegistry reports the other resources in a project, such as resource servers, that are
+	// kept outside the entity store.
+	dependencyRegistry resourcedependency.Registry
+	logger             *log.Logger
 }
 
 // newProjectService creates a project service.
@@ -167,10 +171,19 @@ func (s *projectService) UpdateProject(
 	return &project, nil
 }
 
-// DeleteProject deletes a project. It is refused while an application or agent is still in the project.
-// The check and the delete run in one transaction in the entity database. Deleting a project that does
-// not exist succeeds.
+// SetDependencyRegistry injects the dependency registry. Called by servicemanager after the services
+// that hold resources in projects are initialized.
+func (s *projectService) SetDependencyRegistry(r resourcedependency.Registry) {
+	s.dependencyRegistry = r
+}
+
+// DeleteProject deletes a project. It is refused while an application, agent or resource server is still
+// in the project. The application and agent check and the delete run in one transaction in the entity
+// database. Deleting a project that does not exist succeeds.
 func (s *projectService) DeleteProject(ctx context.Context, id string) *tidcommon.ServiceError {
+	if svcErr := s.ensureNoBlockingDependencies(ctx, id); svcErr != nil {
+		return svcErr
+	}
 	var capturedSvcErr *tidcommon.ServiceError
 	err := s.transactioner.Transact(ctx, func(txCtx context.Context) error {
 		hasEntities, err := s.entities.ProjectHasEntities(txCtx, id)
@@ -189,6 +202,26 @@ func (s *projectService) DeleteProject(ctx context.Context, id string) *tidcommo
 	if err != nil {
 		s.logger.Error(ctx, "Failed to delete project", log.Error(err))
 		return &tidcommon.InternalServerError
+	}
+	return nil
+}
+
+// ensureNoBlockingDependencies refuses deleting a project that other resources, such as resource
+// servers, are still in. Because deletion is destructive, it fails closed: if dependency data cannot be
+// determined, the deletion is refused rather than allowed.
+func (s *projectService) ensureNoBlockingDependencies(ctx context.Context, id string) *tidcommon.ServiceError {
+	if s.dependencyRegistry == nil {
+		s.logger.Error(ctx, "Dependency registry not set; refusing to delete", log.String("projectID", id))
+		return &tidcommon.InternalServerError
+	}
+	deps, err := s.dependencyRegistry.GetDependencies(ctx, resourcedependency.ResourceTypeProject, id)
+	if err != nil || deps == nil || deps.TotalResults == nil {
+		s.logger.Error(ctx, "Dependency data unavailable; refusing to delete",
+			log.String("projectID", id), log.Error(err))
+		return &tidcommon.InternalServerError
+	}
+	if len(resourcedependency.BlockingUsages(deps)) > 0 {
+		return &ErrorProjectNotEmpty
 	}
 	return nil
 }

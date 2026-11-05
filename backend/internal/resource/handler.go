@@ -41,7 +41,9 @@ func (h *resourceHandler) HandleResourceServerListRequest(w http.ResponseWriter,
 		return
 	}
 
-	result, svcErr := h.resourceService.GetResourceServerList(ctx, limit, offset)
+	// Without a project, the list holds the resource servers in no project.
+	projectID := sysutils.SanitizeString(r.URL.Query().Get(projectIDQueryParam))
+	result, svcErr := h.resourceService.GetResourceServerListByProject(ctx, projectID, limit, offset)
 	if svcErr != nil {
 		handleError(ctx, w, svcErr)
 		return
@@ -72,6 +74,7 @@ func (h *resourceHandler) HandleResourceServerPostRequest(w http.ResponseWriter,
 		Identifier:  sanitized.Identifier,
 		Type:        sanitized.Type,
 		OUID:        sanitized.OUID,
+		ProjectID:   sanitized.ProjectID,
 		Delimiter:   sanitized.Delimiter,
 	}
 
@@ -120,6 +123,7 @@ func (h *resourceHandler) HandleResourceServerPutRequest(w http.ResponseWriter, 
 		Description:         sanitized.Description,
 		Identifier:          sanitized.Identifier,
 		OUID:                sanitized.OUID,
+		ProjectID:           sanitized.ProjectID,
 		AuthorizationEngine: sanitized.AuthorizationEngine,
 	}
 
@@ -601,6 +605,7 @@ func sanitizeCreateResourceServerRequest(req *CreateResourceServerRequest) Creat
 		Identifier:  sysutils.SanitizeString(req.Identifier),
 		Type:        req.Type,
 		OUID:        sysutils.SanitizeString(req.OUID),
+		ProjectID:   sysutils.SanitizeString(req.ProjectID),
 		Delimiter:   sysutils.SanitizeString(req.Delimiter),
 	}
 }
@@ -612,6 +617,7 @@ func sanitizeUpdateResourceServerRequest(req *UpdateResourceServerRequest) Updat
 		Description:         sysutils.SanitizeString(req.Description),
 		Identifier:          sysutils.SanitizeString(req.Identifier),
 		OUID:                sysutils.SanitizeString(req.OUID),
+		ProjectID:           sysutils.SanitizeString(req.ProjectID),
 		AuthorizationEngine: sanitizeAuthorizationEngine(req.AuthorizationEngine),
 	}
 }
@@ -681,6 +687,7 @@ func toResourceServerResponse(rs *providers.ResourceServer) *ResourceServerRespo
 		Identifier:          rs.Identifier,
 		Type:                resType,
 		OUID:                rs.OUID,
+		ProjectID:           rs.ProjectID,
 		Delimiter:           rs.Delimiter,
 		AuthorizationEngine: rs.AuthorizationEngine,
 		IsReadOnly:          rs.IsReadOnly,

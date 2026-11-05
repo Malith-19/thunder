@@ -13,14 +13,14 @@ var (
 	queryCreateResourceServer = dbmodel.DBQuery{
 		ID: "RSQ-RES_MGT-01",
 		Query: `INSERT INTO "RESOURCE_SERVER"
-			(ID, OU_ID, NAME, DESCRIPTION, IDENTIFIER, TYPE, PROPERTIES, DEPLOYMENT_ID)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+			(ID, OU_ID, NAME, DESCRIPTION, IDENTIFIER, TYPE, PROPERTIES, DEPLOYMENT_ID, PROJECT_ID)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
 	}
 
 	// queryGetResourceServerByID retrieves a resource server by ID.
 	queryGetResourceServerByID = dbmodel.DBQuery{
 		ID: "RSQ-RES_MGT-02",
-		Query: `SELECT ID, OU_ID, NAME, DESCRIPTION, IDENTIFIER, TYPE, PROPERTIES
+		Query: `SELECT ID, OU_ID, PROJECT_ID, NAME, DESCRIPTION, IDENTIFIER, TYPE, PROPERTIES
 			FROM "RESOURCE_SERVER"
 			WHERE ID = $1 AND DEPLOYMENT_ID = $2`,
 	}
@@ -28,7 +28,7 @@ var (
 	// queryGetResourceServerList retrieves a list of resource servers with pagination.
 	queryGetResourceServerList = dbmodel.DBQuery{
 		ID: "RSQ-RES_MGT-03",
-		Query: `SELECT ID, OU_ID, NAME, DESCRIPTION, IDENTIFIER, TYPE, PROPERTIES
+		Query: `SELECT ID, OU_ID, PROJECT_ID, NAME, DESCRIPTION, IDENTIFIER, TYPE, PROPERTIES
 			FROM "RESOURCE_SERVER"
 			WHERE DEPLOYMENT_ID = $3
 			ORDER BY CREATED_AT DESC
@@ -41,11 +41,46 @@ var (
 		Query: `SELECT COUNT(*) as total FROM "RESOURCE_SERVER" WHERE DEPLOYMENT_ID = $1`,
 	}
 
+	// queryGetResourceServerListInNoProject lists the resource servers that are in no project.
+	queryGetResourceServerListInNoProject = dbmodel.DBQuery{
+		ID: "RSQ-RES_MGT-41",
+		Query: `SELECT ID, OU_ID, PROJECT_ID, NAME, DESCRIPTION, IDENTIFIER, TYPE, PROPERTIES
+			FROM "RESOURCE_SERVER"
+			WHERE DEPLOYMENT_ID = $3 AND PROJECT_ID IS NULL
+			ORDER BY CREATED_AT DESC
+			LIMIT $1 OFFSET $2`,
+	}
+
+	// queryGetResourceServerListCountInNoProject counts the resource servers that are in no project.
+	queryGetResourceServerListCountInNoProject = dbmodel.DBQuery{
+		ID: "RSQ-RES_MGT-42",
+		Query: `SELECT COUNT(*) as total FROM "RESOURCE_SERVER"
+			WHERE DEPLOYMENT_ID = $1 AND PROJECT_ID IS NULL`,
+	}
+
+	// queryGetResourceServerListByProject lists the resource servers in a project.
+	queryGetResourceServerListByProject = dbmodel.DBQuery{
+		ID: "RSQ-RES_MGT-43",
+		Query: `SELECT ID, OU_ID, PROJECT_ID, NAME, DESCRIPTION, IDENTIFIER, TYPE, PROPERTIES
+			FROM "RESOURCE_SERVER"
+			WHERE DEPLOYMENT_ID = $3 AND PROJECT_ID = $4
+			ORDER BY CREATED_AT DESC
+			LIMIT $1 OFFSET $2`,
+	}
+
+	// queryGetResourceServerListCountByProject counts the resource servers in a project.
+	queryGetResourceServerListCountByProject = dbmodel.DBQuery{
+		ID: "RSQ-RES_MGT-44",
+		Query: `SELECT COUNT(*) as total FROM "RESOURCE_SERVER"
+			WHERE DEPLOYMENT_ID = $1 AND PROJECT_ID = $2`,
+	}
+
 	// queryUpdateResourceServer updates a resource server.
 	queryUpdateResourceServer = dbmodel.DBQuery{
 		ID: "RSQ-RES_MGT-05",
 		Query: `UPDATE "RESOURCE_SERVER"
-			SET OU_ID = $1, NAME = $2, DESCRIPTION = $3, IDENTIFIER = $4, TYPE = $5, PROPERTIES = $6
+			SET OU_ID = $1, NAME = $2, DESCRIPTION = $3, IDENTIFIER = $4, TYPE = $5, PROPERTIES = $6,
+				PROJECT_ID = $9
 			WHERE ID = $7 AND DEPLOYMENT_ID = $8`,
 	}
 
@@ -70,7 +105,7 @@ var (
 	// queryGetResourceServerByIdentifier retrieves a resource server by identifier.
 	queryGetResourceServerByIdentifier = dbmodel.DBQuery{
 		ID: "RSQ-RES_MGT-34",
-		Query: `SELECT ID, OU_ID, NAME, DESCRIPTION, IDENTIFIER, TYPE, PROPERTIES
+		Query: `SELECT ID, OU_ID, PROJECT_ID, NAME, DESCRIPTION, IDENTIFIER, TYPE, PROPERTIES
 			FROM "RESOURCE_SERVER"
 			WHERE IDENTIFIER = $1 AND DEPLOYMENT_ID = $2`,
 	}
