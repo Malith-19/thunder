@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {getInitials} from '@thunderid/components';
-import {useConfig} from '@thunderid/contexts';
+import {useConfig, useProject} from '@thunderid/contexts';
 import {useLogger} from '@thunderid/logger/react';
 import {SignOutButton, User, useThunderID} from '@thunderid/react';
 import {
@@ -45,7 +45,7 @@ import {
 import {useEffect, useMemo, useState, type JSX, type ReactNode} from 'react';
 import {useTranslation} from 'react-i18next';
 import {Link as NavigateLink, Outlet, useLocation, useNavigate} from 'react-router';
-import RouteConfig from '../configs/RouteConfig';
+import RouteConfig, {buildProjectRouteConfig} from '../configs/RouteConfig';
 
 const ICON_BUTTON_SX = {
   minWidth: 40,
@@ -146,7 +146,8 @@ function SidebarPreference({collapsed}: {collapsed: boolean}): null {
 
 export default function DashboardLayout({collapseSidebar = false}: DashboardLayoutProps): ReactNode {
   const {clearSession, discovery} = useThunderID();
-  const {isTrustedIssuerGenericOidc, getTrustedIssuerClientId, getClientUrl} = useConfig();
+  const {config, isTrustedIssuerGenericOidc, getTrustedIssuerClientId, getClientUrl} = useConfig();
+  const project = useProject();
   const {t} = useTranslation();
   const logger = useLogger();
   const navigate = useNavigate();
@@ -185,7 +186,7 @@ export default function DashboardLayout({collapseSidebar = false}: DashboardLayo
     });
   };
 
-  const appRoutes: NavCategory[] = useMemo(
+  const orgRoutes: NavCategory[] = useMemo(
     () => [
       {
         routes: [
@@ -347,6 +348,44 @@ export default function DashboardLayout({collapseSidebar = false}: DashboardLayo
     ],
     [t],
   );
+
+  const hiddenInOrgView: string[] | undefined = config.projects?.hide_in_org_view;
+
+  // The project view offers only the project's resources. The organization view leaves out the
+  // resources the deployment manages through projects.
+  const appRoutes: NavCategory[] = useMemo((): NavCategory[] => {
+    if (project) {
+      const projectRoutes = buildProjectRouteConfig(project.projectHandle);
+
+      return [
+        {
+          category: t('navigation:categories.project', 'Project'),
+          routes: [
+            {
+              id: 'applications',
+              text: t('navigation:pages.applications', 'Applications'),
+              icon: <LayoutGrid />,
+              path: projectRoutes.applications.list(),
+            },
+            {
+              id: 'agents',
+              text: t('navigation:pages.agents', 'Agents'),
+              icon: <Bot />,
+              path: projectRoutes.agents.list(),
+            },
+          ],
+        },
+      ];
+    }
+
+    if (!hiddenInOrgView?.length) {
+      return orgRoutes;
+    }
+
+    return orgRoutes
+      .map((group) => ({...group, routes: group.routes.filter((route) => !hiddenInOrgView.includes(route.id))}))
+      .filter((group) => group.routes.length > 0);
+  }, [project, hiddenInOrgView, orgRoutes, t]);
 
   const {pathname} = useLocation();
 

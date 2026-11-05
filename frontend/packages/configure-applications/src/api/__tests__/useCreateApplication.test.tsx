@@ -1,7 +1,7 @@
 // Copyright 2025 The ThunderID Authors
 // SPDX-License-Identifier: Apache-2.0
 
-import {useConfig, useToast} from '@thunderid/contexts';
+import {useConfig, useProject, useToast} from '@thunderid/contexts';
 import {useThunderID} from '@thunderid/react';
 import {waitFor, act, renderHook} from '@thunderid/test-utils';
 import {describe, it, expect, beforeEach, afterEach, vi} from 'vitest';
@@ -23,6 +23,7 @@ vi.mock('@thunderid/contexts', async (importOriginal) => {
   return {
     ...actual,
     useConfig: vi.fn(),
+    useProject: vi.fn(),
     useToast: vi.fn(),
   };
 });
@@ -148,6 +149,8 @@ describe('useCreateApplication', () => {
     vi.mocked(useToast).mockReturnValue({
       showToast: mockShowToast,
     } as unknown as ReturnType<typeof useToast>);
+
+    vi.mocked(useProject).mockReturnValue(undefined);
   });
 
   afterEach(() => {
@@ -194,6 +197,44 @@ describe('useCreateApplication', () => {
     });
 
     expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'success');
+  });
+
+  it('should create the application in the project in scope', async () => {
+    vi.mocked(useProject).mockReturnValue({projectId: 'project-1', projectHandle: 'billing'});
+    mockHttpRequest.mockResolvedValueOnce({
+      data: mockApplication,
+    });
+
+    const {result} = renderHook(() => useCreateApplication());
+
+    result.current.mutate(mockRequest);
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockHttpRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://localhost:8090/applications',
+        data: {...mockRequest, projectId: 'project-1'},
+      }),
+    );
+  });
+
+  it('should send the request unchanged in the organization view', async () => {
+    mockHttpRequest.mockResolvedValueOnce({
+      data: mockApplication,
+    });
+
+    const {result} = renderHook(() => useCreateApplication());
+
+    result.current.mutate(mockRequest);
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockHttpRequest).toHaveBeenCalledWith(expect.objectContaining({data: mockRequest}));
   });
 
   it('should set pending state during creation', async () => {

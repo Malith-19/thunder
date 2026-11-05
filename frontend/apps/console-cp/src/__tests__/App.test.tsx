@@ -2,8 +2,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {render, screen, waitFor} from '@testing-library/react';
-import {afterEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import App from '../App';
+
+const mockUseConfig = vi.fn();
+
+vi.mock('../api/useGetAllProjects', () => ({
+  default: () => ({
+    data: [{id: 'project-1', handle: 'billing', displayName: 'Billing'}],
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+}));
 
 vi.mock('@thunderid/react-router', () => ({
   ProtectedRoute: ({children}: {children: React.ReactNode}) => <div data-testid="protected-route">{children}</div>,
@@ -40,6 +51,7 @@ vi.mock('@thunderid/configure-gateways', () => ({
 
 vi.mock('@thunderid/contexts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@thunderid/contexts')>()),
+  useConfig: () => mockUseConfig() as unknown,
   AdministrationProvider: ({
     administration,
     children,
@@ -160,6 +172,10 @@ vi.mock('../layouts/FullScreenLayout', async () => {
 });
 
 describe('App', () => {
+  beforeEach(() => {
+    mockUseConfig.mockReturnValue({config: {}});
+  });
+
   afterEach(() => {
     window.history.pushState({}, '', '/');
   });
@@ -509,6 +525,51 @@ describe('App', () => {
     render(<App />);
     await waitFor(() => {
       expect(screen.getByTestId('agent-onboard-page')).toBeInTheDocument();
+    });
+  });
+
+  it('loads the project view of applications at /projects/:projectHandle/applications', async () => {
+    mockUseConfig.mockReturnValue({config: {projects: {enabled: true}}});
+    window.history.pushState({}, '', '/projects/billing/applications');
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId('applications-list-page')).toBeInTheDocument();
+    });
+  });
+
+  it('loads the project view of agents at /projects/:projectHandle/agents/:agentId', async () => {
+    mockUseConfig.mockReturnValue({config: {projects: {enabled: true}}});
+    window.history.pushState({}, '', '/projects/billing/agents/agent-123');
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId('agent-edit-page')).toBeInTheDocument();
+    });
+  });
+
+  it('loads the project application wizard at /projects/:projectHandle/applications/create', async () => {
+    mockUseConfig.mockReturnValue({config: {projects: {enabled: true}}});
+    window.history.pushState({}, '', '/projects/billing/applications/create');
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId('application-create-page')).toBeInTheDocument();
+    });
+  });
+
+  it('opens a project on its applications', async () => {
+    mockUseConfig.mockReturnValue({config: {projects: {enabled: true}}});
+    window.history.pushState({}, '', '/projects/billing');
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId('applications-list-page')).toBeInTheDocument();
+    });
+    expect(window.location.pathname).toBe('/projects/billing/applications');
+  });
+
+  it('does not mount the project view unless projects are enabled', async () => {
+    window.history.pushState({}, '', '/projects/billing/applications');
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.queryByTestId('applications-list-page')).not.toBeInTheDocument();
     });
   });
 });

@@ -23,6 +23,7 @@ import {Link, useLocation, useNavigate, useSearchParams} from 'react-router';
 import PlatformBasedApplicationTemplateMetadata from '../config/PlatformBasedApplicationTemplateMetadata';
 import TechnologyBasedApplicationTemplateMetadata from '../config/TechnologyBasedApplicationTemplateMetadata';
 import useApplicationCreate from '../contexts/ApplicationCreate/useApplicationCreate';
+import useApplicationRoutes from '../hooks/useApplicationRoutes';
 import type {ApplicationTemplateMetadata, TemplateCategory} from '../models/application-templates';
 import {PlatformApplicationTemplate, TechnologyApplicationTemplate} from '../models/application-templates';
 import resolveCreationFlow from '../utils/resolveCreationFlow';
@@ -62,6 +63,7 @@ const TECHNOLOGY_VALUES = new Set<string>(TechnologyBasedApplicationTemplateMeta
 export default function ApplicationTemplateSelectPage(): JSX.Element {
   const {t} = useTranslation();
   const navigate = useNavigate();
+  const routes = useApplicationRoutes();
   const {pathname} = useLocation();
   const [searchParams] = useSearchParams();
   const logger = useLogger('ApplicationTemplateSelectPage');
@@ -116,7 +118,7 @@ export default function ApplicationTemplateSelectPage(): JSX.Element {
       setCurrentStep(firstStep);
     }
 
-    const wizardPath = isWelcomeFlow ? '/welcome/get-started/applications/create' : '/applications/create';
+    const wizardPath = isWelcomeFlow ? '/welcome/get-started/applications/create' : routes.applications.create();
 
     (async () => {
       await navigate(`${wizardPath}?type=${option.value}`, {replace});
@@ -161,7 +163,9 @@ export default function ApplicationTemplateSelectPage(): JSX.Element {
     <PageContent>
       <DocumentTitle title={pageTitle} />
       <PageTitle>
-        <PageTitle.BackButton component={<Link to={isWelcomeFlow ? '/welcome/get-started' : '/applications'} />}>
+        <PageTitle.BackButton
+          component={<Link to={isWelcomeFlow ? '/welcome/get-started' : routes.applications.list()} />}
+        >
           {isWelcomeFlow ? t('common:welcome.getStarted.breadcrumb') : t('applications:edit.page.back')}
         </PageTitle.BackButton>
         <PageTitle.Header>{t('applications:onboarding.configure.stack.title', 'Choose a type')}</PageTitle.Header>

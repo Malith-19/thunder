@@ -1,6 +1,7 @@
 // Copyright 2026 The ThunderID Authors
 // SPDX-License-Identifier: Apache-2.0
 
+import {ProjectProvider, type ProjectsConfig} from '@thunderid/contexts';
 import {render, screen, userEvent, waitFor} from '@thunderid/test-utils';
 import {afterEach, describe, it, expect, vi, beforeEach} from 'vitest';
 import DashboardLayout from '../DashboardLayout';
@@ -26,6 +27,7 @@ interface MockUseGetApplicationsResult {
 const mockUseGetApplications = vi.fn<(params: unknown) => MockUseGetApplicationsResult>();
 let mockDiscovery: {wellKnown?: {end_session_endpoint?: string}} | undefined;
 let mockIsTrustedIssuerGenericOidc = false;
+let mockProjectsConfig: ProjectsConfig | undefined;
 
 vi.mock('@thunderid/configure-applications', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@thunderid/configure-applications')>()),
@@ -56,6 +58,7 @@ vi.mock('@thunderid/contexts', async (importOriginal) => {
           favicon: {light: 'assets/images/favicon.ico', dark: 'assets/images/favicon-inverted.ico'},
         },
         client: {client_id: 'CONSOLE'},
+        projects: mockProjectsConfig,
       },
       isTrustedIssuerGenericOidc: () => mockIsTrustedIssuerGenericOidc,
       getTrustedIssuerClientId: () => 'test-client-id',
@@ -102,6 +105,7 @@ describe('DashboardLayout', () => {
     sessionStorage.clear();
     mockUserData.mockReturnValue({name: 'Test User', email: 'test@example.com'});
     mockIsTrustedIssuerGenericOidc = false;
+    mockProjectsConfig = undefined;
     mockDiscovery = undefined;
     mockUseGetApplications.mockReturnValue({
       data: {applications: []},
@@ -165,6 +169,40 @@ describe('DashboardLayout', () => {
       expect(icon).toHaveAttribute('width', applicationIcon?.getAttribute('width'));
       expect(icon).toHaveAttribute('height', applicationIcon?.getAttribute('height'));
     });
+  });
+
+  it('offers only the project resources in the project view', () => {
+    render(
+      <ProjectProvider project={{projectId: 'project-1', projectHandle: 'billing'}}>
+        <DashboardLayout />
+      </ProjectProvider>,
+    );
+
+    expect(screen.getByText('navigation:categories.project')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'navigation:pages.applications'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'navigation:pages.agents'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'navigation:pages.applications'})).toHaveAttribute(
+      'href',
+      '/projects/billing/applications',
+    );
+    expect(screen.getByRole('link', {name: 'navigation:pages.agents'})).toHaveAttribute(
+      'href',
+      '/projects/billing/agents',
+    );
+    expect(screen.queryByText('navigation:pages.users')).not.toBeInTheDocument();
+    expect(screen.queryByText('navigation:categories.resources')).not.toBeInTheDocument();
+  });
+
+  it('leaves out the resources hidden in the organization view', () => {
+    mockProjectsConfig = {enabled: true, hide_in_org_view: ['applications', 'agents']};
+
+    render(<DashboardLayout />);
+
+    expect(screen.queryByText('navigation:pages.applications')).not.toBeInTheDocument();
+    expect(screen.queryByText('navigation:pages.agents')).not.toBeInTheDocument();
+    expect(screen.getByText('navigation:pages.resourceServers')).toBeInTheDocument();
+    expect(screen.getByText('navigation:pages.users')).toBeInTheDocument();
+    expect(screen.queryByText('navigation:categories.project')).not.toBeInTheDocument();
   });
 
   it('renders footer', () => {

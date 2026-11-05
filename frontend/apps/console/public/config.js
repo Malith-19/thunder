@@ -89,6 +89,14 @@ window.__THUNDERID_RUNTIME_CONFIG__ = {
   //   enabled: false,
   // },
 
+  // Optional: the control plane console serves a project view of applications and agents under
+  // /projects/{projectHandle}, for a host that opens it on one project. hide_in_org_view leaves those
+  // resources out of the organization view's navigation. Defaults to no project view when omitted.
+  projects: {
+    enabled: true,
+    hide_in_org_view: ['applications', 'agents'],
+  },
+
   // Optional: location of the login gate, used to build the OAuth redirect URI shown when
   // configuring social/OIDC connections. Omit to default to `${served origin}/gate/callback`.
   // gate_client: {

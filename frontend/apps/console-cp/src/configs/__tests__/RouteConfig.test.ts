@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {describe, it, expect} from 'vitest';
-import RouteConfig, {ROUTE_SEGMENTS} from '../RouteConfig';
+import RouteConfig, {buildProjectRouteConfig, ROUTE_SEGMENTS} from '../RouteConfig';
 
 describe('RouteConfig', () => {
   it('gateways builds paths from the segment', () => {
@@ -153,5 +153,36 @@ describe('RouteConfig', () => {
     expect(RouteConfig.organizationUnits.list()).toBe(`/${ROUTE_SEGMENTS.organizationUnits}`);
     expect(RouteConfig.users.list()).toBe(`/${ROUTE_SEGMENTS.users}`);
     expect(RouteConfig.welcome.root()).toBe(`/${ROUTE_SEGMENTS.welcome}`);
+  });
+});
+
+describe('buildProjectRouteConfig', () => {
+  it('puts the applications paths under the project', () => {
+    const routes = buildProjectRouteConfig('project-1');
+
+    expect(routes.applications.list()).toBe('/projects/project-1/applications');
+    expect(routes.applications.detail('app-1')).toBe('/projects/project-1/applications/app-1');
+    expect(routes.applications.types()).toBe('/projects/project-1/applications/types');
+    expect(routes.applications.create()).toBe('/projects/project-1/applications/create');
+  });
+
+  it('puts the agents paths under the project', () => {
+    const routes = buildProjectRouteConfig('project-1');
+
+    expect(routes.agents.list()).toBe('/projects/project-1/agents');
+    expect(routes.agents.detail('agent-1')).toBe('/projects/project-1/agents/agent-1');
+    expect(routes.agents.create()).toBe('/projects/project-1/agents/create');
+  });
+
+  it('keeps every other path in the organization view', () => {
+    const routes = buildProjectRouteConfig('project-1');
+
+    expect(routes.users.list()).toBe(RouteConfig.users.list());
+    expect(routes.flows.detail('flow-1')).toBe(RouteConfig.flows.detail('flow-1'));
+    expect(routes.home.list()).toBe(RouteConfig.home.list());
+  });
+
+  it('encodes the project ID in the path', () => {
+    expect(buildProjectRouteConfig('a/b').applications.list()).toBe('/projects/a%2Fb/applications');
   });
 });

@@ -21,7 +21,7 @@ import {
 } from '@thunderid/configure-organization-units';
 import {isRowEmpty, useGetCorsConfig, useUpdateCorsConfig} from '@thunderid/configure-settings';
 import {useGetUserTypes} from '@thunderid/configure-user-types';
-import {useToast} from '@thunderid/contexts';
+import {useProject, useToast} from '@thunderid/contexts';
 import {DefaultTheme, useGetTheme, type Theme} from '@thunderid/design';
 import {useTemplateLiteralResolver} from '@thunderid/hooks';
 import {useLogger} from '@thunderid/logger/react';
@@ -171,14 +171,19 @@ export default function ApplicationCreatePage(): JSX.Element {
   const {data: corsConfigData} = useGetCorsConfig();
   const updateCorsConfig = useUpdateCorsConfig();
   const {hasMultipleOUs, isLoading: isOuLoading, ouList} = useHasMultipleOUs();
+  // An application created in a project is placed by the project, so there is no organization unit
+  // to choose and none to wait for.
+  const project = useProject();
+  const offersOuChoice = hasMultipleOUs && !project;
+  const isOuChoiceLoading = isOuLoading && !project;
 
   const handleBackToTemplates = (): void => {
-    void navigate(isWelcomeFlow ? '/welcome/get-started/applications/types' : '/applications/types');
+    void navigate(isWelcomeFlow ? '/welcome/get-started/applications/types' : routes.applications.types());
   };
 
   // The organization unit whose defaults are offered on the Details step: the picked one when
   // there are multiple, or the deployment's sole one otherwise.
-  const resolvedOuId: string | undefined = hasMultipleOUs ? ouId || undefined : ouList[0]?.id;
+  const resolvedOuId: string | undefined = project ? undefined : hasMultipleOUs ? ouId || undefined : ouList[0]?.id;
   const {data: resolvedOrganizationUnit} = useGetOrganizationUnit(resolvedOuId, Boolean(resolvedOuId));
 
   // When the Details step snapshots the organization unit's theme, the preview should reflect
@@ -349,8 +354,8 @@ export default function ApplicationCreatePage(): JSX.Element {
   // wizard is reached directly (e.g. a bookmarked URL) with no template, send the user back to it.
   useEffect((): void => {
     if (selectedTemplateConfig) return;
-    void navigate(isWelcomeFlow ? '/welcome/get-started/applications/types' : '/applications/types');
-  }, [selectedTemplateConfig, isWelcomeFlow, navigate]);
+    void navigate(isWelcomeFlow ? '/welcome/get-started/applications/types' : routes.applications.types());
+  }, [selectedTemplateConfig, isWelcomeFlow, navigate, routes.applications]);
 
   // Derive the OAuth config from the selected template's defaults, mirroring what the removed
   // in-wizard template step used to seed on mount.
@@ -413,10 +418,10 @@ export default function ApplicationCreatePage(): JSX.Element {
   // The organization unit is the wizard's first step whenever there's a choice to make. Single-OU
   // deployments never need it, so once that's known, skip straight past it.
   useEffect((): void => {
-    if (isOuLoading || hasMultipleOUs || currentStep !== ApplicationCreateFlowStep.ORGANIZATION_UNIT) return;
+    if (isOuChoiceLoading || offersOuChoice || currentStep !== ApplicationCreateFlowStep.ORGANIZATION_UNIT) return;
     const next = creationFlow.steps[creationFlow.steps.indexOf(ApplicationCreateFlowStep.ORGANIZATION_UNIT) + 1];
     if (next) setCurrentStep(next);
-  }, [isOuLoading, hasMultipleOUs, currentStep, creationFlow, setCurrentStep]);
+  }, [isOuChoiceLoading, offersOuChoice, currentStep, creationFlow, setCurrentStep]);
 
   // The canonical application type, resolved once from the template, falling back to the OAuth
   // profile for legacy/custom templates without an explicit type.
@@ -508,7 +513,7 @@ export default function ApplicationCreatePage(): JSX.Element {
   const visibleSteps = useMemo((): ApplicationCreateFlowStep[] => {
     return creationFlow.steps.filter((step) => {
       // Single-OU deployments have no organization unit choice to make.
-      if (step === ApplicationCreateFlowStep.ORGANIZATION_UNIT) return hasMultipleOUs;
+      if (step === ApplicationCreateFlowStep.ORGANIZATION_UNIT) return offersOuChoice;
       if (step === ApplicationCreateFlowStep.CONFIGURE) return showConfigureStep;
       // A metadata document already fixes the client type and redirect URIs.
       if (step === ApplicationCreateFlowStep.CLIENT_TYPE) return !isMcpCimdRegistration;
@@ -539,7 +544,7 @@ export default function ApplicationCreatePage(): JSX.Element {
     });
   }, [
     creationFlow,
-    hasMultipleOUs,
+    offersOuChoice,
     showConfigureStep,
     showApproachSection,
     isWalletTemplate,
@@ -549,7 +554,7 @@ export default function ApplicationCreatePage(): JSX.Element {
   ]);
 
   const handleClose = (): void => {
-    void navigate(isWelcomeFlow ? '/home' : '/applications');
+    void navigate(isWelcomeFlow ? '/home' : routes.applications.list());
   };
 
   const handleLogoSelect = (logoUrl: string): void => {
@@ -649,7 +654,7 @@ export default function ApplicationCreatePage(): JSX.Element {
       return undefined;
     })();
 
-    const effectiveOuId = hasMultipleOUs ? ouId : ouList[0]?.id;
+    const effectiveOuId = project ? undefined : hasMultipleOUs ? ouId : ouList[0]?.id;
 
     const templateId = selectedTemplateConfig?.id;
     const finalTemplateId =
@@ -1013,7 +1018,7 @@ export default function ApplicationCreatePage(): JSX.Element {
       case ApplicationCreateFlowStep.DETAILS:
         return (
           <ConfigureApplicationDetails
-            hasMultipleOUs={hasMultipleOUs}
+            hasMultipleOUs={offersOuChoice}
             selectedOuId={ouId}
             onChangeOu={() => setCurrentStep(ApplicationCreateFlowStep.ORGANIZATION_UNIT)}
             resolvedOuId={resolvedOuId}
@@ -1188,7 +1193,7 @@ export default function ApplicationCreatePage(): JSX.Element {
   const pageTitle = t('applications:listing.addApplication', 'Add application');
 
   if (currentStep === ApplicationCreateFlowStep.ORGANIZATION_UNIT) {
-    if (isOuLoading || !hasMultipleOUs) {
+    if (isOuChoiceLoading || !offersOuChoice) {
       return (
         <Box sx={{minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
           <DocumentTitle title={pageTitle} />

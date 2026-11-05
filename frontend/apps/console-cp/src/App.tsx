@@ -16,11 +16,13 @@ import {
   AdministrationProvider,
   RoutesProvider,
   ToastProvider,
+  useConfig,
   type AdministrationConfig,
 } from '@thunderid/contexts';
 import {ProtectedRoute} from '@thunderid/react-router';
 import {lazy, Suspense, type JSX} from 'react';
 import {BrowserRouter, Navigate, Outlet, Route, Routes} from 'react-router';
+import ProjectScope from './components/ProjectScope';
 import RouteConfig, {ROUTE_SEGMENTS} from './configs/RouteConfig';
 import DashboardLayout from './layouts/DashboardLayout';
 import FullScreenLayout from './layouts/FullScreenLayout';
@@ -205,6 +207,8 @@ const CONTROL_PLANE_ADMINISTRATION: AdministrationConfig = {mode: Administration
  * plane does not run.
  */
 export default function App(): JSX.Element {
+  const {config} = useConfig();
+
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <RoutesProvider paths={RouteConfig}>
@@ -392,6 +396,41 @@ export default function App(): JSX.Element {
                 >
                   <Route index element={<AgentOnboardPage />} />
                 </Route>
+                {config.projects?.enabled && (
+                  <Route
+                    path={`${ROUTE_SEGMENTS.projects}/:projectHandle`}
+                    element={
+                      <ProtectedRoute>
+                        <ProjectScope />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route element={<DashboardLayout />}>
+                      <Route index element={<Navigate to={ROUTE_SEGMENTS.applications} replace />} />
+                      <Route path={ROUTE_SEGMENTS.applications} element={<ApplicationsListPage />} />
+                      <Route path={`${ROUTE_SEGMENTS.applications}/:applicationId`} element={<ApplicationEditPage />} />
+                      <Route path={ROUTE_SEGMENTS.agents} element={<AgentsListPage />} />
+                      <Route path={`${ROUTE_SEGMENTS.agents}/:agentId`} element={<AgentEditPage />} />
+                    </Route>
+                    <Route
+                      element={
+                        <ApplicationCreateProvider>
+                          <Outlet />
+                        </ApplicationCreateProvider>
+                      }
+                    >
+                      <Route path={`${ROUTE_SEGMENTS.applications}/types`} element={<DashboardLayout />}>
+                        <Route index element={<ApplicationTemplateSelectPage />} />
+                      </Route>
+                      <Route path={`${ROUTE_SEGMENTS.applications}/create`} element={<FullScreenLayout />}>
+                        <Route index element={<ApplicationCreatePage />} />
+                      </Route>
+                    </Route>
+                    <Route path={`${ROUTE_SEGMENTS.agents}/create`} element={<FullScreenLayout />}>
+                      <Route index element={<AgentOnboardPage />} />
+                    </Route>
+                  </Route>
+                )}
                 <Route
                   path={RouteConfig.resourceServers.create()}
                   element={

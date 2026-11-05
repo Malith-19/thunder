@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {useMutation, useQueryClient, type UseMutationResult} from '@tanstack/react-query';
-import {useConfig, useToast} from '@thunderid/contexts';
+import {useConfig, useProject, useToast} from '@thunderid/contexts';
 import {useThunderID} from '@thunderid/react';
 import {useTranslation} from 'react-i18next';
 import ApplicationQueryKeys from '../constants/application-query-keys';
@@ -48,6 +48,7 @@ import type {CreateApplicationRequest} from '../models/requests';
 export default function useCreateApplication(): UseMutationResult<Application, Error, CreateApplicationRequest> {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
+  const projectId = useProject()?.projectId;
   const queryClient: ReturnType<typeof useQueryClient> = useQueryClient();
   const {t} = useTranslation('applications');
   const {showToast} = useToast();
@@ -63,7 +64,7 @@ export default function useCreateApplication(): UseMutationResult<Application, E
         headers: {
           'Content-Type': 'application/json',
         },
-        data: applicationData,
+        data: projectId ? {...applicationData, projectId} : applicationData,
       } as unknown as Parameters<typeof http.request>[0]);
 
       return response.data;

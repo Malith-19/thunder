@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {useMutation, useQueryClient, type UseMutationResult} from '@tanstack/react-query';
-import {useConfig, useToast} from '@thunderid/contexts';
+import {useConfig, useProject, useToast} from '@thunderid/contexts';
 import {useThunderID} from '@thunderid/react';
 import {useTranslation} from 'react-i18next';
 import AgentQueryKeys from '../constants/agent-query-keys';
@@ -14,6 +14,7 @@ import type {Agent, CreateAgentRequest} from '../models/agent';
 export default function useCreateAgent(): UseMutationResult<Agent, Error, CreateAgentRequest> {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
+  const projectId = useProject()?.projectId;
   const queryClient = useQueryClient();
   const {t} = useTranslation('agents');
   const {showToast} = useToast();
@@ -24,7 +25,7 @@ export default function useCreateAgent(): UseMutationResult<Agent, Error, Create
         url: `${getServerUrl()}/agents`,
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        data,
+        data: projectId ? {...data, projectId} : data,
       } as unknown as Parameters<typeof http.request>[0]);
 
       return response.data;

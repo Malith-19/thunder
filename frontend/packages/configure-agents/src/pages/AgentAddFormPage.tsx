@@ -5,6 +5,7 @@ import {DocumentTitle, FullScreenCreationWizardLayout, QueryErrorNotice} from '@
 import {useGetAgentType, useGetAgentTypes, type AgentTypeListItem} from '@thunderid/configure-agent-types';
 import {OrganizationUnitTreePicker} from '@thunderid/configure-organization-units';
 import {renderSchemaField, useGetUsers} from '@thunderid/configure-users';
+import {useProject} from '@thunderid/contexts';
 import {useResolveDisplayName} from '@thunderid/hooks';
 import {getErrorMessage} from '@thunderid/utils';
 import {
@@ -57,6 +58,8 @@ export default function AgentAddFormPage(): JSX.Element {
   const {pathname} = useLocation();
   const {resolveDisplayName} = useResolveDisplayName({handlers: {t}});
   const createAgent = useCreateAgent();
+  // An agent created in a project is placed by the project, so there is no organization unit to choose.
+  const project = useProject();
 
   const isWelcomeFlow = pathname.startsWith(routes.welcome.getStarted());
 
@@ -112,7 +115,7 @@ export default function AgentAddFormPage(): JSX.Element {
     );
     const trimmedDescription = description.trim();
     const request: CreateAgentRequest = {
-      ouId,
+      ...(project ? {} : {ouId}),
       type: selectedType?.handle ?? '',
       ...(ownerId ? {owner: ownerId} : {}),
       ...(trimmedDescription ? {description: trimmedDescription} : {}),
@@ -215,7 +218,7 @@ export default function AgentAddFormPage(): JSX.Element {
               </Select>
             </FormControl>
 
-            {selectedType && (
+            {selectedType && !project && (
               <FormControl fullWidth required>
                 <FormLabel htmlFor="agent-ou">{t('agents:addForm.organizationUnit')}</FormLabel>
                 {/* An agent of a type belongs to the type's organization unit or one beneath it. */}
@@ -302,7 +305,7 @@ export default function AgentAddFormPage(): JSX.Element {
               <Button
                 type="submit"
                 variant="contained"
-                disabled={!selectedType || !ouId || !agentType || createAgent.isPending}
+                disabled={!selectedType || (!project && !ouId) || !agentType || createAgent.isPending}
               >
                 {createAgent.isPending ? t('agents:addForm.creating') : t('agents:addForm.submit')}
               </Button>

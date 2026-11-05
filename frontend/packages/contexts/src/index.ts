@@ -2,7 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Export types
-export type {ProductConfig, ServerConfig, TrustedIssuerConfig, BrandConfig, SdkConfig} from './Config/types';
+export type {
+  ProductConfig,
+  ServerConfig,
+  TrustedIssuerConfig,
+  BrandConfig,
+  SdkConfig,
+  ProjectsConfig,
+  ProjectScopedResource,
+} from './Config/types';
 export type {ToastContextType, ToastSeverity} from './Toast/ToastContext';
 export type {RoutePaths} from './Routes/RoutesContext';
 export type {
@@ -12,6 +20,7 @@ export type {
 } from './Administration/AdministrationContext';
 export type {AdministrationMode} from './Administration/constants';
 export type {RuntimeContextType} from './Runtime/RuntimeContext';
+export type {ProjectContextType} from './Project/ProjectContext';
 
 // Export React components and hooks
 export {default as ConfigContext, type ConfigContextType} from './Config/ConfigContext';
@@ -38,3 +47,6 @@ export {
 export {default as RuntimeContext} from './Runtime/RuntimeContext';
 export {default as RuntimeProvider, type RuntimeProviderProps} from './Runtime/RuntimeProvider';
 export {default as useRuntimeUrl} from './Runtime/useRuntimeUrl';
+export {default as ProjectContext} from './Project/ProjectContext';
+export {default as ProjectProvider, type ProjectProviderProps} from './Project/ProjectProvider';
+export {default as useProject} from './Project/useProject';

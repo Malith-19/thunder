@@ -103,6 +103,7 @@ export const ROUTE_SEGMENTS = {
   settings: 'settings',
   gateways: 'gateways',
   deploy: 'deploy',
+  projects: 'projects',
 } as const;
 
 const RouteConfig: RouteConfig = {
@@ -230,5 +231,31 @@ const RouteConfig: RouteConfig = {
     values: (gatewayId: string) => `/${ROUTE_SEGMENTS.deploy}/gateways/${encodeURIComponent(gatewayId)}/values`,
   },
 };
+
+/**
+ * Builds the route configuration of the project view: the applications and agents paths sit
+ * under `/projects/{projectHandle}`, and every other path stays in the organization view.
+ *
+ * @param projectHandle - Handle of the project in scope
+ * @returns The route configuration to supply to descendants of the project view
+ */
+export function buildProjectRouteConfig(projectHandle: string): RouteConfig {
+  const prefix = `/${ROUTE_SEGMENTS.projects}/${encodeURIComponent(projectHandle)}`;
+
+  return {
+    ...RouteConfig,
+    applications: {
+      list: () => `${prefix}${RouteConfig.applications.list()}`,
+      detail: (id) => `${prefix}${RouteConfig.applications.detail(id)}`,
+      types: () => `${prefix}${RouteConfig.applications.types()}`,
+      create: () => `${prefix}${RouteConfig.applications.create()}`,
+    },
+    agents: {
+      list: () => `${prefix}${RouteConfig.agents.list()}`,
+      detail: (id) => `${prefix}${RouteConfig.agents.detail(id)}`,
+      create: () => `${prefix}${RouteConfig.agents.create()}`,
+    },
+  };
+}
 
 export default RouteConfig;

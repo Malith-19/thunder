@@ -1,7 +1,7 @@
 // Copyright 2025 The ThunderID Authors
 // SPDX-License-Identifier: Apache-2.0
 
-import {useConfig} from '@thunderid/contexts';
+import {useConfig, useProject} from '@thunderid/contexts';
 import {waitFor, renderHook} from '@thunderid/test-utils';
 import {describe, it, expect, beforeEach, afterEach, vi} from 'vitest';
 import ApplicationQueryKeys from '../../constants/application-query-keys';
@@ -21,6 +21,7 @@ vi.mock('@thunderid/contexts', async (importOriginal) => {
   return {
     ...actual,
     useConfig: vi.fn(),
+    useProject: vi.fn(),
   };
 });
 
@@ -54,6 +55,7 @@ describe('useGetApplications', () => {
 
   beforeEach(() => {
     mockHttpRequest.mockReset();
+    vi.mocked(useProject).mockReturnValue(undefined);
     mockGetServerUrl = vi.fn().mockReturnValue('https://api.test.com');
 
     vi.mocked(useConfig).mockReturnValue({
@@ -208,6 +210,44 @@ describe('useGetApplications', () => {
     const callArgs = mockHttpRequest.mock.calls[0][0];
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     expect(callArgs.url).toContain('filter=ouId+eq+%22ou-1%22');
+  });
+
+  it('should list only the applications of the project in scope', async () => {
+    vi.mocked(useProject).mockReturnValue({projectId: 'project-1', projectHandle: 'billing'});
+    mockHttpRequest.mockResolvedValueOnce({
+      data: mockApplicationListResponse,
+    });
+
+    const {result, queryClient} = renderHook(() => useGetApplications());
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const callArgs = mockHttpRequest.mock.calls[0][0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    expect(callArgs.url).toBe('https://api.test.com/applications?limit=30&offset=0&projectId=project-1');
+    expect(
+      queryClient.getQueryCache().findAll({queryKey: [ApplicationQueryKeys.APPLICATIONS, {projectId: 'project-1'}]}),
+    ).toHaveLength(1);
+  });
+
+  it('should not filter by project in the organization view', async () => {
+    mockHttpRequest.mockResolvedValueOnce({
+      data: mockApplicationListResponse,
+    });
+
+    renderHook(() => useGetApplications());
+
+    await waitFor(() => {
+      expect(mockHttpRequest).toHaveBeenCalledTimes(1);
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const callArgs = mockHttpRequest.mock.calls[0][0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    expect(callArgs.url).not.toContain('projectId');
   });
 
   it('should use correct query key with pagination params', async () => {

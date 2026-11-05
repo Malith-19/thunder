@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import userEvent from '@testing-library/user-event';
+import {ProjectProvider} from '@thunderid/contexts';
 import type {Theme} from '@thunderid/design';
 import {fireEvent, render, screen, waitFor, within} from '@thunderid/test-utils';
 import type {JSX} from 'react';
@@ -924,6 +925,57 @@ describe('ApplicationCreatePage', () => {
       // Back from a reopened ("Change") picker cancels the change instead of leaving the wizard.
       expect(mockNavigate).toHaveBeenCalledTimes(navigateCallCountBeforeBack);
       expect(screen.getByTestId('application-configure-name')).toBeInTheDocument();
+    });
+  });
+
+  describe('Project view', () => {
+    const renderInProject = () =>
+      render(
+        <ProjectProvider project={{projectId: 'project-1', projectHandle: 'billing'}}>
+          <ApplicationCreateProvider>
+            <ApplicationCreatePage />
+            <TemplateSeeder />
+          </ApplicationCreateProvider>
+        </ProjectProvider>,
+      );
+
+    beforeEach(() => {
+      mockUseHasMultipleOUs.mockReturnValue({
+        hasMultipleOUs: true,
+        isLoading: false,
+        ouList: [
+          {id: 'ou-1', name: 'Default'},
+          {id: 'ou-2', name: 'Engineering'},
+        ],
+      });
+    });
+
+    it('does not ask for an organization unit', () => {
+      renderInProject();
+
+      expect(screen.queryByTestId('ou-picker-screen')).not.toBeInTheDocument();
+      expect(screen.getByTestId('application-configure-name')).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Change'})).not.toBeInTheDocument();
+    });
+
+    it('creates the application without an organization unit', async () => {
+      mockCreateApplication.mockImplementation((_data, {onSuccess}: {onSuccess: (app: Application) => void}) => {
+        onSuccess({id: 'app-123', name: 'My App'} as Application);
+      });
+
+      renderInProject();
+
+      await goToDesignStep();
+      await user.click(screen.getByRole('button', {name: /continue/i}));
+      await waitFor(() => {
+        expect(screen.getByTestId('application-configure-details')).toBeInTheDocument();
+      });
+      await user.click(screen.getByTestId('application-wizard-next-button'));
+
+      await waitFor(() => {
+        expect(mockCreateApplication).toHaveBeenCalled();
+      });
+      expect(mockCreateApplication.mock.calls[0][0]).not.toHaveProperty('ouId');
     });
   });
 

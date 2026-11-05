@@ -101,7 +101,7 @@ export interface AgentListResponse {
 }
 
 export interface CreateAgentRequest {
-  ouId: string;
+  ouId?: string;
   type: string;
   description?: string;
   logoUrl?: string;

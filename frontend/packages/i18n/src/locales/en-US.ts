@@ -802,6 +802,9 @@ const translations = {
   navigation: {
     'categories.identities': 'Identities',
     'categories.resources': 'Resources',
+    'categories.project': 'Project',
+    'project.notFound': 'Project not found',
+    'project.loadError': 'Failed to load the project',
     'categories.configure': 'Configure',
     'categories.customize': 'Customize',
     'categories.system': 'System',

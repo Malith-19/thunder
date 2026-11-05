@@ -279,6 +279,33 @@ export interface DirectApiConfig {
 }
 
 /**
+ * A resource the console can manage within a project.
+ *
+ * @public
+ */
+export type ProjectScopedResource = 'applications' | 'agents';
+
+/**
+ * Projects configuration. Lets a host that manages projects itself open the console scoped to one
+ * project, without the console offering a way to pick one.
+ *
+ * @public
+ */
+export interface ProjectsConfig {
+  /**
+   * Whether the console mounts its project-scoped routes (`/projects/{projectHandle}/...`). Defaults
+   * to false when omitted.
+   */
+  enabled?: boolean;
+
+  /**
+   * Resources whose navigation entries are left out of the organization view, so they are reached
+   * only through a project.
+   */
+  hide_in_org_view?: ProjectScopedResource[];
+}
+
+/**
  * Runtime overrides for the ThunderID SDK provider (ThunderIDProvider props).
  *
  * Accepts any valid ThunderIDProvider prop. Values are deep-merged on top of
@@ -330,6 +357,12 @@ export interface ProductConfig {
    * hidden in the UI.
    */
   direct_api?: DirectApiConfig;
+
+  /**
+   * Optional projects configuration. When `enabled` is true, the console serves a project view
+   * of applications and agents under `/projects/{projectHandle}`.
+   */
+  projects?: ProjectsConfig;
 
   /** Optional design configuration for theming and UI customization */
   design?: DesignConfig;

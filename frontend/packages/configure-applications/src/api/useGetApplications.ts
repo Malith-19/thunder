@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {useQuery, type UseQueryResult} from '@tanstack/react-query';
-import {useConfig} from '@thunderid/contexts';
+import {useConfig, useProject} from '@thunderid/contexts';
 import {useThunderID} from '@thunderid/react';
 import ApplicationQueryKeys from '../constants/application-query-keys';
 import type {ApplicationListResponse} from '../models/responses';
@@ -63,10 +63,11 @@ export interface UseGetApplicationsParams {
 export default function useGetApplications(params?: UseGetApplicationsParams): UseQueryResult<ApplicationListResponse> {
   const {http} = useThunderID();
   const {getServerUrl} = useConfig();
+  const projectId = useProject()?.projectId;
   const {limit = 30, offset = 0, filter} = params ?? {};
 
   return useQuery<ApplicationListResponse>({
-    queryKey: [ApplicationQueryKeys.APPLICATIONS, {limit, offset, filter}],
+    queryKey: [ApplicationQueryKeys.APPLICATIONS, {limit, offset, filter, projectId}],
     queryFn: async (): Promise<ApplicationListResponse> => {
       const serverUrl: string = getServerUrl();
       const queryParams: URLSearchParams = new URLSearchParams({
@@ -75,6 +76,9 @@ export default function useGetApplications(params?: UseGetApplicationsParams): U
       });
       if (filter) {
         queryParams.append('filter', filter);
+      }
+      if (projectId) {
+        queryParams.append('projectId', projectId);
       }
 
       const response: {
