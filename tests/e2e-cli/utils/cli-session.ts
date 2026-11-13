@@ -95,8 +95,8 @@ export class CliSession {
       env.PATH = `${options.pathPrefix}${path.delimiter}${env.PATH ?? ""}`;
     }
 
-    const launch = cliCommand();
-    this.proc = pty.spawn(launch.command, [...launch.args, ...args], {
+    const launch = cliCommand(args);
+    this.proc = pty.spawn(launch.command, launch.args, {
       name: "xterm-256color",
       // A wide window keeps the TUI from wrapping the phrases assertions match on.
       cols: 160,
@@ -273,14 +273,21 @@ export function publishedTag(): string | null {
   return process.env.E2E_CLI_TAG?.trim() || "latest";
 }
 
-/** The command that launches the CLI, honouring the source mode. */
-export function cliCommand(): { command: string; args: string[] } {
+/**
+ * The suite covers the Data Plane: its fixed default port, port-conflict handling and sample
+ * onboarding. A 2.x release installs the quickstart by default, so the plane is always pinned.
+ * It goes after the spec's arguments because the CLI reads its command from the first ones.
+ */
+const PLANE_ARGS = ["--plane", "dp"];
+
+/** The command that launches the CLI with args, honouring the source mode. */
+export function cliCommand(args: string[]): { command: string; args: string[] } {
   const tag = publishedTag();
   if (tag) {
     // --yes so a cold runner does not stop on the install prompt.
-    return { command: "npx", args: ["--yes", `thunderid@${tag}`] };
+    return { command: "npx", args: ["--yes", `thunderid@${tag}`, ...args, ...PLANE_ARGS] };
   }
-  return { command: "node", args: [npxEntry()] };
+  return { command: "node", args: [npxEntry(), ...args, ...PLANE_ARGS] };
 }
 
 export function sleep(ms: number): Promise<void> {

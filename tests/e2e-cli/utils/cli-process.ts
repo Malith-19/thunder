@@ -48,8 +48,8 @@ export function runCli(workspace: Workspace, args: string[], timeout: number): P
       env.THUNDERID_PRODUCT_VERSION = manifest;
     }
 
-    const launch = cliCommand();
-    const child = spawn(launch.command, [...launch.args, ...args], { cwd: workspace.dir, env });
+    const launch = cliCommand(args);
+    const child = spawn(launch.command, launch.args, { cwd: workspace.dir, env });
 
     let output = "";
     child.stdout.on("data", chunk => (output += chunk));
